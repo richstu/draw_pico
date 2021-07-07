@@ -1,13 +1,20 @@
 #ifndef H_PLOT_MAKER
 #define H_PLOT_MAKER
 
-#include <vector>
-#include <set>
+#include <functional>
 #include <memory>
+#include <set>
 #include <utility>
+#include <vector>
 
-#include "core/plot_opt.hpp"
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RDF/RInterface.hxx"
+#include "ROOT/RResultPtr.hxx"
+
 #include "core/figure.hpp"
+#include "core/plot_opt.hpp"
+
+using ProcessedDataFrame = ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void>;
 
 class Process;
 
@@ -28,6 +35,8 @@ public:
 
   void MakePlots(double luminosity,
                  const std::string &subdir = "");
+  void MakePlotsRdf(double luminosity,
+                    const std::string &subdir = "");
 
   const std::unique_ptr<Figure> & GetFigure(std::string tag) const;
   const std::vector<std::unique_ptr<Figure> > & Figures() const;
@@ -42,7 +51,14 @@ public:
   void Clear();
 
   void SetEventVetoData(void * eventVetoData);
+  void DefineRdfColumns(
+      std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func);
+  void DefineRdfColumnsData(
+      std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func);
+  void DefineRdfColumnsMC(
+      std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func);
 
+  std::string tree_name_;
   bool multithreaded_;
   bool min_print_;
   bool print_2d_figures_;
@@ -51,6 +67,8 @@ public:
 
 private:
   std::vector<std::unique_ptr<Figure> > figures_;//!<Figures to be produced
+  std::vector<std::function<ProcessedDataFrame(ProcessedDataFrame&)>> rdf_column_funcs_mc_;//!<Functions to be applied to define columns in RDataFrame for MC
+  std::vector<std::function<ProcessedDataFrame(ProcessedDataFrame&)>> rdf_column_funcs_data_;//!<Functions to be applied to define columns in RDataFrame for data
 
   void GetYields();
   long GetYield(Baby *baby_ptr);

@@ -107,6 +107,30 @@ void Table::TableColumn::RecordEvent(const Baby &baby){
   }
 }
 
+void Table::TableColumn::BookResult(
+    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+
+  const Table& table = static_cast<const Table&>(figure_);
+  for(size_t irow = 0; irow < table.rows_.size(); ++irow){
+    const TableRow& row = table.rows_.at(irow);
+    const NamedFunc &cut = proc_and_table_cut_.at(irow);
+    const NamedFunc &wgt = row.weight_;
+    //TODO: define w2 branch
+    auto figure_filtered_frame = filtered_frame.Filter(cut.Name());
+
+    booked_sumw_ptr_.push_back(figure_filtered_frame.Sum(wgt.Name()));
+    booked_sumw2_ptr_.push_back(figure_filtered_frame.Sum(wgt.Name()+"2"));
+  } //table rows
+}
+
+void Table::TableColumn::GetResult() {
+  const Table& table = static_cast<const Table&>(figure_);
+  for(size_t irow = 0; irow < table.rows_.size(); ++irow){
+    sumw_.at(irow) = booked_sumw_ptr_[irow].GetValue();
+    sumw2_.at(irow) = booked_sumw2_ptr_[irow].GetValue();
+  } //table rows
+}
+
 Table::Table(const string &name,
     const vector<TableRow> &rows,
     const vector<shared_ptr<Process> > &processes,

@@ -131,7 +131,7 @@ namespace HigUtilities {
       std::vector<std::pair<std::string, std::string>> sample_bins, std::string sys_idx) {
     std::vector<std::pair<std::string, std::string>> sys_bins;
     for (unsigned bin_idx = 0; bin_idx < sample_bins.size(); bin_idx++) {
-      sys_bins.push_back(std::pair(sample_bins[bin_idx].first, nom2sys_string(sample_bins[bin_idx].second, sys_idx)));
+      sys_bins.push_back(std::pair<std::string, std::string>(sample_bins[bin_idx].first, nom2sys_string(sample_bins[bin_idx].second, sys_idx)));
     }
     return sys_bins;
   }

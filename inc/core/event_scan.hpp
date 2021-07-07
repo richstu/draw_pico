@@ -6,6 +6,9 @@
 #include <string>
 #include <fstream>
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RDF/RInterface.hxx"
+
 #include "core/figure.hpp"
 #include "core/process.hpp"
 
@@ -18,6 +21,11 @@ class EventScan final : public Figure{
    ~SingleScan() = default;
 
    void RecordEvent(const Baby &baby) final;
+   void BookResult(
+       ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame 
+       [[maybe_unused]]) final;
+
+   void GetResult() final;
 
    void Precision(unsigned precision);
 

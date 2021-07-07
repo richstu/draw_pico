@@ -7,6 +7,9 @@
 #include <set>
 #include <limits>
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RResultPtr.hxx"
+#include "ROOT/RDF/RInterface.hxx"
 #include "TH1D.h"
 #include "TLegend.h"
 #include "TCanvas.h"
@@ -33,6 +36,10 @@ public:
     mutable TH1D scaled_hist_;//!<Kludge. Mutable storage of scaled and stacked histogram
 
     void RecordEvent(const Baby &baby) final;
+    void BookResult(
+        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) final;
+
+    void GetResult() final;
 
     double GetMax(double max_bound = std::numeric_limits<double>::infinity(),
                   bool include_error_bar = false,
@@ -50,6 +57,7 @@ public:
 
     NamedFunc proc_and_hist_cut_;
     NamedFunc::VectorType cut_vector_, wgt_vector_, val_vector_;
+    ROOT::RDF::RResultPtr<TH1D> booked_raw_hist_ptr_;
   };
 
   Hist1D(const Axis &xaxis, const NamedFunc &cut,

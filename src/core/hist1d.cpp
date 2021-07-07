@@ -37,6 +37,9 @@
 
 #include <sys/stat.h>
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RResultPtr.hxx"
+#include "ROOT/RDF/RInterface.hxx"
 #include "TROOT.h"
 #include "TStyle.h"
 #include "TGraphAsymmErrors.h"
@@ -208,6 +211,27 @@ void Hist1D::SingleHist1D::RecordEvent(const Baby &baby){
                      wgt.IsScalar() ? wgt_scalar : wgt_vector_.at(i));
     }
   }
+}
+
+void Hist1D::SingleHist1D::BookResult(
+    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+
+  const Hist1D& stack = static_cast<const Hist1D&>(figure_);
+  //no support for vector columns for now
+  const NamedFunc &cut = proc_and_hist_cut_;
+  const NamedFunc &wgt = stack.weight_;
+  const NamedFunc &val = stack.xaxis_.var_;
+  std::vector<double> bins = stack.xaxis_.Bins();
+
+  auto figure_filtered_frame = filtered_frame.Filter(cut.Name());
+  booked_raw_hist_ptr_ = figure_filtered_frame.Histo1D(
+      {val.Name().c_str(),stack.xaxis_.title_.c_str(),
+      static_cast<int>(stack.xaxis_.Nbins()),&bins[0]},val.Name(),wgt.Name());
+}
+
+void Hist1D::SingleHist1D::GetResult() {
+  TH1D* booked_raw_hist_ = (static_cast<TH1D*>(booked_raw_hist_ptr_->Clone()));
+  raw_hist_.Add(booked_raw_hist_);
 }
 
 /*! Get the maximum of the histogram

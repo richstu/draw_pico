@@ -21,6 +21,10 @@ public:
     ~TableColumn() = default;
 
     void RecordEvent(const Baby &baby) final;
+    void BookResult(
+        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) final;
+
+    void GetResult() final;
 
     std::vector<double> sumw_, sumw2_;
 
@@ -32,6 +36,8 @@ public:
     TableColumn& operator=(TableColumn &&) = delete;
 
     std::vector<NamedFunc> proc_and_table_cut_;
+    std::vector<ROOT::RDF::RResultPtr<double>> booked_sumw_ptr_;
+    std::vector<ROOT::RDF::RResultPtr<double>> booked_sumw2_ptr_;
     NamedFunc::VectorType cut_vector_, wgt_vector_, val_vector_;
   };
 

@@ -41,6 +41,8 @@ namespace Clustering{
                          long max_points = -1);
 
     void AddPoint(float x, float y, float w);
+
+    void Add(TH2D* addend_hist);
     
     void SetPoints(const std::vector<Point> &points);
     void SetPoints(const TH2D &h);

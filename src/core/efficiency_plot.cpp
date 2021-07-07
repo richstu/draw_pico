@@ -36,6 +36,9 @@
 
 #include <sys/stat.h>
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RResultPtr.hxx"
+#include "ROOT/RDF/RInterface.hxx"
 #include "TROOT.h"
 #include "TStyle.h"
 #include "TString.h"
@@ -165,6 +168,34 @@ void EfficiencyPlot::SingleEfficiencyPlot::RecordEvent(const Baby &baby){
                                wgt.IsScalar() ? wgt_scalar : wgt_vector_.at(i));
     } //vector index
   }
+}
+
+void EfficiencyPlot::SingleEfficiencyPlot::BookResult(
+    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+
+  const EfficiencyPlot& stack = static_cast<const EfficiencyPlot&>(figure_);
+  //no support for vector columns for now
+  const NamedFunc &cut = proc_and_hist_cut_;
+  const NamedFunc &num = numerator_cut_;
+  const NamedFunc &wgt = stack.weight_;
+  const NamedFunc &val = stack.xaxis_.var_;
+  std::vector<double> bins = stack.xaxis_.Bins();
+
+  auto figure_filtered_frame = filtered_frame.Filter(cut.Name());
+  booked_raw_denominator_hist_ptr_ = figure_filtered_frame.Histo1D(
+      {val.Name().c_str(),stack.xaxis_.title_.c_str(),
+      static_cast<int>(stack.xaxis_.Nbins()),&bins[0]},val.Name(),wgt.Name());
+  figure_filtered_frame = figure_filtered_frame.Filter(num.Name());
+  booked_raw_numerator_hist_ptr_ = figure_filtered_frame.Histo1D(
+      {val.Name().c_str(),stack.xaxis_.title_.c_str(),
+      static_cast<int>(stack.xaxis_.Nbins()),&bins[0]},val.Name(),wgt.Name());
+}
+
+void EfficiencyPlot::SingleEfficiencyPlot::GetResult() {
+  TH1D* booked_raw_numerator_hist_ = (static_cast<TH1D*>(booked_raw_numerator_hist_ptr_->Clone()));
+  TH1D* booked_raw_denominator_hist_ = (static_cast<TH1D*>(booked_raw_denominator_hist_ptr_->Clone()));
+  raw_numerator_hist_.Add(booked_raw_numerator_hist_);
+  raw_denominator_hist_.Add(booked_raw_denominator_hist_);
 }
 
 /*! \brief Standard constructor

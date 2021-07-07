@@ -6,6 +6,9 @@
 
 #include <sys/stat.h>
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RResultPtr.hxx"
+#include "ROOT/RDF/RInterface.hxx"
 #include "TStyle.h"
 #include "TH2D.h"
 #include "TROOT.h"
@@ -94,6 +97,32 @@ void Hist2D::SingleHist2D::RecordEvent(const Baby &baby){
     }
   }
 }
+
+void Hist2D::SingleHist2D::BookResult(
+    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+
+  const Hist2D& hist = static_cast<const Hist2D&>(figure_);
+  //no support for vector columns for now
+  const NamedFunc &cut = proc_and_hist_cut_;
+  const NamedFunc &wgt = hist.weight_;
+  const NamedFunc &x_val = hist.xaxis_.var_;
+  const NamedFunc &y_val = hist.yaxis_.var_;
+  std::vector<double> x_bins = hist.xaxis_.Bins();
+  std::vector<double> y_bins = hist.yaxis_.Bins();
+
+  auto figure_filtered_frame = filtered_frame.Filter(cut.Name());
+  booked_raw_hist_ptr_ = figure_filtered_frame.Histo2D(
+      {x_val.Name().c_str(),hist.xaxis_.title_.c_str(),
+      static_cast<int>(hist.xaxis_.Nbins()),&x_bins[0],
+      static_cast<int>(hist.yaxis_.Nbins()),&y_bins[0]},
+      x_val.Name(),y_val.Name(),wgt.Name());
+}
+
+void Hist2D::SingleHist2D::GetResult() {
+  TH2D* booked_raw_hist_ = (static_cast<TH2D*>(booked_raw_hist_ptr_->Clone()));
+  clusterizer_.Add(booked_raw_hist_);
+}
+
 
 Hist2D::Hist2D(const Axis &xaxis, const Axis &yaxis, const NamedFunc &cut,
                const std::vector<std::shared_ptr<Process> > &processes,

@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RDF/RInterface.hxx"
+
 #include "core/process.hpp"
 #include "core/baby.hpp"
 #include "core/named_func.hpp"
@@ -19,6 +22,11 @@ public:
     virtual ~FigureComponent() = default;
 
     virtual void RecordEvent(const Baby &baby) = 0;
+
+    virtual void BookResult(
+        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) = 0;
+
+    virtual void GetResult() = 0;
 
     const Figure& figure_;//!<Reference to figure containing this component
     std::shared_ptr<Process> process_;//!<Process associated to this part of the figure

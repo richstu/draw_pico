@@ -5,6 +5,9 @@
 
 #include <sys/stat.h>
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RDF/RInterface.hxx"
+
 #include "core/utilities.hpp"
 
 using namespace std;
@@ -75,6 +78,18 @@ void EventScan::SingleScan::RecordEvent(const Baby &baby){
   }
 
   if(max_size > 0) ++row_;
+}
+
+void EventScan::SingleScan::BookResult(
+    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+  std::cout << "WARNING: Event scan is not supported with RDataFrame back end. ";
+  std::cout << "Consider using event loop backend." << std::endl;
+  //do nothing as no way to make scan with RDataFrame
+  (void)filtered_frame;
+}
+
+void EventScan::SingleScan::GetResult() {
+  //do nothing as no way to make scan with RDataFrame
 }
 
 void EventScan::SingleScan::Precision(unsigned precision){

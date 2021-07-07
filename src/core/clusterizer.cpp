@@ -87,6 +87,10 @@ void Clusterizer::AddPoint(float x, float y, float w){
   }
 }
 
+void Clusterizer::Add(TH2D* addend_hist) {
+  hist_.Add(addend_hist);
+}
+
 void Clusterizer::SetPoints(const vector<Point> &points){
   clustered_lumi_ = -1.;
   EmptyHistogram();

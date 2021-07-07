@@ -17,6 +17,9 @@
 #include <map>
 #include <iomanip>  // setw
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RDF/RInterface.hxx"
+#include "ROOT/RResultPtr.hxx"
 #include "TLegend.h"
 
 #include "core/utilities.hpp"
@@ -42,11 +45,14 @@ namespace{
 /*!\brief Standard constructor
  */
 PlotMaker::PlotMaker():
+  tree_name_("tree"),
   multithreaded_(true),
   min_print_(false),
   print_2d_figures_(true),
   max_entries_(-1),
-  figures_(){
+  figures_(),
+  rdf_column_funcs_mc_(std::vector<std::function<ProcessedDataFrame(ProcessedDataFrame&)>>()),
+  rdf_column_funcs_data_(std::vector<std::function<ProcessedDataFrame(ProcessedDataFrame&)>>()){
 }
 
 /*!\brief Prints all added plots with given luminosity
@@ -95,6 +101,100 @@ void PlotMaker::Clear(){
 
 void PlotMaker::SetEventVetoData(void * eventVetoData) {
   event_veto_data_ = eventVetoData;
+}
+
+void PlotMaker::DefineRdfColumns(
+    std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func) {
+  rdf_column_funcs_mc_.push_back(rdf_column_func);
+  rdf_column_funcs_data_.push_back(rdf_column_func);
+}
+
+void PlotMaker::DefineRdfColumnsData(
+    std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func) {
+  rdf_column_funcs_data_.push_back(rdf_column_func);
+}
+
+void PlotMaker::DefineRdfColumnsMC(
+    std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func) {
+  rdf_column_funcs_mc_.push_back(rdf_column_func);
+}
+
+void PlotMaker::MakePlotsRdf(double luminosity, const std::string &subdir){
+  //auto start_time = Clock::now();
+
+  set<Baby*> babies = GetBabies();
+  size_t num_threads = 1;
+  if (multithreaded_) {
+    num_threads = min(babies.size(), static_cast<size_t>(thread::hardware_concurrency()));
+    ROOT::EnableImplicitMT();
+  }
+  cout << "Processing " << babies.size() << " babies with " << num_threads << " threads. (RDataFrame backend)" << endl;
+
+  //make a dataframe for each baby and book plots
+  //TODO: is there a way of making RDataFrame more verbose?
+  for(const auto &baby_ptr: babies){
+    Baby &baby = *baby_ptr;
+    ROOT::RDataFrame baby_frame(tree_name_, 
+        std::vector<std::string>(baby.FileNames().begin(), baby.FileNames().end()));
+    auto baby_frame_rint = baby_frame.Filter("1");
+    //define columns
+    if (baby.SampleType() < 0) {
+      for (auto rdf_column_func : rdf_column_funcs_data_) {
+        baby_frame_rint = rdf_column_func(baby_frame_rint);
+      }
+    }
+    else {
+      for (auto rdf_column_func : rdf_column_funcs_mc_) {
+        baby_frame_rint = rdf_column_func(baby_frame_rint);
+      }
+    }
+    vector<pair<const Process*, set<Figure::FigureComponent*> > > proc_figs(baby.processes_.size());
+    size_t iproc = 0;
+    for(const auto &proc: baby.processes_){
+      proc_figs.at(iproc).first = proc;
+      proc_figs.at(iproc).second = GetComponents(proc);
+      ++iproc;
+    }
+    for(const auto &proc_fig: proc_figs){
+      //apply filter from processes definition
+      auto filtered_frame = baby_frame_rint.Filter(proc_fig.first->cut_.Name());
+      for(const auto &component: proc_fig.second){
+        component->BookResult(filtered_frame);
+      }
+    }
+  }
+  //run the event loop and copy results
+  for(const auto &baby_ptr: babies){
+    Baby &baby = *baby_ptr;
+    vector< set<Figure::FigureComponent*> > proc_figs(baby.processes_.size());
+    size_t iproc = 0;
+    for(const auto &proc: baby.processes_){
+      proc_figs.at(iproc) = GetComponents(proc);
+      ++iproc;
+    }
+    for(const auto &proc_fig: proc_figs){
+      //apply filter from processes definition
+      for(const auto &component: proc_fig){
+        component->GetResult();
+      }
+    }
+  }
+  //print figures
+  for(auto &figure: figures_){
+    if ((!(figure->is_2d_histogram()))||print_2d_figures_) {
+      figure->Print(luminosity, subdir);
+    }
+  }
+
+  //auto end_time = Clock::now();
+  //double num_seconds = chrono::duration<double>(end_time-start_time).count();
+  //if(!min_print_) cout << endl << num_threads << " threads processed "
+	//	       << babies.size() << " babies with "
+	//	       << AddCommas(num_entries) << " events in "
+	//	       << num_seconds << " seconds = "
+	//	       << 0.001*num_entries/num_seconds << " kHz."
+	//	       << endl;
+  //cout << endl;
 }
 
 void PlotMaker::GetYields(){

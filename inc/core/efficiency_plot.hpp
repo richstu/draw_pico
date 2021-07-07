@@ -7,6 +7,9 @@
 #include <set>
 #include <limits>
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RResultPtr.hxx"
+#include "ROOT/RDF/RInterface.hxx"
 #include "TH1D.h"
 #include "TLegend.h"
 #include "TCanvas.h"
@@ -34,6 +37,10 @@ public:
     TH1D raw_numerator_hist_;//!<Histogram storing distribution before stacking and luminosity weighting
 
     void RecordEvent(const Baby &baby) final;
+    void BookResult(
+        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) final;
+
+    void GetResult() final;
 
   private:
     SingleEfficiencyPlot() = delete;
@@ -44,6 +51,8 @@ public:
 
     NamedFunc proc_and_hist_cut_, numerator_cut_;
     NamedFunc::VectorType cut_vector_, wgt_vector_, val_vector_, numerator_cut_vector_;
+    ROOT::RDF::RResultPtr<TH1D> booked_raw_numerator_hist_ptr_;
+    ROOT::RDF::RResultPtr<TH1D> booked_raw_denominator_hist_ptr_;
   };
 
   EfficiencyPlot(const Axis &xaxis, const NamedFunc &denominator_cut, const NamedFunc &numerator_cut,

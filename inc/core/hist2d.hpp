@@ -1,12 +1,16 @@
 #ifndef H_HIST2D
 #define H_HIST2D
 
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RResultPtr.hxx"
+#include "ROOT/RDF/RInterface.hxx"
 #include "TH2D.h"
 #include "TGraph.h"
 #include "TLine.h"
 #include "TLatex.h"
 #include "TLegend.h"
 #include "TPaveText.h"
+
 #include "core/figure.hpp"
 #include "core/axis.hpp"
 #include "core/plot_opt.hpp"
@@ -24,6 +28,10 @@ public:
     Clustering::Clusterizer clusterizer_;
 
     void RecordEvent(const Baby &baby);
+    void BookResult(
+        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) final;
+
+    void GetResult() final;
 
   private:
     SingleHist2D() = delete;
@@ -34,6 +42,7 @@ public:
 
     NamedFunc proc_and_hist_cut_;
     NamedFunc::VectorType cut_vector_, wgt_vector_, xval_vector_, yval_vector_;
+    ROOT::RDF::RResultPtr<TH2D> booked_raw_hist_ptr_;
   };
 
   Hist2D(const Axis &xaxis, const Axis &yaxis, const NamedFunc &cut,
