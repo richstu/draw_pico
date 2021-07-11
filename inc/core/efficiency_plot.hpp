@@ -37,8 +37,7 @@ public:
     TH1D raw_numerator_hist_;//!<Histogram storing distribution before stacking and luminosity weighting
 
     void RecordEvent(const Baby &baby) final;
-    void BookResult(
-        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) final;
+    void BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) final;
 
     void GetResult() final;
 

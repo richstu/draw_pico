@@ -23,8 +23,7 @@ public:
 
     virtual void RecordEvent(const Baby &baby) = 0;
 
-    virtual void BookResult(
-        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) = 0;
+    virtual void BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) = 0;
 
     virtual void GetResult() = 0;
 

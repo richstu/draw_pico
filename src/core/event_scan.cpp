@@ -80,12 +80,12 @@ void EventScan::SingleScan::RecordEvent(const Baby &baby){
   if(max_size > 0) ++row_;
 }
 
-void EventScan::SingleScan::BookResult(
-    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+void EventScan::SingleScan::BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) {
   std::cout << "WARNING: Event scan is not supported with RDataFrame back end. ";
   std::cout << "Consider using event loop backend." << std::endl;
   //do nothing as no way to make scan with RDataFrame
-  (void)filtered_frame;
+  (void)data_frame;
+  (void)rdf_plot_idx;
 }
 
 void EventScan::SingleScan::GetResult() {

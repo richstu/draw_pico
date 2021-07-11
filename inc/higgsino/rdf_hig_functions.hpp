@@ -8,7 +8,6 @@
 #include "ROOT/RDataFrame.hxx"
 #include "ROOT/RDF/RInterface.hxx"
 #include "ROOT/RVec.hxx"
-#include "core/rdf_named_func.hpp"
  
 namespace RdfHigfuncs{
 

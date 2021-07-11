@@ -171,7 +171,7 @@ void EfficiencyPlot::SingleEfficiencyPlot::RecordEvent(const Baby &baby){
 }
 
 void EfficiencyPlot::SingleEfficiencyPlot::BookResult(
-    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+    ROOT::RDF::RNode data_frame, int &rdf_plot_idx) {
 
   const EfficiencyPlot& stack = static_cast<const EfficiencyPlot&>(figure_);
   //no support for vector columns for now
@@ -181,13 +181,16 @@ void EfficiencyPlot::SingleEfficiencyPlot::BookResult(
   const NamedFunc &val = stack.xaxis_.var_;
   std::vector<double> bins = stack.xaxis_.Bins();
 
-  auto figure_filtered_frame = filtered_frame.Filter(cut.Name());
+  std::string den_hist_name = "rdf_hist" + std::to_string(rdf_plot_idx);
+  std::string num_hist_name = "rdf_hist" + std::to_string(rdf_plot_idx+1);
+  rdf_plot_idx += 2;
+  auto figure_filtered_frame = data_frame.Filter(cut.Name());
   booked_raw_denominator_hist_ptr_ = figure_filtered_frame.Histo1D(
-      {val.Name().c_str(),stack.xaxis_.title_.c_str(),
+      {den_hist_name.c_str(),stack.xaxis_.title_.c_str(),
       static_cast<int>(stack.xaxis_.Nbins()),&bins[0]},val.Name(),wgt.Name());
   figure_filtered_frame = figure_filtered_frame.Filter(num.Name());
   booked_raw_numerator_hist_ptr_ = figure_filtered_frame.Histo1D(
-      {val.Name().c_str(),stack.xaxis_.title_.c_str(),
+      {num_hist_name.c_str(),stack.xaxis_.title_.c_str(),
       static_cast<int>(stack.xaxis_.Nbins()),&bins[0]},val.Name(),wgt.Name());
 }
 

@@ -21,8 +21,7 @@ public:
     ~TableColumn() = default;
 
     void RecordEvent(const Baby &baby) final;
-    void BookResult(
-        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) final;
+    void BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) final;
 
     void GetResult() final;
 

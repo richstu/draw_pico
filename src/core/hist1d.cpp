@@ -40,6 +40,7 @@
 #include "ROOT/RDataFrame.hxx"
 #include "ROOT/RResultPtr.hxx"
 #include "ROOT/RDF/RInterface.hxx"
+#include "ROOT/RDF/RCutFlowReport.hxx"
 #include "TROOT.h"
 #include "TStyle.h"
 #include "TGraphAsymmErrors.h"
@@ -157,7 +158,8 @@ Hist1D::SingleHist1D::SingleHist1D(const Hist1D &figure,
   proc_and_hist_cut_(figure.cut_ && process->cut_),
   cut_vector_(),
   wgt_vector_(),
-  val_vector_(){
+  val_vector_(),
+  booked_rdf_(false){
   raw_hist_.Sumw2();
   scaled_hist_.Sumw2();
   raw_hist_.SetBinErrorOption(TH1::kPoisson);
@@ -213,8 +215,7 @@ void Hist1D::SingleHist1D::RecordEvent(const Baby &baby){
   }
 }
 
-void Hist1D::SingleHist1D::BookResult(
-    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+void Hist1D::SingleHist1D::BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) {
 
   const Hist1D& stack = static_cast<const Hist1D&>(figure_);
   //no support for vector columns for now
@@ -223,15 +224,38 @@ void Hist1D::SingleHist1D::BookResult(
   const NamedFunc &val = stack.xaxis_.var_;
   std::vector<double> bins = stack.xaxis_.Bins();
 
-  auto figure_filtered_frame = filtered_frame.Filter(cut.Name());
-  booked_raw_hist_ptr_ = figure_filtered_frame.Histo1D(
-      {val.Name().c_str(),stack.xaxis_.title_.c_str(),
-      static_cast<int>(stack.xaxis_.Nbins()),&bins[0]},val.Name(),wgt.Name());
+  auto filtered_frame = data_frame.Filter(cut.Name(),cut.Name());
+  //auto figure_filtered_frame = data_frame.Filter("1",cut.Name());
+  std::string hist_name = "rdf_hist" + std::to_string(rdf_plot_idx);
+  rdf_plot_idx += 1;
+  auto filter_name_list = filtered_frame.GetFilterNames();
+  std::cout << "DEBUG: filter names: ";
+  for (auto filter_name : filter_name_list) {
+    std::cout << filter_name << ",";
+  }
+  std::cout << std::endl;
+  std::cout << "DEBUG: making histogram {" << hist_name << ", " << stack.xaxis_.title_ << ", " << stack.xaxis_.Nbins() << ", {";
+  std::cout << "bins}}, " << val.Name() << wgt.Name() << std::endl;
+  booked_raw_hist_ptr_.push_back(filtered_frame.Histo1D(
+      {hist_name.c_str(),stack.xaxis_.title_.c_str(),
+      static_cast<int>(stack.xaxis_.Nbins()),&bins[0]},val.Name(),wgt.Name()));
+  booked_cut_flow_ptr_.push_back(filtered_frame.Report());
+  booked_rdf_ = true;
 }
 
 void Hist1D::SingleHist1D::GetResult() {
-  TH1D* booked_raw_hist_ = (static_cast<TH1D*>(booked_raw_hist_ptr_->Clone()));
-  raw_hist_.Add(booked_raw_hist_);
+  if (booked_rdf_) {
+    std::cout << "DEBUG: cutflows" << std::endl;
+    for (auto single_booked_ptr : booked_cut_flow_ptr_) {
+      single_booked_ptr->Print();
+    }
+    for (ROOT::RDF::RResultPtr<TH1D> single_booked_ptr : booked_raw_hist_ptr_) {
+      //std::cout << "DEBUG: cloning" << std::endl;
+      //TH1D* booked_raw_hist = static_cast<TH1D*>(single_booked_ptr->Clone());
+      std::cout << "DEBUG: adding" << std::endl;
+      raw_hist_.Add(single_booked_ptr.GetPtr());
+    }
+  }
 }
 
 /*! Get the maximum of the histogram
@@ -376,6 +400,19 @@ Hist1D::Hist1D(const Axis &xaxis, const NamedFunc &cut,
 void Hist1D::Print(double luminosity,
                    const string &subdir){
   if (!draw_plot_) return;
+  //run RDataFrame
+  std::cout << "DEBUG: getting data results" << std::endl;
+  for (auto &single_hist : datas_) {
+    single_hist->GetResult();
+  }
+  std::cout << "DEBUG: getting mc results" << std::endl;
+  for (auto &single_hist : backgrounds_) {
+    single_hist->GetResult();
+  }
+  std::cout << "DEBUG: getting signal results" << std::endl;
+  for (auto &single_hist : signals_) {
+    single_hist->GetResult();
+  }
   luminosity_ = luminosity;
   for(const auto &opt: plot_options_){
     this_opt_ = opt;

@@ -106,9 +106,7 @@ void setProcsDict(string const & production, string const & nanoAodFolder, strin
   mc_filenames["single_t"] = set<string>({"*_ST_*.root"});
   mc_filenames["zjets"]   = set<string>({"*_ZJet*.root", "*DYJetsToLL*.root"});
   mc_filenames["wjets"]   = set<string>({"*_WJetsToLNu*.root"});
-  mc_filenames["qcd"]     = set<string>({"*_QCD_HT200to300_*","*_QCD_HT300to500_*","*_QCD_HT500to700_*",
-                                   "*_QCD_HT700to1000_*", "*_QCD_HT1000to1500_*","*_QCD_HT1500to2000_*",
-                                   "*_QCD_HT2000toInf_*"});
+  mc_filenames["qcd"]     = set<string>({"*_QCD_HT*"});
   mc_filenames["other"]   = set<string>({"*_WH*.root", "*_ZH_HToBB*.root",
                                      "*_WWTo*.root", "*_WZ*.root", "*_ZZ_*.root"});
   mc_filenames["other_and_single_t"]   = set<string>({"*_WH*.root", "*_ZH_HToBB*.root",
@@ -138,77 +136,29 @@ void setProcsDict(string const & production, string const & nanoAodFolder, strin
     signal_filenames.insert("TChiHH("+to_string(mass_point.first)+","+to_string(mass_point.second)+")", {"*TChiHH_mChi-"+to_string(mass_point.first)+"_mLSP-"+to_string(mass_point.second)+"_*.root"});
   }
 
-  // Set mc background+signal procs
   Palette colors("txt/colors.txt", "default");
-  procsDict["mc"];
-  //procsDict["mc"].push_back(Process::MakeShared<Baby_pico>("tt+x", Process::Type::background,colors("tt_1l"),
-  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch"));
-  procsDict["mc"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}>0)", Process::Type::background,colors("tt_htau"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh>0"));
-  procsDict["mc"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}=0)", Process::Type::background,colors("tt_1l"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh==0"));
-  procsDict["mc"].push_back(Process::MakeShared<Baby_pico>("Z+jets", Process::Type::background, kOrange+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["zjets"]),"stitch"));
-  procsDict["mc"].push_back(Process::MakeShared<Baby_pico>("W+jets", Process::Type::background, kGreen+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["wjets"]),"stitch"));
-  procsDict["mc"].push_back(Process::MakeShared<Baby_pico>("Single t", Process::Type::background,colors("single_t"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["single_t"]),"stitch"));
-  procsDict["mc"].push_back(Process::MakeShared<Baby_pico>("QCD", Process::Type::background, colors("other"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["qcd"]),"stitch")); 
-  procsDict["mc"].push_back(Process::MakeShared<Baby_pico>("Other", Process::Type::background, kGray+2,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["other"]),"stitch"));
 
-  procsDict["mcTtbar"];
-  //procsDict["mcTtbar"].push_back(Process::MakeShared<Baby_pico>("tt+x", Process::Type::background,colors("tt_1l"),
-  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch"));
-  procsDict["mcTtbar"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}>0)", Process::Type::background,colors("tt_htau"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh>0"));
-  procsDict["mcTtbar"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}=0)", Process::Type::background,colors("tt_1l"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh==0"));
-
-  procsDict["mc_and_sig"];
-  //procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>("tt+x", Process::Type::background,colors("tt_1l"),
-  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch"));
-  procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}>0)", Process::Type::background,colors("tt_htau"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh>0"));
-  procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}=0)", Process::Type::background,colors("tt_1l"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh==0"));
-  procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>("Z+jets", Process::Type::background, kOrange+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["zjets"]),"stitch"));
-  procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>("W+jets", Process::Type::background, kGreen+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["wjets"]),"stitch"));
-  procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>("Single t", Process::Type::background,colors("single_t"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["single_t"]),"stitch"));
-  procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>("QCD", Process::Type::background, colors("other"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["qcd"]),"stitch")); 
-  procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>("Other", Process::Type::background, kGray+2,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["other"]),"stitch"));
-  for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
-    procsDict["mc_and_sig"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key(), Process::Type::signal, 
-      sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "1"));
-  }
-
-  procsDict["mc_and_sig_and_data"];
-  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}>0)", Process::Type::background,colors("tt_htau"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh>0"));
-  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}=0)", Process::Type::background,colors("tt_1l"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh==0"));
-  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Z+jets", Process::Type::background, kOrange+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["zjets"]),"stitch"));
-  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("W+jets", Process::Type::background, kGreen+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["wjets"]),"stitch"));
-  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Single t", Process::Type::background,colors("single_t"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["single_t"]),"stitch"));
-  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("QCD", Process::Type::background, colors("other"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["qcd"]),"stitch")); 
-  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Other", Process::Type::background, kGray+2,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["other"]),"stitch"));
-  for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
-    procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key(), Process::Type::signal, 
-      sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "1"));
-  }
-  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Data", Process::Type::data, kBlack, 
-                   attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}), "met_trigger"));
+  //procsDict["mc_and_sig_and_data"];
+  //procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}>0)", Process::Type::background,colors("tt_htau"),
+  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh>0"));
+  //procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}=0)", Process::Type::background,colors("tt_1l"),
+  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh==0"));
+  //procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Z+jets", Process::Type::background, kOrange+1,
+  //                attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["zjets"]),"stitch"));
+  //procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("W+jets", Process::Type::background, kGreen+1,
+  //                attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["wjets"]),"stitch"));
+  //procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Single t", Process::Type::background,colors("single_t"),
+  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["single_t"]),"stitch"));
+  //procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("QCD", Process::Type::background, colors("other"),
+  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["qcd"]),"stitch")); 
+  //procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Other", Process::Type::background, kGray+2,
+  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["other"]),"stitch"));
+  //for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
+  //  procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key(), Process::Type::signal, 
+  //    sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "stitch"));
+  //}
+  //procsDict["mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Data", Process::Type::data, kBlack, 
+  //                 attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}), "HLT_PFMET120_PFMHT120_IDTight"));
 
   //dictionary combines some MC categories for paper
   procsDict["paper_mc_and_sig_and_data"];
@@ -227,138 +177,7 @@ void setProcsDict(string const & production, string const & nanoAodFolder, strin
       sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "1"));
   }
   procsDict["paper_mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Data", Process::Type::data, kBlack, 
-                   attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}), triggers_data));
-
-  // Set mc btag procs
-  procsDict["mc_btag"];
-  procsDict["mc_btag"].push_back(Process::MakeShared<Baby_pico>("All bkg. (2b)", Process::Type::background,colors("2b"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&(nbt==2&&nbm==2)"));
-  procsDict["mc_btag"].push_back(Process::MakeShared<Baby_pico>("All bkg. (3b)", Process::Type::background,colors("3b"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&(nbt>=2&&nbm==3&&nbl==3)"));
-  procsDict["mc_btag"].push_back(Process::MakeShared<Baby_pico>("All bkg. (4b)", Process::Type::background,colors("4b"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&(nbt>=2&&nbm>=3&&nbl>=4)"));
-
-  // Set mc isr procs
-  procsDict["mc_nisr"];
-  procsDict["mc_nisr"].push_back(Process::MakeShared<Baby_pico>("N_{ISR jets}=0", Process::Type::background,kBlack,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&nisr==0"));
-  procsDict["mc_nisr"].push_back(Process::MakeShared<Baby_pico>("N_{ISR jets}=1", Process::Type::background,kPink+5,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&nisr==1"));
-  procsDict["mc_nisr"].push_back(Process::MakeShared<Baby_pico>("N_{ISR jets}=2", Process::Type::background,kPink+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&nisr==2"));
-
-  // Set mc met procs
-  procsDict["mcTtbar_met"];
-  procsDict["mcTtbar_met"].push_back(Process::MakeShared<Baby_pico>("150<p_{T}^{miss} #leq 200", Process::Type::background,kGreen,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&met>150&&met<=200"));
-  procsDict["mcTtbar_met"].push_back(Process::MakeShared<Baby_pico>("200<p_{T}^{miss} #leq 300", Process::Type::background,kBlue,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&met>200&&met<=300"));
-  procsDict["mcTtbar_met"].push_back(Process::MakeShared<Baby_pico>("300<p_{T}^{miss} #leq 400", Process::Type::background,kOrange,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&met>300&&met<=400"));
-  procsDict["mcTtbar_met"].push_back(Process::MakeShared<Baby_pico>("400<p_{T}^{miss}", Process::Type::background,kRed,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&met>400"));
-
-  procsDict["mcTtbar_lowmet"];
-  procsDict["mcTtbar_lowmet"].push_back(Process::MakeShared<Baby_pico>("0<p_{T}^{miss} #leq 75", Process::Type::background,kGreen,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&met>0&&met<=75"));
-  procsDict["mcTtbar_lowmet"].push_back(Process::MakeShared<Baby_pico>("75<p_{T}^{miss} #leq 150", Process::Type::background,kBlue,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&met>75&&met<=150"));
-  procsDict["mcTtbar_lowmet"].push_back(Process::MakeShared<Baby_pico>("150<p_{T}^{miss} #leq 200", Process::Type::background,kOrange,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&met>150&&met<=200"));
-  procsDict["mcTtbar_lowmet"].push_back(Process::MakeShared<Baby_pico>("200<p_{T}^{miss}", Process::Type::background,kRed,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&met>200"));
-  
-  // Set mc and data
-  procsDict["mc_and_data"];
-  //procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("tt+x", Process::Type::background,colors("tt_1l"),
-  //                attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch"));
-  procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}>0)", Process::Type::background,colors("tt_htau"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh>0"));
-  procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X (#tau_{had}=0)", Process::Type::background,colors("tt_1l"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch&&ntrutauh==0"));
-  procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("Z+jets", Process::Type::background, kOrange+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["zjets"]),"stitch"));
-  procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("W+jets", Process::Type::background, kGreen+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["wjets"]),"stitch"));
-  procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("Single t", Process::Type::background,colors("single_t"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["single_t"]),"stitch"));
-  procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("QCD", Process::Type::background, colors("other"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["qcd"]),"stitch")); 
-  procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("Other", Process::Type::background, kGray+2,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["other"]),"stitch"));
-  procsDict["mc_and_data"].push_back(Process::MakeShared<Baby_pico>("Data", Process::Type::data, kBlack, 
-                   attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}), triggers_data));
-
-  procsDict["mc_3btag"];
-  procsDict["mc_3btag"].push_back(Process::MakeShared<Baby_pico>("Norm. MC 2b", Process::Type::background,kAzure+10,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&(nbt==2&&nbm==2)"));
-  procsDict["mc_3btag"].back()->SetFillColor(kWhite);
-  procsDict["mc_3btag"].back()->SetLineColor(kAzure+10);
-  procsDict["mc_3btag"].back()->SetLineWidth(2);
-  procsDict["mc_3btag"].push_back(Process::MakeShared<Baby_pico>("MC 3b", Process::Type::data,kBlack,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&(nbt>=2&&nbm==3&&nbl==3)"));
-  for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
-    procsDict["mc_3btag"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key()+" 3b", Process::Type::signal, 
-      sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "(nbt>=2&&nbm==3&&nbl==3)"));
-    procsDict["mc_3btag"].back()->SetLineWidth(2);
-  }
-
-  procsDict["mc_4btag"];
-  procsDict["mc_4btag"].push_back(Process::MakeShared<Baby_pico>("Norm. MC 2b", Process::Type::background,kAzure+10,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&(nbt==2&&nbm==2)"));
-  procsDict["mc_4btag"].back()->SetFillColor(kWhite);
-  procsDict["mc_4btag"].back()->SetLineColor(kAzure+10);
-  procsDict["mc_4btag"].back()->SetLineWidth(2);
-  procsDict["mc_4btag"].push_back(Process::MakeShared<Baby_pico>("MC 4b", Process::Type::data,kBlack,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["all"]),"stitch&&(nbt>=2&&nbm>=3&&nbl>=4)"));
-  for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
-    procsDict["mc_4btag"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key()+" 4b", Process::Type::signal, 
-      sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "(nbt>=2&&nbm>=3&&nbl>=4)"));
-    procsDict["mc_4btag"].back()->SetLineWidth(2);
-  }
-
-  // Set data btag procs
-  procsDict["data_3btag"];
-  procsDict["data_3btag"].push_back(Process::MakeShared<Baby_pico>("Norm. Data 2b", Process::Type::background,kAzure+10,
-                  attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}),triggers_data&&"(nbt==2&&nbm==2)"));
-  procsDict["data_3btag"].back()->SetFillColor(kWhite);
-  procsDict["data_3btag"].back()->SetLineColor(kAzure+10);
-  procsDict["data_3btag"].back()->SetLineWidth(2);
-  procsDict["data_3btag"].push_back(Process::MakeShared<Baby_pico>("Data 3b", Process::Type::data,kBlack,
-                  attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}),triggers_data&&"(nbt>=2&&nbm==3&&nbl==3)"));
-  for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
-    procsDict["data_3btag"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key()+" 3b", Process::Type::signal, 
-      sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "(nbt>=2&&nbm==3&&nbl==3)"));
-    procsDict["data_3btag"].back()->SetLineWidth(2);
-  }
-
-  procsDict["data_4btag"];
-  procsDict["data_4btag"].push_back(Process::MakeShared<Baby_pico>("Norm. Data 2b", Process::Type::background,kAzure+10,
-                  attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}),triggers_data&&"(nbt==2&&nbm==2)"));
-  procsDict["data_4btag"].back()->SetFillColor(kWhite);
-  procsDict["data_4btag"].back()->SetLineColor(kAzure+10);
-  procsDict["data_4btag"].back()->SetLineWidth(2);
-  procsDict["data_4btag"].push_back(Process::MakeShared<Baby_pico>("Data 4b", Process::Type::data,kBlack,
-                  attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}),triggers_data&&"(nbt>=2&&nbm>=3&&nbl>=4)"));
-  for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
-    procsDict["data_4btag"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key()+" 4b", Process::Type::signal, 
-      sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "(nbt>=2&&nbm>=3&&nbl>=4)"));
-    procsDict["data_4btag"].back()->SetLineWidth(2);
-  }
-
-  procsDict["data_3b4btag"];
-  procsDict["data_3b4btag"].push_back(Process::MakeShared<Baby_pico>("Norm. Data 2b", Process::Type::background,kAzure+10,
-                  attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}),triggers_data&&"(nbt==2&&nbm==2)"));
-  procsDict["data_3b4btag"].back()->SetFillColor(kWhite);
-  procsDict["data_3b4btag"].back()->SetLineColor(kAzure+10);
-  procsDict["data_3b4btag"].back()->SetLineWidth(2);
-  procsDict["data_3b4btag"].push_back(Process::MakeShared<Baby_pico>("Data 3b|4b", Process::Type::data,kBlack,
-                  attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}),triggers_data&&"(nbt>=2&&nbm==3&&nbl==3)||(nbt>=2&&nbm>=3&&nbl>=4)"));
-  //for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
-  //  procsDict["data_3b4btag"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key()+" 3b|4b", Process::Type::signal, 
-  //    sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "(nbt>=2&&nbm==3&&nbl==3)||(nbt>=2&&nbm>=3&&nbl>=4)"));
-  //  procsDict["data_3b4btag"].back()->SetLineWidth(2);
-  //}
+                   attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}), "HLT_PFMET120_PFMHT120_IDTight"));  //data_trigger
 
 }
 
@@ -374,7 +193,7 @@ int main(int argc, char *argv[]){
   lin_norm_info.Title(TitleType::info)   
     .Bottom(BottomType::off)
     .YAxis(YAxisType::linear)
-    .Stack(StackType::data_norm).LegendColumns(3).ErrorOnZeroData(true);
+    .Stack(StackType::data_norm).LegendColumns(3).ErrorOnZeroData(true).PrintVals(true);
   PlotOpt log_norm_info = lin_norm_info().YAxis(YAxisType::log);
   PlotOpt log_norm = lin_norm_info().YAxis(YAxisType::log).Title(TitleType::info).LogMinimum(.2);
   PlotOpt lin_norm = lin_norm_info().YAxis(YAxisType::linear).Title(TitleType::info);
@@ -394,15 +213,14 @@ int main(int argc, char *argv[]){
   vector<PlotOpt> plt_shapes = {lin_shapes};
   vector<PlotOpt> plt_shapes_info = {lin_shapes_info};
   vector<PlotOpt> plt_lin_lumi = {lin_lumi};
+  unblind = true;
   if (unblind) plt_lin = {lin_norm_data};
   if (unblind) plt_log = {log_norm_data};
-  if (HigUtilities::is_in_string_options(string_options, "paper_style")) {
-    plt_lin = {lin_norm_paper};
-    plt_log = {log_norm_paper};
-    if (unblind) {
-      plt_lin = {lin_norm_data_paper};
-      plt_log = {log_norm_data_paper};
-    }
+  plt_lin = {lin_norm_paper};
+  plt_log = {log_norm_paper};
+  if (unblind) {
+    plt_lin = {lin_norm_data_paper};
+    plt_log = {log_norm_data_paper};
   }
 
   set<int> years;
@@ -462,46 +280,49 @@ int main(int argc, char *argv[]){
   NamedFunc extra_cut = "1";
   NamedFunc signalReject = "njet>=4&&njet<=5&&!(((nbt>=2&&nbm==3&&nbl==3)||(nbt>=2&&nbm>=3&&nbl>=4))&&(hig_cand_am[0]>100&&hig_cand_am[0]<=140))";
 
-  // nb
-  pm.Push<Hist1D>(Axis(3, 1.5, 4.5, "hig_bcat", "N_{b}", {2.5}),
-    search_filters&&search_resolved_cuts
-    ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:nb__search").LuminosityTag(total_luminosity_string);
-  // Plot according to btags
-  vector<pair<string, NamedFunc> > nbCuts = {{"2b3b4b","hig_bcat==2||hig_bcat==3||hig_bcat==4"}, {"3b4b","hig_bcat==3||hig_bcat==4"}, {"4b","hig_bcat==4"}};
-  for (unsigned iCut = 0; iCut < nbCuts.size(); ++iCut) {
-    string nbCutName = nbCuts[iCut].first;
-    NamedFunc nbCut = nbCuts[iCut].second;
-    // am
-    pm.Push<Hist1D>(Axis(20, 0, 200, "hig_cand_am_0", "<m_{bb}> [GeV]", {100, 140}),
-      search_filters&&
-      "met/mht<2 && met/met_calo<2&&weight<1.5&&"
-      "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
-      "hig_cand_drmax[0]<=2.2&&hig_cand_dm[0]<=40"&&nbCut
-      , procs_search[proc_name], plt_lin).Weight(weight).Tag("FixName:amjj__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
-    // dm
-    pm.Push<Hist1D>(Axis(10,0,100,"hig_cand_dm_0", "#Deltam [GeV]", {40.}),
-      search_filters&&
-      "met/mht<2 && met/met_calo<2&&weight<1.5&&"
-      "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
-      "hig_cand_drmax[0]<=2.2&&hig_cand_am[0]<=200"&&nbCut
-      , procs_search[proc_name], plt_lin).Weight(weight).Tag("FixName:dmjj__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
-    // Delta R max
-    pm.Push<Hist1D>(Axis(20,0,4,"hig_cand_drmax_0", "#DeltaR_{max}", {1.1, 2.2}),
-      search_filters&&
-      "met/mht<2 && met/met_calo<2&&weight<1.5&&"
-      "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
-      "hig_cand_dm[0]<=40&&hig_cand_am[0]<=200"&&nbCut
-      ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:drmax__"+nbCutName+"__search_log").LuminosityTag(total_luminosity_string);
-    // met
-    pm.Push<Hist1D>(Axis(14, 150, 850., "met", "p_{T}^{miss} [GeV]", {200., 300., 400.}),
-    search_filters&&search_resolved_cuts&&nbCut
-    ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:met__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
-  }
+  pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "njet", "N_{j}", {}),
+    "met>250"
+    ,procs_search[proc_name], plt_log).Weight("weight").Tag("FixName:debug__nj").LuminosityTag(total_luminosity_string);
+  //// nb
+  //pm.Push<Hist1D>(Axis(3, 1.5, 4.5, "hig_bcat", "N_{b}", {2.5}),
+  //  search_filters&&search_resolved_cuts
+  //  ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:nb__search").LuminosityTag(total_luminosity_string);
+  //// Plot according to btags
+  //vector<pair<string, NamedFunc> > nbCuts = {{"2b3b4b","hig_bcat==2||hig_bcat==3||hig_bcat==4"}, {"3b4b","hig_bcat==3||hig_bcat==4"}, {"4b","hig_bcat==4"}};
+  //for (unsigned iCut = 0; iCut < nbCuts.size(); ++iCut) {
+  //  string nbCutName = nbCuts[iCut].first;
+  //  NamedFunc nbCut = nbCuts[iCut].second;
+  //  // am
+  //  pm.Push<Hist1D>(Axis(20, 0, 200, "hig_cand_am_0", "<m_{bb}> [GeV]", {100, 140}),
+  //    search_filters&&
+  //    "met/mht<2 && met/met_calo<2&&weight<1.5&&"
+  //    "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
+  //    "hig_cand_drmax[0]<=2.2&&hig_cand_dm[0]<=40"&&nbCut
+  //    , procs_search[proc_name], plt_lin).Weight(weight).Tag("FixName:amjj__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
+  //  // dm
+  //  pm.Push<Hist1D>(Axis(10,0,100,"hig_cand_dm_0", "#Deltam [GeV]", {40.}),
+  //    search_filters&&
+  //    "met/mht<2 && met/met_calo<2&&weight<1.5&&"
+  //    "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
+  //    "hig_cand_drmax[0]<=2.2&&hig_cand_am[0]<=200"&&nbCut
+  //    , procs_search[proc_name], plt_lin).Weight(weight).Tag("FixName:dmjj__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
+  //  // Delta R max
+  //  pm.Push<Hist1D>(Axis(20,0,4,"hig_cand_drmax_0", "#DeltaR_{max}", {1.1, 2.2}),
+  //    search_filters&&
+  //    "met/mht<2 && met/met_calo<2&&weight<1.5&&"
+  //    "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
+  //    "hig_cand_dm[0]<=40&&hig_cand_am[0]<=200"&&nbCut
+  //    ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:drmax__"+nbCutName+"__search_log").LuminosityTag(total_luminosity_string);
+  //  // met
+  //  pm.Push<Hist1D>(Axis(14, 150, 850., "met", "p_{T}^{miss} [GeV]", {200., 300., 400.}),
+  //  search_filters&&search_resolved_cuts&&nbCut
+  //  ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:met__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
+  //}
 
   pm.multithreaded_ = !single_thread;
   pm.min_print_ = true;
-  pm.DefineRdfColumnsData(RdfHigfuncs::rdf_hig_functions_slim_data);
-  pm.DefineRdfColumnsMC(RdfHigfuncs::rdf_hig_functions_slim_mc);
+  //pm.DefineRdfColumnsData(RdfHigfuncs::rdf_hig_functions_slim_data);
+  //pm.DefineRdfColumnsMC(RdfHigfuncs::rdf_hig_functions_slim_mc);
   pm.MakePlotsRdf(1.0);
 
   //// Get Figures

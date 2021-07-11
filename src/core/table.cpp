@@ -107,8 +107,7 @@ void Table::TableColumn::RecordEvent(const Baby &baby){
   }
 }
 
-void Table::TableColumn::BookResult(
-    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+void Table::TableColumn::BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) {
 
   const Table& table = static_cast<const Table&>(figure_);
   for(size_t irow = 0; irow < table.rows_.size(); ++irow){
@@ -116,11 +115,12 @@ void Table::TableColumn::BookResult(
     const NamedFunc &cut = proc_and_table_cut_.at(irow);
     const NamedFunc &wgt = row.weight_;
     //TODO: define w2 branch
-    auto figure_filtered_frame = filtered_frame.Filter(cut.Name());
+    auto figure_filtered_frame = data_frame.Filter(cut.Name());
 
     booked_sumw_ptr_.push_back(figure_filtered_frame.Sum(wgt.Name()));
     booked_sumw2_ptr_.push_back(figure_filtered_frame.Sum(wgt.Name()+"2"));
   } //table rows
+  (void)rdf_plot_idx; //unused but needed for polymorphism
 }
 
 void Table::TableColumn::GetResult() {

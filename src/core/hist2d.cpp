@@ -98,8 +98,7 @@ void Hist2D::SingleHist2D::RecordEvent(const Baby &baby){
   }
 }
 
-void Hist2D::SingleHist2D::BookResult(
-    ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) {
+void Hist2D::SingleHist2D::BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) {
 
   const Hist2D& hist = static_cast<const Hist2D&>(figure_);
   //no support for vector columns for now
@@ -110,9 +109,11 @@ void Hist2D::SingleHist2D::BookResult(
   std::vector<double> x_bins = hist.xaxis_.Bins();
   std::vector<double> y_bins = hist.yaxis_.Bins();
 
-  auto figure_filtered_frame = filtered_frame.Filter(cut.Name());
+  auto figure_filtered_frame = data_frame.Filter(cut.Name());
+  std::string hist_name = "rdf_hist" + std::to_string(rdf_plot_idx);
+  rdf_plot_idx += 1;
   booked_raw_hist_ptr_ = figure_filtered_frame.Histo2D(
-      {x_val.Name().c_str(),hist.xaxis_.title_.c_str(),
+      {hist_name.c_str(),hist.xaxis_.title_.c_str(),
       static_cast<int>(hist.xaxis_.Nbins()),&x_bins[0],
       static_cast<int>(hist.yaxis_.Nbins()),&y_bins[0]},
       x_val.Name(),y_val.Name(),wgt.Name());

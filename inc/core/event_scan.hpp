@@ -21,9 +21,9 @@ class EventScan final : public Figure{
    ~SingleScan() = default;
 
    void RecordEvent(const Baby &baby) final;
-   void BookResult(
-       ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame 
-       [[maybe_unused]]) final;
+   void BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) final;
+   //void BookResult(ROOT::RDataFrame &data_frame [[maybe_unused]], 
+   //                int &rdf_plot_idx [[maybe_unused]]) final;
 
    void GetResult() final;
 

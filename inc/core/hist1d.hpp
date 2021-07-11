@@ -10,6 +10,7 @@
 #include "ROOT/RDataFrame.hxx"
 #include "ROOT/RResultPtr.hxx"
 #include "ROOT/RDF/RInterface.hxx"
+#include "ROOT/RDF/RCutFlowReport.hxx"
 #include "TH1D.h"
 #include "TLegend.h"
 #include "TCanvas.h"
@@ -36,8 +37,7 @@ public:
     mutable TH1D scaled_hist_;//!<Kludge. Mutable storage of scaled and stacked histogram
 
     void RecordEvent(const Baby &baby) final;
-    void BookResult(
-        ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void> &filtered_frame) final;
+    void BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot_idx) final;
 
     void GetResult() final;
 
@@ -57,7 +57,9 @@ public:
 
     NamedFunc proc_and_hist_cut_;
     NamedFunc::VectorType cut_vector_, wgt_vector_, val_vector_;
-    ROOT::RDF::RResultPtr<TH1D> booked_raw_hist_ptr_;
+    std::vector<ROOT::RDF::RResultPtr<TH1D>> booked_raw_hist_ptr_;
+    std::vector<ROOT::RDF::RResultPtr<ROOT::RDF::RCutFlowReport>> booked_cut_flow_ptr_;
+    bool booked_rdf_;
   };
 
   Hist1D(const Axis &xaxis, const NamedFunc &cut,

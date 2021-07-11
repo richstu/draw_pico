@@ -132,19 +132,28 @@ void PlotMaker::MakePlotsRdf(double luminosity, const std::string &subdir){
 
   //make a dataframe for each baby and book plots
   //TODO: is there a way of making RDataFrame more verbose?
+  int rdf_plot_idx = 0;
   for(const auto &baby_ptr: babies){
     Baby &baby = *baby_ptr;
-    ROOT::RDataFrame baby_frame(tree_name_, 
-        std::vector<std::string>(baby.FileNames().begin(), baby.FileNames().end()));
+    cout << "DEBUG: creating dataframe for tree " << tree_name_ << " for files {";
+    std::vector<std::string> baby_names_vector(baby.FileNames().begin(),baby.FileNames().end());
+    for (string filename : baby_names_vector) {
+      cout << filename << ",";
+    }
+    cout << "}" << endl;
+    ROOT::RDataFrame baby_frame(tree_name_,baby_names_vector); 
     auto baby_frame_rint = baby_frame.Filter("1");
+    std::cout << "DEBUG: filtering with filter 1" << std::endl;
     //define columns
     if (baby.SampleType() < 0) {
       for (auto rdf_column_func : rdf_column_funcs_data_) {
+        cout << "DEBUG: defining columns" << endl;
         baby_frame_rint = rdf_column_func(baby_frame_rint);
       }
     }
     else {
       for (auto rdf_column_func : rdf_column_funcs_mc_) {
+        cout << "DEBUG: defining columns" << endl;
         baby_frame_rint = rdf_column_func(baby_frame_rint);
       }
     }
@@ -156,30 +165,35 @@ void PlotMaker::MakePlotsRdf(double luminosity, const std::string &subdir){
       ++iproc;
     }
     for(const auto &proc_fig: proc_figs){
-      //apply filter from processes definition
-      auto filtered_frame = baby_frame_rint.Filter(proc_fig.first->cut_.Name());
+      //apply filter from processes definition - not needed applied by figure
+      //cout << "DEBUG: filtering dataframes with filter " << proc_fig.first->cut_.Name() << endl;
+      //auto filtered_frame = baby_frame_rint.Filter(proc_fig.first->cut_.Name());
       for(const auto &component: proc_fig.second){
-        component->BookResult(filtered_frame);
+        component->BookResult(baby_frame, rdf_plot_idx);
       }
     }
   }
-  //run the event loop and copy results
-  for(const auto &baby_ptr: babies){
-    Baby &baby = *baby_ptr;
-    vector< set<Figure::FigureComponent*> > proc_figs(baby.processes_.size());
-    size_t iproc = 0;
-    for(const auto &proc: baby.processes_){
-      proc_figs.at(iproc) = GetComponents(proc);
-      ++iproc;
-    }
-    for(const auto &proc_fig: proc_figs){
-      //apply filter from processes definition
-      for(const auto &component: proc_fig){
-        component->GetResult();
-      }
-    }
-  }
+  //below code double-counts figures
+  //for(const auto &baby_ptr: babies){
+  //  Baby &baby = *baby_ptr;
+  //  for (string filename : baby.FileNames()) {
+  //    cout << "DEBUG: baby " << filename << endl;
+  //  }
+  //  vector< set<Figure::FigureComponent*> > proc_figs(baby.processes_.size());
+  //  size_t iproc = 0;
+  //  for(const auto &proc: baby.processes_){
+  //    proc_figs.at(iproc) = GetComponents(proc);
+  //    ++iproc;
+  //  }
+  //  for(const auto &proc_fig: proc_figs){
+  //    //apply filter from processes definition
+  //    for(const auto &component: proc_fig){
+  //      component->GetResult();
+  //    }
+  //  }
+  //}
   //print figures
+  cout << "DEBUG: printing figures" << endl;
   for(auto &figure: figures_){
     if ((!(figure->is_2d_histogram()))||print_2d_figures_) {
       figure->Print(luminosity, subdir);
