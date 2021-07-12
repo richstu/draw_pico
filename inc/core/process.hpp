@@ -22,6 +22,15 @@ public:
                                              const std::set<std::string> &files,
                                              const NamedFunc &cut = true){
     return std::shared_ptr<Process>(new Process(static_cast<BabyType*>(nullptr),
+                                                name, type, color, {files}, cut));
+  }
+  template<typename BabyType>
+  static std::shared_ptr<Process> MakeShared(const std::string &name,
+                                             Type type,
+                                             int color,
+                                             const std::vector<std::set<std::string>> &files,
+                                             const NamedFunc &cut = true){
+    return std::shared_ptr<Process>(new Process(static_cast<BabyType*>(nullptr),
                                                 name, type, color, files, cut));
   }
 
@@ -40,7 +49,7 @@ private:
           const std::string &name,
           Type type,
           int color,
-          const std::set<std::string> &files,
+          const std::vector<std::set<std::string>> &files,
           const NamedFunc &cut);
 
   Process() = delete;
@@ -58,7 +67,7 @@ Process::Process(BabyType * /*dummy_baby*/,
                  const std::string &name,
                  Type type,
                  int color,
-                 const std::set<std::string> &files,
+                 const std::vector<std::set<std::string>> &files,
                  const NamedFunc &cut):
   TAttFill(color, type == Type::background ? 1001 : 0),
   TAttLine(type == Type::background ? 1 : color,
@@ -72,24 +81,25 @@ Process::Process(BabyType * /*dummy_baby*/,
   cut_(cut),
   color_(color){
   std::lock_guard<std::mutex> lock(mutex_);
-  for(const auto &file: files){
-    const auto &full_files = Glob(file);
-    for(const auto &full_file: full_files){
-      bool found = false;
-      for(auto &baby_p: baby_pool_){
-        auto &baby = *baby_p;
-        if(typeid(baby) != typeid(BabyType)) continue;
-        const auto &baby_files = baby.FileNames();
-        if(baby_files.find(full_file) != baby_files.end()){
-          baby.processes_.insert(this);
-          found = true;
-          break;
-        }
+  for (const auto &baby_files: files) {
+    std::set<std::string> baby_full_files;
+    for(const auto &file: baby_files){
+      const auto &full_files = Glob(file);
+      baby_full_files.insert(full_files.begin(), full_files.end());
+    }
+    bool found = false;
+    for(auto &baby_p: baby_pool_){
+      auto &baby = *baby_p;
+      if(typeid(baby) != typeid(BabyType)) continue;
+      if(baby_full_files == baby.FileNames()){
+        baby.processes_.insert(this);
+        found = true;
+        break;
       }
-      if(!found){
-        baby_pool_.emplace(static_cast<Baby*>(new BabyType(std::set<std::string>{full_file},
-                                                           std::set<const Process*>{this})));
-      }
+    }
+    if(!found){
+      baby_pool_.emplace(static_cast<Baby*>(new BabyType(baby_full_files,
+                                                         std::set<const Process*>{this})));
     }
   }
   }

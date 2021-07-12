@@ -14,8 +14,6 @@
 #include "core/figure.hpp"
 #include "core/plot_opt.hpp"
 
-using ProcessedDataFrame = ROOT::RDF::RInterface<ROOT::Detail::RDF::RJittedFilter, void>;
-
 class Process;
 
 class PlotMaker{
@@ -52,11 +50,7 @@ public:
 
   void SetEventVetoData(void * eventVetoData);
   void DefineRdfColumns(
-      std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func);
-  void DefineRdfColumnsData(
-      std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func);
-  void DefineRdfColumnsMC(
-      std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func);
+      std::function<ROOT::RDF::RNode(ROOT::RDF::RNode,std::string)> rdf_column_func);
 
   std::string tree_name_;
   bool multithreaded_;
@@ -67,8 +61,7 @@ public:
 
 private:
   std::vector<std::unique_ptr<Figure> > figures_;//!<Figures to be produced
-  std::vector<std::function<ProcessedDataFrame(ProcessedDataFrame&)>> rdf_column_funcs_mc_;//!<Functions to be applied to define columns in RDataFrame for MC
-  std::vector<std::function<ProcessedDataFrame(ProcessedDataFrame&)>> rdf_column_funcs_data_;//!<Functions to be applied to define columns in RDataFrame for data
+  std::vector<std::function<ROOT::RDF::RNode(ROOT::RDF::RNode,std::string)>> rdf_column_funcs_;//!<Functions to be applied to define columns in RDataFrame for MC
 
   void GetYields();
   long GetYield(Baby *baby_ptr);

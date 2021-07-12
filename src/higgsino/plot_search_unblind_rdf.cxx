@@ -163,21 +163,21 @@ void setProcsDict(string const & production, string const & nanoAodFolder, strin
   //dictionary combines some MC categories for paper
   procsDict["paper_mc_and_sig_and_data"];
   procsDict["paper_mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X", Process::Type::background,colors("tt_htau"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch"));
+                  attach_folder_years(mc_production_folder, years, mc_skim_folder, mc_filenames["tt"]),"stitch"));
   procsDict["paper_mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Z+jets", Process::Type::background, kOrange+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["zjets"]),"stitch"));
+                  attach_folder_years(mc_production_folder, years, mc_skim_folder,mc_filenames["zjets"]),"stitch"));
   procsDict["paper_mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("W+jets", Process::Type::background, kGreen+1,
-                  attach_folder(mc_production_folder, years, mc_skim_folder,mc_filenames["wjets"]),"stitch"));
+                  attach_folder_years(mc_production_folder, years, mc_skim_folder,mc_filenames["wjets"]),"stitch"));
   procsDict["paper_mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("QCD", Process::Type::background, colors("other"),
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["qcd"]),"stitch")); 
+                  attach_folder_years(mc_production_folder, years, mc_skim_folder, mc_filenames["qcd"]),"stitch")); 
   procsDict["paper_mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Other", Process::Type::background, kGray+2,
-                  attach_folder(mc_production_folder, years, mc_skim_folder, mc_filenames["other_and_single_t"]),"stitch"));
+                  attach_folder_years(mc_production_folder, years, mc_skim_folder, mc_filenames["other_and_single_t"]),"stitch"));
   for (unsigned iMassPoint = 0; iMassPoint < signal_filenames.size(); ++iMassPoint) {
     procsDict["paper_mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>(signal_filenames[iMassPoint].key(), Process::Type::signal, 
-      sig_colors[iMassPoint], attach_folder(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "1"));
+      sig_colors[iMassPoint], attach_folder_years(signal_production_folder, years, signal_skim_folder, signal_filenames[iMassPoint].value() ), "stitch"));
   }
   procsDict["paper_mc_and_sig_and_data"].push_back(Process::MakeShared<Baby_pico>("Data", Process::Type::data, kBlack, 
-                   attach_folder(data_production_folder, years, data_skim_folder, {"*.root"}), "HLT_PFMET120_PFMHT120_IDTight"));  //data_trigger
+                   attach_folder_years(data_production_folder, years, data_skim_folder, {"*.root"}), "met_trigger"));  //data_trigger
 
 }
 
@@ -280,49 +280,50 @@ int main(int argc, char *argv[]){
   NamedFunc extra_cut = "1";
   NamedFunc signalReject = "njet>=4&&njet<=5&&!(((nbt>=2&&nbm==3&&nbl==3)||(nbt>=2&&nbm>=3&&nbl>=4))&&(hig_cand_am[0]>100&&hig_cand_am[0]<=140))";
 
-  pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "njet", "N_{j}", {}),
-    "met>250"
-    ,procs_search[proc_name], plt_log).Weight("weight").Tag("FixName:debug__nj").LuminosityTag(total_luminosity_string);
+  //pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "njet", "N_{j}", {}),
+  //  "met>250"
+  //  ,procs_search[proc_name], plt_log).Weight("weight").Tag("FixName:debug__nj").LuminosityTag(total_luminosity_string);
   //// nb
-  //pm.Push<Hist1D>(Axis(3, 1.5, 4.5, "hig_bcat", "N_{b}", {2.5}),
-  //  search_filters&&search_resolved_cuts
-  //  ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:nb__search").LuminosityTag(total_luminosity_string);
-  //// Plot according to btags
+  pm.Push<Hist1D>(Axis(3, 1.5, 4.5, "hig_bcat", "N_{b}", {2.5}),
+    search_filters&&search_resolved_cuts
+    ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:nb__search").LuminosityTag(total_luminosity_string);
+  // Plot according to btags
   //vector<pair<string, NamedFunc> > nbCuts = {{"2b3b4b","hig_bcat==2||hig_bcat==3||hig_bcat==4"}, {"3b4b","hig_bcat==3||hig_bcat==4"}, {"4b","hig_bcat==4"}};
-  //for (unsigned iCut = 0; iCut < nbCuts.size(); ++iCut) {
-  //  string nbCutName = nbCuts[iCut].first;
-  //  NamedFunc nbCut = nbCuts[iCut].second;
-  //  // am
-  //  pm.Push<Hist1D>(Axis(20, 0, 200, "hig_cand_am_0", "<m_{bb}> [GeV]", {100, 140}),
-  //    search_filters&&
-  //    "met/mht<2 && met/met_calo<2&&weight<1.5&&"
-  //    "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
-  //    "hig_cand_drmax[0]<=2.2&&hig_cand_dm[0]<=40"&&nbCut
-  //    , procs_search[proc_name], plt_lin).Weight(weight).Tag("FixName:amjj__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
-  //  // dm
-  //  pm.Push<Hist1D>(Axis(10,0,100,"hig_cand_dm_0", "#Deltam [GeV]", {40.}),
-  //    search_filters&&
-  //    "met/mht<2 && met/met_calo<2&&weight<1.5&&"
-  //    "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
-  //    "hig_cand_drmax[0]<=2.2&&hig_cand_am[0]<=200"&&nbCut
-  //    , procs_search[proc_name], plt_lin).Weight(weight).Tag("FixName:dmjj__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
-  //  // Delta R max
-  //  pm.Push<Hist1D>(Axis(20,0,4,"hig_cand_drmax_0", "#DeltaR_{max}", {1.1, 2.2}),
-  //    search_filters&&
-  //    "met/mht<2 && met/met_calo<2&&weight<1.5&&"
-  //    "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
-  //    "hig_cand_dm[0]<=40&&hig_cand_am[0]<=200"&&nbCut
-  //    ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:drmax__"+nbCutName+"__search_log").LuminosityTag(total_luminosity_string);
-  //  // met
-  //  pm.Push<Hist1D>(Axis(14, 150, 850., "met", "p_{T}^{miss} [GeV]", {200., 300., 400.}),
-  //  search_filters&&search_resolved_cuts&&nbCut
-  //  ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:met__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
-  //}
+  //vector<pair<string, NamedFunc> > nbCuts = {};
+  vector<pair<string, NamedFunc> > nbCuts = {{"3b4b","hig_bcat==3||hig_bcat==4"}};
+  for (unsigned iCut = 0; iCut < nbCuts.size(); ++iCut) {
+    string nbCutName = nbCuts[iCut].first;
+    NamedFunc nbCut = nbCuts[iCut].second;
+    // am
+    pm.Push<Hist1D>(Axis(20, 0, 200, "hig_cand_am_0", "<m_{bb}> [GeV]", {100, 140}),
+      search_filters&&
+      "met/mht<2 && met/met_calo<2&&weight<1.5&&"
+      "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
+      "hig_cand_drmax[0]<=2.2&&hig_cand_dm[0]<=40"&&nbCut
+      , procs_search[proc_name], plt_lin).Weight(weight).Tag("FixName:amjj__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
+    // dm
+    pm.Push<Hist1D>(Axis(10,0,100,"hig_cand_dm_0", "#Deltam [GeV]", {40.}),
+      search_filters&&
+      "met/mht<2 && met/met_calo<2&&weight<1.5&&"
+      "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
+      "hig_cand_drmax[0]<=2.2&&hig_cand_am[0]<=200"&&nbCut
+      , procs_search[proc_name], plt_lin).Weight(weight).Tag("FixName:dmjj__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
+    // Delta R max
+    pm.Push<Hist1D>(Axis(20,0,4,"hig_cand_drmax_0", "#DeltaR_{max}", {1.1, 2.2}),
+      search_filters&&
+      "met/mht<2 && met/met_calo<2&&weight<1.5&&"
+      "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
+      "hig_cand_dm[0]<=40&&hig_cand_am[0]<=200"&&nbCut
+      ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:drmax__"+nbCutName+"__search_log").LuminosityTag(total_luminosity_string);
+    // met
+    pm.Push<Hist1D>(Axis(14, 150, 850., "met", "p_{T}^{miss} [GeV]", {200., 300., 400.}),
+    search_filters&&search_resolved_cuts&&nbCut
+    ,procs_search[proc_name], plt_log).Weight(weight).Tag("FixName:met__"+nbCutName+"__search").LuminosityTag(total_luminosity_string);
+  }
 
   pm.multithreaded_ = !single_thread;
   pm.min_print_ = true;
-  //pm.DefineRdfColumnsData(RdfHigfuncs::rdf_hig_functions_slim_data);
-  //pm.DefineRdfColumnsMC(RdfHigfuncs::rdf_hig_functions_slim_mc);
+  pm.DefineRdfColumns(RdfHigfuncs::rdf_hig_functions_slim);
   pm.MakePlotsRdf(1.0);
 
   //// Get Figures
@@ -335,6 +336,7 @@ int main(int argc, char *argv[]){
 
   time(&endtime); 
   cout<<endl<<"Took "<<difftime(endtime, begtime)<<" seconds"<<endl<<endl;
+  return 0;
 }
 
 void GetOptions(int argc, char *argv[]){

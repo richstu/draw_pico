@@ -129,6 +129,7 @@ double calcKappa(std::vector<std::vector<float> > &entries, std::vector<std::vec
 
 std::set<std::string> attach_folder(std::string folder, std::set<std::string> &fileset);
 std::set<std::string> attach_folder(std::string base_folder, std::set<int> years, std::string sample_folder, std::set<std::string> fileset);
+std::vector<std::set<std::string>> attach_folder_years(std::string base_folder, std::set<int> years, std::string sample_folder, std::set<std::string> fileset);
 void parseMasses(const std::string &str, int &mglu, int &mlsp);
 void parseMassesGluino(const std::string &str, int &mglu, int &mlsp);
 

@@ -229,11 +229,11 @@ void Hist1D::SingleHist1D::BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot
   std::string hist_name = "rdf_hist" + std::to_string(rdf_plot_idx);
   rdf_plot_idx += 1;
   auto filter_name_list = filtered_frame.GetFilterNames();
-  std::cout << "DEBUG: filter names: ";
-  for (auto filter_name : filter_name_list) {
-    std::cout << filter_name << ",";
-  }
-  std::cout << std::endl;
+  //std::cout << "DEBUG: filter names: ";
+  //for (auto filter_name : filter_name_list) {
+  //  std::cout << filter_name << ",";
+  //}
+  //std::cout << std::endl;
   std::cout << "DEBUG: making histogram {" << hist_name << ", " << stack.xaxis_.title_ << ", " << stack.xaxis_.Nbins() << ", {";
   std::cout << "bins}}, " << val.Name() << wgt.Name() << std::endl;
   booked_raw_hist_ptr_.push_back(filtered_frame.Histo1D(
@@ -245,14 +245,14 @@ void Hist1D::SingleHist1D::BookResult(ROOT::RDF::RNode data_frame, int &rdf_plot
 
 void Hist1D::SingleHist1D::GetResult() {
   if (booked_rdf_) {
-    std::cout << "DEBUG: cutflows" << std::endl;
-    for (auto single_booked_ptr : booked_cut_flow_ptr_) {
-      single_booked_ptr->Print();
-    }
+    //std::cout << "DEBUG: cutflows" << std::endl;
+    //for (auto single_booked_ptr : booked_cut_flow_ptr_) {
+    //  single_booked_ptr->Print();
+    //}
     for (ROOT::RDF::RResultPtr<TH1D> single_booked_ptr : booked_raw_hist_ptr_) {
       //std::cout << "DEBUG: cloning" << std::endl;
       //TH1D* booked_raw_hist = static_cast<TH1D*>(single_booked_ptr->Clone());
-      std::cout << "DEBUG: adding" << std::endl;
+      //std::cout << "DEBUG: adding" << std::endl;
       raw_hist_.Add(single_booked_ptr.GetPtr());
     }
   }

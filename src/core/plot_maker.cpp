@@ -51,8 +51,7 @@ PlotMaker::PlotMaker():
   print_2d_figures_(true),
   max_entries_(-1),
   figures_(),
-  rdf_column_funcs_mc_(std::vector<std::function<ProcessedDataFrame(ProcessedDataFrame&)>>()),
-  rdf_column_funcs_data_(std::vector<std::function<ProcessedDataFrame(ProcessedDataFrame&)>>()){
+  rdf_column_funcs_(std::vector<std::function<ROOT::RDF::RNode(ROOT::RDF::RNode,std::string)>>()){
 }
 
 /*!\brief Prints all added plots with given luminosity
@@ -104,20 +103,10 @@ void PlotMaker::SetEventVetoData(void * eventVetoData) {
 }
 
 void PlotMaker::DefineRdfColumns(
-    std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func) {
-  rdf_column_funcs_mc_.push_back(rdf_column_func);
-  rdf_column_funcs_data_.push_back(rdf_column_func);
+    std::function<ROOT::RDF::RNode(ROOT::RDF::RNode,std::string)> rdf_column_func) {
+  rdf_column_funcs_.push_back(rdf_column_func);
 }
 
-void PlotMaker::DefineRdfColumnsData(
-    std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func) {
-  rdf_column_funcs_data_.push_back(rdf_column_func);
-}
-
-void PlotMaker::DefineRdfColumnsMC(
-    std::function<ProcessedDataFrame(ProcessedDataFrame&)> rdf_column_func) {
-  rdf_column_funcs_mc_.push_back(rdf_column_func);
-}
 
 void PlotMaker::MakePlotsRdf(double luminosity, const std::string &subdir){
   //auto start_time = Clock::now();
@@ -142,20 +131,12 @@ void PlotMaker::MakePlotsRdf(double luminosity, const std::string &subdir){
     }
     cout << "}" << endl;
     ROOT::RDataFrame baby_frame(tree_name_,baby_names_vector); 
-    auto baby_frame_rint = baby_frame.Filter("1");
+    ROOT::RDF::RNode baby_frame_rint = baby_frame.Filter("1");
     std::cout << "DEBUG: filtering with filter 1" << std::endl;
     //define columns
-    if (baby.SampleType() < 0) {
-      for (auto rdf_column_func : rdf_column_funcs_data_) {
-        cout << "DEBUG: defining columns" << endl;
-        baby_frame_rint = rdf_column_func(baby_frame_rint);
-      }
-    }
-    else {
-      for (auto rdf_column_func : rdf_column_funcs_mc_) {
-        cout << "DEBUG: defining columns" << endl;
-        baby_frame_rint = rdf_column_func(baby_frame_rint);
-      }
+    for (auto rdf_column_func : rdf_column_funcs_) {
+      cout << "DEBUG: defining columns" << endl;
+      baby_frame_rint = rdf_column_func(baby_frame_rint, baby_names_vector[0]);
     }
     vector<pair<const Process*, set<Figure::FigureComponent*> > > proc_figs(baby.processes_.size());
     size_t iproc = 0;
@@ -169,7 +150,7 @@ void PlotMaker::MakePlotsRdf(double luminosity, const std::string &subdir){
       //cout << "DEBUG: filtering dataframes with filter " << proc_fig.first->cut_.Name() << endl;
       //auto filtered_frame = baby_frame_rint.Filter(proc_fig.first->cut_.Name());
       for(const auto &component: proc_fig.second){
-        component->BookResult(baby_frame, rdf_plot_idx);
+        component->BookResult(baby_frame_rint, rdf_plot_idx);
       }
     }
   }
