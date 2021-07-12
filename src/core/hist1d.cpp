@@ -33,6 +33,7 @@
 #include <cmath>
 
 #include <algorithm>
+#include <cstdlib>
 #include <sstream>
 
 #include <sys/stat.h>
@@ -400,6 +401,8 @@ Hist1D::Hist1D(const Axis &xaxis, const NamedFunc &cut,
 void Hist1D::Print(double luminosity,
                    const string &subdir){
   if (!draw_plot_) return;
+  time_t begtime, endtime;
+  time(&begtime);
   //run RDataFrame
   std::cout << "DEBUG: getting data results" << std::endl;
   for (auto &single_hist : datas_) {
@@ -413,6 +416,8 @@ void Hist1D::Print(double luminosity,
   for (auto &single_hist : signals_) {
     single_hist->GetResult();
   }
+  time(&endtime); 
+  cout<<endl<<"DEBUG: Took "<<difftime(endtime, begtime)<<" seconds"<<endl<<endl;
   luminosity_ = luminosity;
   for(const auto &opt: plot_options_){
     this_opt_ = opt;

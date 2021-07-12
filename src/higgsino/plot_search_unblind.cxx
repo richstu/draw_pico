@@ -1046,6 +1046,8 @@ int main(int argc, char *argv[]){
 
   pm.multithreaded_ = !single_thread;
   pm.min_print_ = true;
+  //temp
+  time(&begtime);
   pm.MakePlots(1.);
 
   //// Get Figures
