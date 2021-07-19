@@ -6,6 +6,8 @@
 #include "THStack.h"
 #include "TStyle.h"
 #include <iostream>
+#include <set>
+#include <string>
 
 using std::string;
 using std::to_string;

@@ -48,6 +48,9 @@ public:
                   bool include_error_bar = false,
                   bool include_overflow = false) const;
 
+    std::vector<ROOT::RDF::RResultPtr<TH1D>> booked_raw_hist_ptr_;
+    bool booked_rdf_;
+
   private:
     SingleHist1D() = delete;
     SingleHist1D(const SingleHist1D &) = delete;
@@ -57,9 +60,7 @@ public:
 
     NamedFunc proc_and_hist_cut_;
     NamedFunc::VectorType cut_vector_, wgt_vector_, val_vector_;
-    std::vector<ROOT::RDF::RResultPtr<TH1D>> booked_raw_hist_ptr_;
     std::vector<ROOT::RDF::RResultPtr<ROOT::RDF::RCutFlowReport>> booked_cut_flow_ptr_;
-    bool booked_rdf_;
   };
 
   Hist1D(const Axis &xaxis, const NamedFunc &cut,

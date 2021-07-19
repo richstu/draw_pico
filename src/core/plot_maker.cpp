@@ -115,7 +115,7 @@ void PlotMaker::MakePlotsRdf(double luminosity, const std::string &subdir){
   size_t num_threads = 1;
   if (multithreaded_) {
     num_threads = min(babies.size(), static_cast<size_t>(thread::hardware_concurrency()));
-    ROOT::EnableImplicitMT();
+    //ROOT::EnableImplicitMT();
   }
   cout << "Processing " << babies.size() << " babies with " << num_threads << " threads. (RDataFrame backend)" << endl;
 

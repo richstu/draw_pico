@@ -31,7 +31,7 @@
 #include "core/hist1d.hpp"
 
 #include <cmath>
-
+#include <chrono>
 #include <algorithm>
 #include <cstdlib>
 #include <sstream>
@@ -40,8 +40,10 @@
 
 #include "ROOT/RDataFrame.hxx"
 #include "ROOT/RResultPtr.hxx"
+//#include "ROOT/RResultHandle.hxx"
 #include "ROOT/RDF/RInterface.hxx"
 #include "ROOT/RDF/RCutFlowReport.hxx"
+#include "ROOT/RDFHelpers.hxx"
 #include "TROOT.h"
 #include "TStyle.h"
 #include "TGraphAsymmErrors.h"
@@ -50,10 +52,12 @@
 #include "TLegendEntry.h"
 #include "TFile.h"
 
+#include "core/thread_pool.hpp"
 #include "core/utilities.hpp"
 
 using namespace std;
 using namespace PlotOptTypes;
+using Clock = chrono::steady_clock;
 
 namespace{
   class Counter{
@@ -140,6 +144,15 @@ namespace{
     }
     return this_col;
   }
+
+  /*!\brief Function to invoke RDataFrame event loop given a RResultPtr
+
+    \param[in] hist_ptr RResultPtr to a TH1D for which to invoke event loop
+   */
+  int RunEventLoop(ROOT::RDF::RResultPtr<TH1D> hist_ptr) {
+    hist_ptr.GetValue();
+    return 0;
+  }
 }
 
 TH1D Hist1D::blank_ = TH1D();
@@ -156,11 +169,11 @@ Hist1D::SingleHist1D::SingleHist1D(const Hist1D &figure,
   FigureComponent(figure, process),
   raw_hist_(hist),
   scaled_hist_(),
+  booked_rdf_(false),
   proc_and_hist_cut_(figure.cut_ && process->cut_),
   cut_vector_(),
   wgt_vector_(),
-  val_vector_(),
-  booked_rdf_(false){
+  val_vector_(){
   raw_hist_.Sumw2();
   scaled_hist_.Sumw2();
   raw_hist_.SetBinErrorOption(TH1::kPoisson);
@@ -401,9 +414,58 @@ Hist1D::Hist1D(const Axis &xaxis, const NamedFunc &cut,
 void Hist1D::Print(double luminosity,
                    const string &subdir){
   if (!draw_plot_) return;
-  time_t begtime, endtime;
-  time(&begtime);
   //run RDataFrame
+  std::vector<ROOT::RDF::RResultPtr<TH1D>> all_hists;
+  for (auto &single_hist : datas_) {
+    for (ROOT::RDF::RResultPtr<TH1D> hist_ptr : single_hist->booked_raw_hist_ptr_) {
+      all_hists.push_back(hist_ptr);
+    }
+  }
+  for (auto &single_hist : backgrounds_) {
+    for (ROOT::RDF::RResultPtr<TH1D> hist_ptr : single_hist->booked_raw_hist_ptr_) {
+      all_hists.push_back(hist_ptr);
+    }
+  }
+  for (auto &single_hist : signals_) {
+    for (ROOT::RDF::RResultPtr<TH1D> hist_ptr : single_hist->booked_raw_hist_ptr_) {
+      all_hists.push_back(hist_ptr);
+    }
+  }
+  //kludge to detect RDataFrame backend
+  bool is_rdf = false;
+  if (datas_.size() > 0) {
+    if (datas_[0]->booked_rdf_) {
+      is_rdf = true;
+    }
+  }
+  if (backgrounds_.size() > 0) {
+    if (backgrounds_[0]->booked_rdf_) {
+      is_rdf = true;
+    }
+  }
+  if (is_rdf) {
+    //automatically multi-thread
+    size_t num_threads = min(all_hists.size(), static_cast<size_t>(thread::hardware_concurrency()));
+    std::cout<<"DEBUG: num threads: "<<num_threads<<std::endl;
+    ThreadPool tp(num_threads);
+    vector<future<int> > num_entries_future(all_hists.size());
+    size_t nhists = 0;
+    for (ROOT::RDF::RResultPtr<TH1D> hist_ptr : all_hists) {
+      num_entries_future.at(nhists) = tp.Push(std::bind(&RunEventLoop,hist_ptr));
+      nhists++;
+    }
+    size_t Nfiles=0;
+    auto start_time = Clock::now();
+    for(auto& entries: num_entries_future){
+      entries.get();
+      Nfiles++;
+      double seconds = chrono::duration<double>(Clock::now()-start_time).count();
+      cout<<"Done "<<Nfiles<<"/"<<nhists<<" data frames in "<<HoursMinSec(seconds)<<std::endl;
+    }
+    auto end_time = Clock::now();
+    double num_seconds = chrono::duration<double>(end_time-start_time).count();
+    cout<<endl<<"DEBUG: Took "<<num_seconds<<" seconds"<<endl<<endl;
+  }
   std::cout << "DEBUG: getting data results" << std::endl;
   for (auto &single_hist : datas_) {
     single_hist->GetResult();
@@ -416,8 +478,6 @@ void Hist1D::Print(double luminosity,
   for (auto &single_hist : signals_) {
     single_hist->GetResult();
   }
-  time(&endtime); 
-  cout<<endl<<"DEBUG: Took "<<difftime(endtime, begtime)<<" seconds"<<endl<<endl;
   luminosity_ = luminosity;
   for(const auto &opt: plot_options_){
     this_opt_ = opt;
