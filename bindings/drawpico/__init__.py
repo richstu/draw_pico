@@ -11,9 +11,25 @@ drawpico_bindings.NewAxis.argtypes = [ctypes.c_int, ctypes.c_double,
     ctypes.c_double, ctypes.c_void_p, ctypes.c_char_p, 
     ctypes.POINTER(ctypes.c_double), ctypes.c_int, 
     ctypes.POINTER(ctypes.c_double), ctypes.c_int]
+drawpico_bindings.NewAxis.restype = ctypes.c_void_p
+drawpico_bindings.NewAxisVectorConstructor.argtypes = [
+    ctypes.POINTER(ctypes.c_double), ctypes.c_int, ctypes.c_void_p, 
+    ctypes.c_char_p, ctypes.POINTER(ctypes.c_double), ctypes.c_int, 
+    ctypes.POINTER(ctypes.c_double), ctypes.c_int]
+drawpico_bindings.NewAxisVectorConstructor.restype = ctypes.c_void_p
 drawpico_bindings.DeleteAxis.argtypes = [ctypes.c_void_p]
 class Axis:
-  def __init__(self, nbins, xmin, xmax, var, title='', cut_vals=[], hard_cut_vals=[]):
+  def __init__(self, *args):
+    if (len(args) < 1):
+      raise AttributeError('Axis needs at least 1 argument')
+    if (type(args[0]) == int):
+      self.init_evenbins(*args)
+    elif (type(args[0]) == list):
+      self.init_custombins(*args)
+    else:
+      raise AttributeError('Axis first argument must be int or list')
+
+  def init_evenbins(self, nbins, xmin, xmax, var, title='', cut_vals=[], hard_cut_vals=[]):
     '''Axis constructor making an axis for NamedFunc var with string title,
     int nbins from float xmin to float xmax and a list of floats cut_vals
     and hard_cut_vals where to draw lines'''
@@ -22,6 +38,18 @@ class Axis:
     var_implicitcast = NamedFunc(var)
     self.wrapped_axis = drawpico_bindings.NewAxis(nbins, ctypes.c_double(xmin), 
         ctypes.c_double(xmax), var_implicitcast.wrapped_named_func, title.encode('utf-8'),
+        cut_vals_array, len(cut_vals), hard_cut_vals_array, len(hard_cut_vals))
+
+  def init_custombins(self, bins, var, title='', cut_vals=[], hard_cut_vals=[]):
+    '''Axis constructor making an axis for NamedFunc var with string title,
+    bins defined by a list of floats bins and a list of floats cut_vals
+    and hard_cut_vals where to draw lines'''
+    bins_array = (ctypes.c_double * len(bins))(*bins)
+    cut_vals_array = (ctypes.c_double * len(cut_vals))(*cut_vals)
+    hard_cut_vals_array = (ctypes.c_double * len(hard_cut_vals))(*hard_cut_vals)
+    var_implicitcast = NamedFunc(var)
+    self.wrapped_axis = drawpico_bindings.NewAxisVectorConstructor(bins_array, 
+        len(bins), var_implicitcast.wrapped_named_func, title.encode('utf-8'),
         cut_vals_array, len(cut_vals), hard_cut_vals_array, len(hard_cut_vals))
 
   def __del__(self):
@@ -67,8 +95,34 @@ drawpico_bindings.NewNamedFunc.restypes = ctypes.c_void_p
 drawpico_bindings.DeleteNamedFunc.argtypes = [ctypes.c_void_p]
 drawpico_bindings.CopyNamedFunc.argtypes = [ctypes.c_void_p]
 drawpico_bindings.CopyNamedFunc.restype = ctypes.c_void_p
+drawpico_bindings.NamedFuncAdd.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncAdd.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncSubtract.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncSubtract.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncMultiply.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncMultiply.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncDivide.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncDivide.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncModulo.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncModulo.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncEquals.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncEquals.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncNotEquals.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncNotEquals.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncLessThan.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncLessThan.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncGreaterThan.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncGreaterThan.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncLessThanOrEquals.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncLessThanOrEquals.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncGreaterThanOrEquals.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncGreaterThanOrEquals.restypes = ctypes.c_void_p
 drawpico_bindings.NamedFuncAnd.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 drawpico_bindings.NamedFuncAnd.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncOr.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+drawpico_bindings.NamedFuncOr.restypes = ctypes.c_void_p
+drawpico_bindings.NamedFuncNot.argtypes = [ctypes.c_void_p]
+drawpico_bindings.NamedFuncNot.restypes = ctypes.c_void_p
 class NamedFunc:
   def __init__(self, function):
     '''NamedFunc constructor from string or NamedFunc or pointer'''
@@ -84,12 +138,98 @@ class NamedFunc:
     '''default destructor'''
     drawpico_bindings.DeleteNamedFunc(self.wrapped_named_func)
 
+  def __add__(self, other_named_func):
+    '''returns NamedFunc self + NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncAdd(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __sub__(self, other_named_func):
+    '''returns NamedFunc self - NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncSubtract(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __mul__(self, other_named_func):
+    '''returns NamedFunc self * NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncMultiply(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __truediv__(self, other_named_func):
+    '''returns NamedFunc self / NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncDivide(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __mod__(self, other_named_func):
+    '''returns NamedFunc self % NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncModulo(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __eq__(self, other_named_func):
+    '''returns NamedFunc self == NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncEquals(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __ne__(self, other_named_func):
+    '''returns NamedFunc self != NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncNotEquals(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __lt__(self, other_named_func):
+    '''returns NamedFunc self < NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncLessThan(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __gt__(self, other_named_func):
+    '''returns NamedFunc self > NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncGreaterThan(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __le__(self, other_named_func):
+    '''returns NamedFunc self < NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncLessThanOrEquals(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __ge__(self, other_named_func):
+    '''returns NamedFunc self > NamedFunc other_named_func'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncGreaterThanOrEquals(
+        self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
   def __and__(self, other_named_func):
     '''combine two NamedFuncs with logical and'''
     other_named_func_implicitcast = NamedFunc(other_named_func)
     return NamedFunc(drawpico_bindings.NamedFuncAnd(self.wrapped_named_func, 
         other_named_func_implicitcast.wrapped_named_func))
 
+  def __or__(self, other_named_func):
+    '''combine two NamedFuncs with logical or'''
+    other_named_func_implicitcast = NamedFunc(other_named_func)
+    return NamedFunc(drawpico_bindings.NamedFuncOr(self.wrapped_named_func, 
+        other_named_func_implicitcast.wrapped_named_func))
+
+  def __invert__(self):
+    '''Outputs NamedFunc that is logical not of self'''
+    return NamedFunc(drawpico_bindings.NamedFuncNot(self.wrapped_named_func))
 
 #PlotMaker
 drawpico_bindings.NewPlotMaker.restype = ctypes.c_void_p

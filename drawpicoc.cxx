@@ -39,6 +39,25 @@ extern "C"
         *static_cast<NamedFunc*>(var), title, cut_vals_set, hard_cut_vals_set));
   }
 
+  void* NewAxisVectorConstructor(double* bins, int bins_len, void* var, const char* title, 
+      double* cut_vals, int cut_vals_len, double* hard_cut_vals, 
+      int hard_cut_vals_len) {
+    std::vector<double> bins_vector;
+    std::set<double> cut_vals_set;
+    std::set<double> hard_cut_vals_set;
+    for (int i = 0; i < bins_len; i++) {
+      bins_vector.push_back(bins[i]);
+    }
+    for (int i = 0; i < cut_vals_len; i++) {
+      cut_vals_set.insert(cut_vals[i]);
+    }
+    for (int i = 0; i < hard_cut_vals_len; i++) {
+      hard_cut_vals_set.insert(hard_cut_vals[i]);
+    }
+    return static_cast<void*>(new(std::nothrow) Axis(bins_vector,
+        *static_cast<NamedFunc*>(var), title, cut_vals_set, hard_cut_vals_set));
+  }
+
   void DeleteAxis(void* axis) {
     delete static_cast<Axis*>(axis);
   }
@@ -71,9 +90,74 @@ extern "C"
     return ret;
   }
 
+  void* NamedFuncAdd(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) + *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncSubtract(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) - *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncMultiply(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) * *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncDivide(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) - *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncModulo(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) % *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncEquals(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) == *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncNotEquals(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) != *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncLessThan(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) < *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncGreaterThan(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) > *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncLessThanOrEquals(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) <= *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncGreaterThanOrEquals(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) >= *(static_cast<NamedFunc*>(g))));
+  }
+
   void* NamedFuncAnd(void* f, void* g) {
     return static_cast<void*>(new(std::nothrow) NamedFunc(
         *(static_cast<NamedFunc*>(f)) && *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncOr(void* f, void* g) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        *(static_cast<NamedFunc*>(f)) || *(static_cast<NamedFunc*>(g))));
+  }
+
+  void* NamedFuncNot(void* f) {
+    return static_cast<void*>(new(std::nothrow) NamedFunc(
+        !(*(static_cast<NamedFunc*>(f))) ));
   }
 
   //PlotMaker
