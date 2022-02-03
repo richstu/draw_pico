@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <getopt.h>
@@ -160,6 +161,8 @@ namespace script_utilities {
                                      "*_QCD_HT2000toInf_*"});
     mctags_["other"]   = std::set<std::string>({"*_WH*.root", "*_ZH_HToBB*.root",
                                        "*_WWTo*.root", "*_WZ*.root", "*_ZZ_*.root"});
+    mctags_["other_and_single_t"]   = std::set<std::string>({"*_ST_*.root", "*_WH*.root", "*_ZH_HToBB*.root",
+                                       "*_WWTo*.root", "*_WZ*.root", "*_ZZ_*.root"});
     // Combine all tags
     mctags_["all"] = std::set<std::string>({"*TTJets_SingleLept*",
                                  "*TTJets_DiLept*",
@@ -253,7 +256,7 @@ namespace script_utilities {
       std::string sig_production_folder;
       std::string sig_skim_folder;
       std::set<std::string> sig_grep_string;
-      if (model_name == "TChiHH") {
+      if (model_name == "TChiHH" || model_name == "TChiHH-G") {
         sig_production_folder = signal_production_folder;
         sig_skim_folder = signal_folder_dict[skim_name];
         sig_grep_string = {"*TChiHH_mChi-"+prod_mass+"_mLSP-"+lsp_mass+"*.root"};
@@ -298,27 +301,30 @@ namespace script_utilities {
         procs.push_back(Process::MakeShared<Baby_pico>("W+jets", 
             Process::Type::background, kGreen+1, attach_folder(mc_production_folder, 
             years, mc_folder_dict[skim_name], mc_tags["wjets"]), "stitch"));
+      procs.push_back(Process::MakeShared<Baby_pico>("Single t", 
+          Process::Type::background, mc_colors("single_t"), attach_folder(
+          mc_production_folder, years, mc_folder_dict[skim_name], mc_tags["single_t"]),
+          "stitch"));
+      procs.push_back(Process::MakeShared<Baby_pico>("Other", 
+          Process::Type::background, kGray+2, attach_folder(mc_production_folder, 
+          years, mc_folder_dict[skim_name], mc_tags["other"]), "stitch"));
       }
       else {
         procs.push_back(Process::MakeShared<Baby_pico>("t#bar{t}+X", 
-            Process::Type::background, mc_colors("tt_1l"), attach_folder(
+            Process::Type::background, mc_colors("tt_htau"), attach_folder(
             mc_production_folder, years, mc_folder_dict[skim_name], mc_tags["tt"]),
             "stitch"));
         procs.push_back(Process::MakeShared<Baby_pico>("V+jets", 
             Process::Type::background, kOrange+1, attach_folder(mc_production_folder, 
             years, mc_folder_dict[skim_name], mc_tags["vjets"]), "stitch"));
+      procs.push_back(Process::MakeShared<Baby_pico>("Other", 
+          Process::Type::background, kGray+2, attach_folder(mc_production_folder, 
+          years, mc_folder_dict[skim_name], mc_tags["other_and_single_t"]), "stitch"));
       }
-      procs.push_back(Process::MakeShared<Baby_pico>("Single t", 
-          Process::Type::background, mc_colors("single_t"), attach_folder(
-          mc_production_folder, years, mc_folder_dict[skim_name], mc_tags["single_t"]),
-          "stitch"));
       procs.push_back(Process::MakeShared<Baby_pico>("QCD", 
           Process::Type::background, mc_colors("other"), attach_folder(
           mc_production_folder, years, mc_folder_dict[skim_name], mc_tags["qcd"]),
           "stitch")); 
-      procs.push_back(Process::MakeShared<Baby_pico>("Other", 
-          Process::Type::background, kGray+2, attach_folder(mc_production_folder, 
-          years, mc_folder_dict[skim_name], mc_tags["other"]), "stitch"));
     }
 
     //add data
@@ -354,5 +360,26 @@ namespace script_utilities {
     if (b.nbl() == 3) return 3;
     return 4;
   });
+
+  const NamedFunc search_resolved = 
+                         "met/mht<2 && met/met_calo<2&&weight<1.5&&"
+                         "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&nbt>=2&&"
+                         "hig_cand_drmax[0]<2.2&&hig_cand_am[0]<200&&hig_cand_dm[0]<40";
+  const NamedFunc ttbar_resolved =
+                         "met/met_calo<5&&weight<1.5&&"
+                         "nlep==1&&mt<=100&&njet>=4&&njet<=5&&nbt>=2&&"
+                         "hig_cand_drmax[0]<2.2&&hig_cand_am[0]<200&&hig_cand_dm[0]<40&&"
+                         "((nbt==2&&nbm==2)||(nbt>=2&&nbm==3&&nbl==3)||(nbt>=2&&nbm>=3&&nbl>=4))"
+                         &&Higfuncs::lead_signal_lepton_pt>30;
+
+  //leppt cut implicit in skim
+  const NamedFunc zll_resolved =
+                         "met/met_calo<5&&weight<1.5&&"
+                         "nlep==2&&njet>=4&&njet<=5&&met<50&&"
+                         "hig_cand_drmax[0]<2.2&&hig_cand_am[0]<200&&hig_cand_dm[0]<40";
+  const NamedFunc qcd_resolved =
+                         "met/mht<2 && met/met_calo<2&&"
+                         "low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
+                         "hig_cand_drmax[0]<2.2&&hig_cand_am[0]<200&&hig_cand_dm[0]<40";
 
 }

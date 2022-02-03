@@ -192,7 +192,7 @@ nhbins = len(data)
 
 #         Plotting the data
 #-------------------------------------
-miny, maxy = 0.051, 7000
+miny, maxy = 0.015, 7000
 if bin_labels:
   maxy = 1000
 htopdummy = TH1D("","",nhbins,0,nhbins+1)
@@ -369,7 +369,7 @@ if not plot_pulls:
     htopdummy.GetXaxis().SetBinLabel(22,ptmiss+'>700 GeV')
     hgopdummy.LabelsOption('v')
 
-leg = TLegend(0.32, 0.9, 0.72, 0.98)
+leg = TLegend(0.35, 0.9, 0.75, 0.98)
 #leg = TLegend(0.3, 0.9, 0.7, 0.98) #w/ signal
 # leg.SetTextSize(30)
 leg.SetFillColor(0)

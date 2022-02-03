@@ -1,0 +1,74 @@
+#add PRODUCTION_NAME /net/cms25/cms25r0/pico/NanoAODv7/higgsino_klamath_v3/
+#add YEARS 2016
+#add YEARS 2017
+#add YEARS 2018
+#add SEARCH_SKIM_MC mc/merged_higmc_preselect/
+#add SEARCH_SKIM_SIG SMS-TChiHH_2D_fastSimJmeCorrection/merged_higmc_preselect/
+#add SEARCH_SKIM_DATA data/merged_higdata_preselect/
+#add FILENAMES_TTX *TTJets_*Lept*.root
+#add FILENAMES_TTX *_TTZ*.root
+#add FILENAMES_TTX *_TTW*.root
+#add FILENAMES_TTX *_TTGJets*.root
+#add FILENAMES_TTX *ttHTobb*.root
+#add FILENAMES_TTX *_TTTT*.root
+#add FILENAMES_ZJETS *_ZJet*.root
+#add FILENAMES_ZJETS *DYJetsToLL*.root
+#add FILENAMES_WJETS *_WJetsToLNu*.root
+#add FILENAMES_QCD *_QCD_HT200to300_*.root
+#add FILENAMES_QCD *_QCD_HT300to500_*.root
+#add FILENAMES_QCD *_QCD_HT500to700_*.root
+#add FILENAMES_QCD *_QCD_HT700to1000_*.root
+#add FILENAMES_QCD *_QCD_HT1000to1500_*.root
+#add FILENAMES_QCD *_QCD_HT1500to2000_*.root
+#add FILENAMES_QCD *_QCD_HT2000toInf_*.root
+#add FILENAMES_OTHER *_ST_*.root
+#add FILENAMES_OTHER *_WH*.root
+#add FILENAMES_OTHER *_ZH_HToBB*.root
+#add FILENAMES_OTHER *_WWTo*.root
+#add FILENAMES_OTHER *_WZ*.root
+#add FILENAMES_OTHER *_ZZ_*.root
+
+[[HHMetPaper]]
+  [t#bar{t}+X]
+    ProcessType = 1
+    PaletteColor = tt_htau
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_MC/$FILENAMES_TTX
+    Selection = stitch
+  [Z+jets]
+    ProcessType = 1
+    Color = 801
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_MC/$FILENAMES_ZJETS
+    Selection = stitch
+  [W+jets]
+    ProcessType = 1
+    Color = 417
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_MC/$FILENAMES_WJETS
+    Selection = stitch
+  [QCD]
+    ProcessType = 1
+    PaletteColor = other
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_MC/$FILENAMES_QCD
+    Selection = stitch
+  [Other]
+    ProcessType = 1
+    Color = 922
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_MC/$FILENAMES_OTHER
+    Selection = stitch
+  [TChiHH-G(175,0)]
+    ProcessType = 2
+    Color = 412
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_SIG/*TChiHH_mChi-175_mLSP-0_*.root
+  [TChiHH-G(500,0)]
+    ProcessType = 2
+    Color = 632
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_SIG/*TChiHH_mChi-500_mLSP-0_*.root
+  [TChiHH-G(950,0)]
+    ProcessType = 2
+    Color = 880
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_SIG/*TChiHH_mChi-950_mLSP-0_*.root
+  [Data]
+    ProcessType = 0
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SEARCH_SKIM_DATA/*.root
+    Selection = triggers_data
+    

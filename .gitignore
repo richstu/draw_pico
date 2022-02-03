@@ -42,6 +42,7 @@ run/
 !txt/variables/*
 !txt/colors.txt
 !txt/plot_styles.txt
+!txt/samples.txt
 !txt/counts_in_bins/*
 !txt/golden/*
 *.#*

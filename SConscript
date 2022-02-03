@@ -5,7 +5,9 @@ Import("exportEnv")
 envClone = exportEnv.Clone()
 
 # source_directories = ['core', 'higgsino', ...]
-source_directories = next(os.walk('src'))[1]
+#source_directories = next(os.walk('src'))[1]
+# os.walk glitching out for some reason
+source_directories = ['core', 'higgsino', 'zgamma']
 if len(source_directories) == 0:
   source_directories = ['./']
 
@@ -54,3 +56,27 @@ for source_directory in source_directories: # source_directories = 'core'
     source_script_path = 'run/'+source_directory+'/'+source_basename+'.exe'
     source_script_path_mark = "#/"+source_script_path
     envClone.Command(source_script_path_mark, program, './scripts/make_run_scripts.py '+source_script_path)
+
+#Make single shared library
+source_files = set()
+for source_directory in source_directories: # source_directories = 'core'
+  for lib_file in Glob("src/"+source_directory+"/*.cpp"): 
+    source_files.add(lib_file)
+for core_lib_file in Glob("src/core/*.cpp"): 
+  source_files.add(core_lib_file)
+source_files = sorted(source_files)
+program = envClone.SharedLibrary('#/lib/libDrawPico.so', list(source_files))
+envClone.Depends(program, run_tree_generator)
+
+## Make shared libraries for every directory
+#exclude_files = [tree_generator_file]
+#for source_directory in source_directories: # source_directories = 'core'
+#  for source_file in Glob("src/"+source_directory+"/*.cpp", exclude=exclude_files):
+#    source_directory_name = source_directory if source_directory != './' else 'base'
+#    source_files = set()
+#    #for lib_file in Glob("src/"+source_directory+"/*.cpp", exclude=[source_file]): source_files.add(lib_file)
+#    #for core_lib_file in Glob("src/core/*.cpp"): source_files.add(core_lib_file)
+#    source_files = [source_file] + sorted(source_files)
+#    # Make binary
+#    program = envClone.SharedLibrary('#/lib/${SOURCE.filebase}.so', list(source_files))
+#    envClone.Depends(program, run_tree_generator)

@@ -132,26 +132,10 @@ namespace script_utilities {
   const std::string qcd_gluinofull_skim_folder = "SMS-T5qqqqZH_FullSimJmeVariations/merged_higmc_higqcd/";
   const std::string gluinofull_unskimmed_folder = "SMS-T5qqqqZH_FullSimJmeVariations/unskimmed/";
 
-  const NamedFunc search_resolved = 
-                         "met/mht<2 && met/met_calo<2&&weight<1.5&&"
-                         "ntk==0&&!low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&nbt>=2&&"
-                         "hig_cand_drmax[0]<2.2&&hig_cand_am[0]<200&&hig_cand_dm[0]<40";
-  const NamedFunc ttbar_resolved =
-                         "met/met_calo<5&&weight<1.5&&"
-                         "nlep==1&&mt<=100&&njet>=4&&njet<=5&&nbt>=2&&"
-                         "hig_cand_drmax[0]<2.2&&hig_cand_am[0]<200&&hig_cand_dm[0]<40&&"
-                         "((nbt==2&&nbm==2)||(nbt>=2&&nbm==3&&nbl==3)||(nbt>=2&&nbm>=3&&nbl>=4))"
-                         &&Higfuncs::lead_signal_lepton_pt>30;
-
-  //leppt cut implicit in skim
-  const NamedFunc zll_resolved =
-                         "met/met_calo<5&&weight<1.5&&"
-                         "nlep==2&&njet>=4&&njet<=5&&met<50&&"
-                         "hig_cand_drmax[0]<2.2&&hig_cand_am[0]<200&&hig_cand_dm[0]<40";
-  const NamedFunc qcd_resolved =
-                         "met/mht<2 && met/met_calo<2&&"
-                         "low_dphi_met&&nvlep==0&&met>150&&njet>=4&&njet<=5&&"
-                         "hig_cand_drmax[0]<2.2&&hig_cand_am[0]<200&&hig_cand_dm[0]<40";
+  extern const NamedFunc search_resolved;
+  extern const NamedFunc ttbar_resolved;
+  extern const NamedFunc zll_resolved;
+  extern const NamedFunc qcd_resolved;
 }
 
 #endif

@@ -649,6 +649,10 @@ void PlotOpt::SetProperty(const string &property,
     UseCMYK(stoi(value));
   }else if(property == "PrintVals"){
     PrintVals(stoi(value));
+  }else if(property == "ErrorOnZeroData"){
+    ErrorOnZeroData(stoi(value));
+  }else if(property == "TitleInFrame"){
+    TitleInFrame(stoi(value));
   }else{
     DBG("Did not understand property name "<<property);
   }

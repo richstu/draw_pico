@@ -13,7 +13,7 @@
 // make_cutflow (default) - generates resolved MC cutflow 
 // make_pies (default) - generate pie charts for 3 nb categories x 2 drmax bins x 4 met bins
 // plot_nminus1_full - generates more versions of n-1 plots
-// plot_am - generates am plots with various nb, met, and drmax selections
+// plot_am - generates am plots with various nb, met, and drmax selections 
 
 #include "core/test.hpp"
 
