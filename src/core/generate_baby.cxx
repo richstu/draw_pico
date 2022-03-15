@@ -576,6 +576,8 @@ void WriteBaseHeader(const set<Variable> &vars,
   file << "  long GetEntries() const;\n";
   file << "  virtual void GetEntry(long entry);\n\n";
 
+  file << "  std::string FirstFileName() const;\n";
+
   file << "  const std::set<std::string> & FileNames() const;\n\n";
   file << "  int SampleType() const;\n";
   file << "  int SetSampleType(const TString &filename);\n\n";
@@ -623,6 +625,7 @@ void WriteBaseHeader(const set<Variable> &vars,
 
   file << "  std::set<std::string> file_names_;//!<Files loaded into TChain\n";
   file << "  int sample_type_;//!< Integer indicating what kind of sample the first file has\n";
+  file << "  std::string first_file_name_;//!< Name of first file in TChain\n";
   file << "  bool fast_sim_;//!< Boolean indicating whether or not a sample is fastSIM\n";
   file << "  mutable long total_entries_;//!<Cached number of events in TChain\n";
   file << "  mutable bool cached_total_entries_;//!<Flag if cached event count up to date\n\n";
@@ -823,6 +826,7 @@ void WriteBaseSource(const set<Variable> &vars){
   }
   file << "  TString filename=\"\";\n";
   file << "  if(file_names_.size()) filename = *file_names_.cbegin();\n";
+  file << "  first_file_name_ = filename;\n";
   file << "  sample_type_ = SetSampleType(filename);\n";
   file << "  fast_sim_ = SetFastSim(filename);\n";
   file << "}\n";
@@ -860,6 +864,11 @@ void WriteBaseSource(const set<Variable> &vars){
   file << "// Return integer with sample type\n";
   file << "int Baby::SampleType() const{\n";
   file << "  return sample_type_;\n";
+  file << "}\n\n";
+
+  file << "// Return first file name\n";
+  file << "std::string Baby::FirstFileName() const{\n";
+  file << "  return first_file_name_;\n";
   file << "}\n\n";
 
   file << "// Return bool indicating if sample is fastSIM\n";

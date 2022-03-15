@@ -19,6 +19,7 @@
 #include "core/palette.hpp"
 #include "core/table.hpp"
 #include "core/hist1d.hpp"
+#include "core/hist2d.hpp"
 #include "core/utilities.hpp"
 #include "zgamma/zg_utilities.hpp"
 using namespace std;
@@ -60,7 +61,9 @@ int main() {
                        TColor::GetColor("#ffb400"),{mc_path+"*DYJets*"},  trigs);
   auto proc_ttg   = Process::MakeShared<Baby_pico>("ttbar",            back, 
                        TColor::GetColor("#ED702D"),{mc_path+"*TT_Tune*"}, trigs);
-  auto proc_hzg   = Process::MakeShared<Baby_pico>("HToZ#gamma(x1000)", sig, 
+  auto proc_hzg   = Process::MakeShared<Baby_pico>("HToZ#gamma(x1000)", sig,
+                       kRed     ,{sig_path+"*.root"},   trigs);
+  auto proc_hzg_2d = Process::MakeShared<Baby_pico>("HToZ#gamma(x1000)", back,
                        kRed     ,{sig_path+"*.root"},   trigs);
 //   auto proc_hzg_vbf = Process::MakeShared<Baby_pico>("HToZ#gamma VBF(x1000)", sig, 
 //                        kMagenta                   ,{sig_path+"*VBF*.root"},   trigs);
@@ -73,6 +76,7 @@ int main() {
   proc_hzg_gg->SetLineWidth(3);
   vector<shared_ptr<Process>> procs = {proc_dy, proc_smzg, proc_hzg};
   vector<shared_ptr<Process>> theory_procs = {proc_dy, proc_smzg, proc_hzg_gg};
+  vector<shared_ptr<Process>> sig_procs = {proc_hzg_2d};
 //   vector<shared_ptr<Process>> theory_procs = {proc_hzg_vbf};
   NamedFunc llphoton_pz("llphoton_pz",[](const Baby &b) -> NamedFunc::ScalarType{
     return abs(AssignH(b).Pz());
@@ -147,6 +151,8 @@ int main() {
   PlotOpt lin_stack = lin_lumi().Stack(StackType::signal_overlay);
   PlotOpt log_stack = log_lumi().Stack(StackType::signal_overlay);
   vector<PlotOpt> ops = {lin_stack, lin_lumi};
+  PlotOpt lin_lumi_2d("txt/plot_styles.txt", "Scatter");
+  vector<PlotOpt> ops2d = {lin_lumi_2d().Title(TitleType::info).YAxis(YAxisType::linear).Overflow(OverflowType::overflow)};
   vector<NamedFunc> loose_lep = {"ll_lepid[0] == 11 && el_pt[ll_i1[0]] > 15 && el_pt[ll_i2[0]] > 15",
                                  "ll_lepid[0] == 13 && mu_pt[ll_i1[0]] > 15 && mu_pt[ll_i2[0]] > 15"};
   NamedFunc llphoton_cuts("llphoton_m[0]+ll_m[0]>185 && llphoton_m[0] > 100 && llphoton_m[0] < 180 && photon_pt[0]/llphoton_m[0] >= 15./110 && photon_drmin[0] > 0.4");
@@ -179,6 +185,10 @@ int main() {
       pm.Push<Hist1D>(Axis(20,-1.0,1.0, cosT_gen,    "cos #Theta_{gen}",{}), cut, theory_procs, ops).Weight(wgt).Tag(tag);
       pm.Push<Hist1D>(Axis(20,-1.0,1.0, costheta_gen,"cos #theta_{gen}",{}), cut, theory_procs, ops).Weight(wgt).Tag(tag);
       pm.Push<Hist1D>(Axis(32,-3.2,3.2, phi_gen     ,"#phi_{gen}"      ,{}), cut, theory_procs, ops).Weight(wgt).Tag(tag);
+      pm.Push<Hist2D>(Axis(20,-1.0,1.0, costheta_gen,"cos #theta_{gen}",{}),
+                      Axis(32,-3.2,3.2, phi_gen     ,"#phi_{gen}"      ,{}), cut, sig_procs   , ops2d).Weight(wgt).Tag(tag);
+      pm.Push<Hist2D>(Axis(20,-1.0,1.0, costheta    ,"cos #theta"      ,{}),
+                      Axis(32,-3.2,3.2, phi         ,"#phi"            ,{}), cut, sig_procs   , ops2d).Weight(wgt).Tag(tag);
 //       pm.Push<Hist1D>(Axis(50,0,100, pTt,       "p_{Tt} [GeV]",{}), cut, procs, ops).Weight(wgt);
 //       pm.Push<Hist1D>(Axis(50,0,100, pTt2,     "p_{Tt}2 [GeV]",{}), cut, procs, ops).Weight(wgt);
     }
