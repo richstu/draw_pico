@@ -13,6 +13,7 @@ using namespace PlotOptTypes;
 PlotOpt::PlotOpt():
   bottom_type_(BottomType::off),
   y_axis_type_(YAxisType::linear),
+  x_axis_type_(YAxisType::linear),
   title_type_(TitleType::info),
   stack_type_(StackType::signal_overlay),
   overflow_type_(OverflowType::both),
@@ -109,6 +110,15 @@ PlotOpt & PlotOpt::YAxis(YAxisType y_axis_type){
 }
 
 YAxisType PlotOpt::YAxis() const{
+  return y_axis_type_;
+}
+
+PlotOpt & PlotOpt::XAxis(YAxisType y_axis_type){
+  y_axis_type_ = y_axis_type;
+  return *this;
+}
+
+YAxisType PlotOpt::XAxis() const{
   return y_axis_type_;
 }
 
@@ -577,6 +587,8 @@ void PlotOpt::SetProperty(const string &property,
     Bottom(static_cast<BottomType>(stoi(value)));
   }else if(property == "YAxisType"){
     YAxis(static_cast<YAxisType>(stoi(value)));
+  }else if(property == "XAxisType"){
+    XAxis(static_cast<YAxisType>(stoi(value)));
   }else if(property == "TitleType"){
     Title(static_cast<TitleType>(stoi(value)));
   }else if(property == "StackType"){

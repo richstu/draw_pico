@@ -263,6 +263,7 @@ void EfficiencyPlot::Print(double luminosity,
   //SetRanges();
   //ApplyStyles();
   //AdjustFillStyles();
+  PlotOpt this_opt_ = plot_options_[0];
   
   //setup canvas/pad
 	gStyle->SetOptStat(0);
@@ -273,11 +274,15 @@ void EfficiencyPlot::Print(double luminosity,
 	pad->cd();
 	pad->SetGrid();
   pad->SetLogy(false);
+  pad->SetLogx(false);
 	gPad->SetMargin(0.15,0.15,0.15,0.15);
+  if (this_opt_.XAxis() == PlotOptTypes::YAxisType::log)
+    pad->SetLogx(true);
 
   //draw ratio plots and histograms
   double ratio_y_max = 0.0;
   double linear_y_max = 0.0;
+  double xmax = 0.0;
   std::unique_ptr<TH1D> total_background_denominator;
   std::unique_ptr<TH1D> total_background_numerator;
   std::vector<std::unique_ptr<TH1D>> signal_numerator_plots;
@@ -300,6 +305,7 @@ void EfficiencyPlot::Print(double luminosity,
     total_background_numerator->Scale(luminosity_);
     total_background_denominator->Scale(luminosity_);
     //double this_linear_y_max = total_background_denominator->GetMaximum();
+    xmax = total_background_denominator->GetXaxis()->GetBinUpEdge(total_background_denominator->GetXaxis()->GetNbins());
     double this_linear_y_max = total_background_denominator->GetBinContent(total_background_denominator->GetMaximumBin());
     if (this_linear_y_max > linear_y_max) linear_y_max = this_linear_y_max;
     TFile* out_file = TFile::Open("ntuples/effplotdebugging.root","UPDATE");
@@ -319,6 +325,7 @@ void EfficiencyPlot::Print(double luminosity,
     denominator_hist->Scale(luminosity_);
     numerator_hist->Scale(luminosity_);
     //double this_linear_y_max = denominator_hist->GetMaximum();
+    xmax = denominator_hist->GetXaxis()->GetBinUpEdge(denominator_hist->GetXaxis()->GetNbins());
     double this_linear_y_max = denominator_hist->GetBinContent(denominator_hist->GetMaximumBin());
     if (this_linear_y_max > linear_y_max) linear_y_max = this_linear_y_max;
     signal_colors.push_back(numerator_hist->GetLineColor());
@@ -337,6 +344,7 @@ void EfficiencyPlot::Print(double luminosity,
     TH1D* numerator_hist = &datas_.at(data_idx)->raw_numerator_hist_;
     TH1D* denominator_hist = &datas_.at(data_idx)->raw_denominator_hist_;
     //double this_linear_y_max = denominator_hist->GetMaximum();
+    xmax = denominator_hist->GetXaxis()->GetBinUpEdge(denominator_hist->GetXaxis()->GetNbins());
     double this_linear_y_max = denominator_hist->GetBinContent(denominator_hist->GetMaximumBin());
     if (this_linear_y_max > linear_y_max) linear_y_max = this_linear_y_max;
     data_colors.push_back(numerator_hist->GetLineColor());
@@ -414,8 +422,6 @@ void EfficiencyPlot::Print(double luminosity,
 	TLatex t;
 	t.SetTextColor(kBlack);
 	t.SetTextSize(0.04);
-  PlotOpt this_opt_ = plot_options_[0];
-  //TODO: fix this to allow multiple styles in one go
   if (this_opt_.Title() == TitleType::preliminary)
     t.DrawLatexNDC(0.155,0.87,"#font[62]{CMS} #scale[0.8]{#font[52]{Preliminary}}");
   else if (this_opt_.Title() == TitleType::simulation_preliminary)
@@ -435,7 +441,6 @@ void EfficiencyPlot::Print(double luminosity,
     else {
       t.DrawLatexNDC(0.155,0.87,"#font[62]{CMS} #scale[0.8]{#font[52]{Preliminary}}");
     }
-    //TODO: add info title
   }
 	t.SetTextAlign(31);
   TString lumi_string = RoundNumber(luminosity_,1) + " fb^{-1}";
@@ -445,8 +450,8 @@ void EfficiencyPlot::Print(double luminosity,
   if (this_opt_.Title() == TitleType::info) {
 	  t.SetTextAlign(33);
 	  t.SetTextSize(0.025);
-    if (Title().size() >= 66) t.SetTextSize(0.015);
-    if (Title().size() >= 120) t.SetTextSize(0.015*120.0/static_cast<float>(Title().size()));
+    if (Title().size() >= 66) t.SetTextSize(0.012);
+    if (Title().size() >= 120) t.SetTextSize(0.012*120.0/static_cast<float>(Title().size()));
 	  t.DrawLatexNDC(0.825,0.83,("#font[42]{"+Title()+"}").c_str());
   }
 	//if (Title().size() < 66) {
@@ -474,8 +479,8 @@ void EfficiencyPlot::Print(double luminosity,
 
 	//draw right axis
 	pad->Update();
-	TGaxis *norm_axis = new TGaxis(gPad->GetUxmax(), gPad->GetUymin(), gPad->GetUxmax(), 
-                                 gPad->GetUymax(), 0, gPad->GetUymax()*2.0/ratio_y_max*linear_y_max, 505, "+L");
+  TGaxis *norm_axis = new TGaxis(xmax, gPad->GetUymin(), xmax, gPad->GetUymax(),
+      0, gPad->GetUymax()*2.0/ratio_y_max*linear_y_max, 505, "+L");
   norm_axis->SetTickLength(0.3);
   norm_axis->SetLabelSize(0.03);
   norm_axis->SetTitle("Events/bin");

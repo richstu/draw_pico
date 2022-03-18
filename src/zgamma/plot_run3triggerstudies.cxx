@@ -14,7 +14,9 @@
 
 #include <algorithm>
 #include <bitset>
+#include <cmath>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -28,6 +30,7 @@
 #include "TColor.h"
 #include "TError.h"
 #include "TFile.h"
+#include "TGraphAsymmErrors.h"
 #include "TLatex.h"
 #include "TMath.h"
 #include "TPad.h"
@@ -51,11 +54,26 @@
 #include "core/utilities.hpp"
 //#include "higgsino/script_utilities.hpp"
 //#include "higgsino/hig_functions.hpp"
+#include "zgamma/apply_zg_trigeffs.hpp"
 
 using namespace std;
 using namespace PlotOptTypes;
 
-//manuall bring this in for now
+//declare helper functions
+//these are defined at the end of the file, after main()
+/*! Output efficiencies in C++ format
+ 
+  \param[in] pm pointer to PlotMaker that made efficiency plots
+  \param[in] func_name name of function in output file
+  \param[in] plot_names vector of names of efficiency plots
+  \param[in] out_file_name name of file to append to
+ */
+void generate_2d_efficiencies(PlotMaker* pm, std::string func_name, 
+    std::vector<std::string> plot_names, std::string out_file_name, 
+    std::string x_var_name, std::vector<double> x_var_bins,
+    std::string y_var_name, std::vector<double> y_var_bins);
+
+//manual bring this in for now
 namespace script_utilities { 
   struct ArgStruct {
     bool single_thread;
@@ -178,9 +196,9 @@ int main(int argc, char *argv[]){
   //------------------------------------------------------------------------------------
   //                                    constants
   //------------------------------------------------------------------------------------
-  const std::vector<double> el_pt_bins = {5.0, 7.0, 10.0, 15.0, 17.0, 20.0, 25.0, 27.0, 30.0, 40.0, 50.0, 80.0, 120.0, 200.0, 300.0};
+  const std::vector<double> el_pt_bins = {5.0, 7.0, 10.0, 15.0, 20.0, 25.0, 27.0, 30.0, 40.0, 50.0, 80.0, 120.0, 200.0, 300.0};
   const std::vector<double> el_abseta_bins = {0.0, 0.8, 1.4442, 1.566, 2.5};
-  const std::vector<double> mu_pt_bins = {5.0, 8.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0, 50.0, 60.0, 120.0, 200.0};
+  const std::vector<double> mu_pt_bins = {5.0, 7.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0, 50.0, 60.0, 120.0, 300.0};
   const std::vector<double> mu_abseta_bins = {0.0, 0.9, 1.2, 2.1, 2.4};
 
   //------------------------------------------------------------------------------------
@@ -197,7 +215,12 @@ int main(int argc, char *argv[]){
   std::vector<PlotOpt> plt_shapes = script_utilities::plot_shapes();
   std::vector<PlotOpt> plt_log_shapes = script_utilities::plot_log_shapes();
   PlotOpt style2D("txt/plot_styles.txt", "Scatter");
-  vector<PlotOpt> twodim_plotopts = {style2D().Title(TitleType::info).YAxis(YAxisType::linear).Overflow(OverflowType::overflow).LogMinimum(0.001)};
+  std::vector<PlotOpt> twodim_plotopts = {style2D().Title(TitleType::info)
+      .YAxis(YAxisType::linear).Overflow(OverflowType::overflow).LogMinimum(0.001)};
+  std::vector<PlotOpt> plt_lin_logx = {PlotOpt("txt/plot_styles.txt","CMSPaper")
+      .Title(TitleType::info).Bottom(PlotOptTypes::BottomType::off)
+      .XAxis(PlotOptTypes::YAxisType::log)
+      .Overflow(PlotOptTypes::OverflowType::none).LegendColumns(3)};
 
   //set<int> years;
   //HigUtilities::parseYears(options.year_string, years);
@@ -290,6 +313,8 @@ int main(int argc, char *argv[]){
   std::vector<std::shared_ptr<Process>> procs_onelep_data;
   procs_onelep_data.push_back(Process::MakeShared<Baby_nano>("Data", 
       Process::Type::data, kBlack,
+      //{base_folder_v7data+"SingleElectron__Run2017B*",
+      //base_folder_v7data+"SingleMuon__Run2017B*"},"1"));
       {base_folder_v7data+"SingleElectron__Run2017B__02Apr2020-v1__230000__014FD4FF-A181-2843-B548-BB3198F16E88*",
       base_folder_v7data+"SingleElectron__Run2017B__02Apr2020-v1__230000__08B5DC81-D780-A54B-80FE-C94EBD267ACA*",
       base_folder_v7data+"SingleElectron__Run2017B__02Apr2020-v1__230000__0ACA0341-E365-2544-99F0-FBA4C92C0301*",
@@ -298,7 +323,18 @@ int main(int argc, char *argv[]){
       base_folder_v7data+"SingleMuon__Run2017B__02Apr2020-v1__230000__0D1DA690-909B-F74F-8DB7-48D6F786F8D8*",
       base_folder_v7data+"SingleMuon__Run2017B__02Apr2020-v1__230000__12EF443F-9CD8-7842-9563-2BBD627A28FB*",
       base_folder_v7data+"SingleMuon__Run2017B__02Apr2020-v1__230000__1A14183C-9C11-E947-9D71-6B89994127D9*"},"1"));
-
+      
+  std::vector<std::shared_ptr<Process>> procs_met_data;
+  procs_met_data.push_back(Process::MakeShared<Baby_nano>("Data", 
+      Process::Type::data, kBlack,
+      {base_folder_v7data+"MET__Run2017B__02Apr2020-v1__230000__00DCCA4E-F5F1-F84D-A6EC-2956ACAB6E02*",
+      base_folder_v7data+"MET__Run2017B__02Apr2020-v1__230000__0B4DB0F0-168B-544A-B5F9-A5B3ACFE7F1E*",
+      base_folder_v7data+"MET__Run2017B__02Apr2020-v1__230000__0F13F71C-9A13-5641-A5C1-4955D60DE44A*",
+      base_folder_v7data+"MET__Run2017B__02Apr2020-v1__230000__1781BB70-1AD7-2F49-8BF6-A6DFE7C58167*",
+      base_folder_v7data+"MET__Run2017F__02Apr2020-v1__30000__034FA7B4-A09F-0D47-B752-2897BE4FE43F*",
+      base_folder_v7data+"MET__Run2017F__02Apr2020-v1__30000__0D3E9423-8FB8-9548-B63E-B94913999718*",
+      base_folder_v7data+"MET__Run2017F__02Apr2020-v1__30000__0EE78B5A-1800-0341-A33E-29EFDCAB3FAA*",
+      base_folder_v7data+"MET__Run2017F__02Apr2020-v1__30000__1450C885-647B-074B-BAEB-84763C291B92*"},"1"));
   //------------------------------------------------------------------------------------
   //                                     named funcs
   //------------------------------------------------------------------------------------
@@ -858,7 +894,7 @@ int main(int argc, char *argv[]){
     std::vector<double> mu_sig_;
     for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
       bool is_sig = true;
-      if (b.Muon_pt()->at(imu) < 10) is_sig = false; //was 5
+      if (b.Muon_pt()->at(imu) < 5) is_sig = false; //was 10
       if (abs(b.Muon_eta()->at(imu)) > 2.4) is_sig = false;
       if (abs(b.Muon_dz()->at(imu))>1.0)  is_sig = false;
       if (abs(b.Muon_dxy()->at(imu))>0.5) is_sig = false; 
@@ -887,7 +923,7 @@ int main(int argc, char *argv[]){
     std::vector<double> el_sig_;
     for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
       bool is_sig = true;
-      if (b.Electron_pt()->at(iel) < 15) is_sig = false; //was 7
+      if (b.Electron_pt()->at(iel) < 7) is_sig = false; //was 15
       float etasc = b.Electron_deltaEtaSC()->at(iel) + b.Electron_eta()->at(iel);
       if (abs(etasc) > 2.5) is_sig = false;
       if (abs(b.Electron_dz()->at(iel))>1.0) is_sig = false;
@@ -912,15 +948,21 @@ int main(int argc, char *argv[]){
   const NamedFunc Electron_hltIndex("Electron_hltIndex",[el_sig](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> el_matchhlt_;
     std::vector<double> el_sig_ = el_sig.GetVector(b);
+    double matchhlt = -1.0;
+    double dr = 999.0;
+    double mindr = 99.0;
     for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
-      double matchhlt = -1.0;
+      matchhlt = -1.0;
+      mindr = 99.0;
       if (el_sig_[iel] > 0.5) {
         //try to match to HLT object
         for (unsigned itrig = 0; itrig < b.TrigObj_pt()->size(); itrig++) {
           if (b.TrigObj_id()->at(itrig) == 11) {
             //if ((b.TrigObj_filterBits()->at(itrig) & 0x1)==1) { //CaloIdL_TrackIdL_IsoVL
-            if (deltaR(b.Electron_eta()->at(iel), b.Electron_phi()->at(iel), b.TrigObj_eta()->at(itrig), b.TrigObj_phi()->at(itrig)) < 0.3) {
+            dr = deltaR(b.Electron_eta()->at(iel), b.Electron_phi()->at(iel), b.TrigObj_eta()->at(itrig), b.TrigObj_phi()->at(itrig));
+            if (dr < 0.4 && dr < mindr) {
               matchhlt = static_cast<double>(itrig);
+              mindr = dr;
             }
             //}
           }
@@ -954,15 +996,21 @@ int main(int argc, char *argv[]){
   const NamedFunc Muon_hltIndex("Muon_hltIndex",[mu_sig](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> mu_matchhlt_;
     std::vector<double> mu_sig_ = mu_sig.GetVector(b);
+    double matchhlt = -1.0;
+    double dr = 999.0;
+    double mindr = 99.0;
     for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
-      double matchhlt = -1.0;
+      matchhlt = -1.0;
+      mindr = 99.0;
       if (mu_sig_[imu] > 0.5) {
         //try to match to HLT object
         for (unsigned itrig = 0; itrig < b.TrigObj_pt()->size(); itrig++) {
           if (b.TrigObj_id()->at(itrig) == 13) {
             //if ((b.TrigObj_filterBits()->at(itrig) & 0x2)==1) { //Iso, TrkIsoVVL is broken at HLT
-            if (deltaR(b.Muon_eta()->at(imu), b.Muon_phi()->at(imu), b.TrigObj_eta()->at(itrig), b.TrigObj_phi()->at(itrig)) < 0.3) {
+            dr = deltaR(b.Muon_eta()->at(imu), b.Muon_phi()->at(imu), b.TrigObj_eta()->at(itrig), b.TrigObj_phi()->at(itrig));
+            if (dr < 0.4 && dr < mindr) {
               matchhlt = static_cast<double>(itrig);
+              mindr = dr;
             }
             //}
           }
@@ -1055,6 +1103,16 @@ int main(int argc, char *argv[]){
       }
     }
     return mu_pt;
+  });
+
+  const NamedFunc LeadMuon_absEta("LeadMuon_absEta",[mu_sig](const Baby &b) -> NamedFunc::ScalarType{
+    std::vector<double> mu_sig_ = mu_sig.GetVector(b);
+    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
+      if (mu_sig_[imu]) {
+        return fabs(b.Muon_eta()->at(imu));
+      }
+    }
+    return 0;
   });
 
   const NamedFunc Sublead_Muon_pt("Sublead_Muon_pt",[mu_sig](const Baby &b) -> NamedFunc::ScalarType{
@@ -1153,6 +1211,16 @@ int main(int argc, char *argv[]){
       Jet_sig_.push_back(sig);
     }
     return Jet_sig_;
+  });
+
+  const NamedFunc nJet_sig("nJet_sig",[Jet_sig](const Baby &b) -> NamedFunc::ScalarType{
+    int njet_sig = 0;
+    std::vector<double> jet_sig_ = Jet_sig.GetVector(b);
+    for (double ijet_sig_ : jet_sig_) {
+      if (ijet_sig_ > 0.5)
+        njet_sig++;
+    }
+    return njet_sig;
   });
 
   const NamedFunc Electron_IsoPhotonPt("Electron_IsoPhotonPt",[Photon_sig](const Baby &b) -> NamedFunc::VectorType{
@@ -1498,6 +1566,31 @@ int main(int argc, char *argv[]){
     return otherpassref;
   });
 
+  const NamedFunc Electron_OtherPassUpperLeg("Electron_OtherPassUpperLeg",[el_sig, Electron_hltIndex](const Baby &b) -> NamedFunc::VectorType{
+    std::vector<double> otherpassupperleg;
+    std::vector<double> el_sig_ = el_sig.GetVector(b);
+    std::vector<double> hlt_idx = Electron_hltIndex.GetVector(b);
+    double this_otherpassupperleg = 0;
+    for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
+      this_otherpassupperleg = 0;
+      if (el_sig_[iel] > 0.5) {
+        for (unsigned itrig = 0; itrig < b.TrigObj_pt()->size(); itrig++) {
+          if (b.TrigObj_id()->at(itrig) == 11) {
+            if (itrig != hlt_idx[iel]) {
+              if ((((b.TrigObj_filterBits()->at(itrig) & 0x2) == 0x2)
+                  || ((b.TrigObj_filterBits()->at(itrig) & 0x1) == 0x1))
+                  && (b.TrigObj_pt()->at(itrig) > 23)) {
+                this_otherpassupperleg = 1;
+              } //TrigObj passes Ele23leg
+            } //not matched TrigObj
+          } //TrigObj is electron
+        } //loop over TrigObj
+      } //is signal electron
+      otherpassupperleg.push_back(this_otherpassupperleg);
+    }
+    return otherpassupperleg;
+  });
+
   const NamedFunc Electron_hltPt("Electron_hltPt",[Electron_hltIndex](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> hlt_pt;
     double this_hlt_pt;
@@ -1572,6 +1665,67 @@ int main(int argc, char *argv[]){
     return otherpassref;
   });
 
+  const NamedFunc Muon_OtherPassUpperLeg("Muon_OtherPassUpperLeg",[mu_sig, Muon_hltIndex](const Baby &b) -> NamedFunc::VectorType{
+    std::vector<double> otherpassupperleg;
+    std::vector<double> mu_sig_ = mu_sig.GetVector(b);
+    std::vector<double> hlt_idx = Muon_hltIndex.GetVector(b);
+    double this_otherpassupperleg = 0;
+    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
+      this_otherpassupperleg = 0;
+      if (mu_sig_[imu] > 0.5) {
+        for (unsigned itrig = 0; itrig < b.TrigObj_pt()->size(); itrig++) {
+          if (b.TrigObj_id()->at(itrig) == 13) {
+            if (itrig != hlt_idx[imu]) {
+              if ((((b.TrigObj_filterBits()->at(itrig) & 0x2) == 0x2)
+                  || ((b.TrigObj_filterBits()->at(itrig) & 0x1) == 0x1))
+                  && (b.TrigObj_pt()->at(itrig) > 17)) {
+                this_otherpassupperleg = 1;
+              } //TrigObj passes Mu17leg
+            } //not matched TrigObj
+          } //TrigObj is muon
+        } //loop over TrigObj
+      } //is signal muon
+      otherpassupperleg.push_back(this_otherpassupperleg);
+    }
+    return otherpassupperleg;
+  });
+
+  const NamedFunc Electron_isLeading("Electron_isLeading",[el_sig](const Baby &b) -> NamedFunc::VectorType{
+    std::vector<double> is_leading;
+    double this_is_leading = 0;
+    bool first_sig = true;
+    std::vector<double> el_sig_ = el_sig.GetVector(b);
+    for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
+      this_is_leading = 0;
+      if (el_sig_[iel] > 0.5) {
+        if (first_sig) {
+          first_sig = false;
+          this_is_leading = 1;
+        }
+      }
+      is_leading.push_back(this_is_leading);
+    }
+    return is_leading;
+  });
+
+  const NamedFunc Muon_isLeading("Muon_isLeading",[mu_sig](const Baby &b) -> NamedFunc::VectorType{
+    std::vector<double> is_leading;
+    double this_is_leading = 0;
+    bool first_sig = true;
+    std::vector<double> mu_sig_ = mu_sig.GetVector(b);
+    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
+      this_is_leading = 0;
+      if (mu_sig_[imu] > 0.5) {
+        if (first_sig) {
+          first_sig = false;
+          this_is_leading = 1;
+        }
+      }
+      is_leading.push_back(this_is_leading);
+    }
+    return is_leading;
+  });
+
   const NamedFunc Muon_hltPt("Muon_hltPt",[Muon_hltIndex](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> hlt_pt;
     double this_hlt_pt;
@@ -1584,6 +1738,72 @@ int main(int argc, char *argv[]){
       hlt_pt.push_back(this_hlt_pt);
     }
     return hlt_pt;
+  });
+
+  const NamedFunc eff_singlelep("eff_singlelep",[el_sig,mu_sig](const Baby &b) -> NamedFunc::ScalarType{
+    std::vector<double> el_sig_ = el_sig.GetVector(b);
+    std::vector<double> mu_sig_ = mu_sig.GetVector(b);
+    std::vector<float> lepton_effs;
+    for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
+      if (el_sig_[iel]) {
+        lepton_effs.push_back(eff_isoel3235(b.Electron_pt()->at(iel), fabs(b.Electron_eta()->at(iel)))[0]);
+      }
+    }
+    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
+      if (mu_sig_[imu]) {
+        lepton_effs.push_back(eff_isomu2427(b.Muon_pt()->at(imu), fabs(b.Muon_eta()->at(imu)))[0]);
+      }
+    }
+    float eff = 1.0;
+    for (float lepton_eff : lepton_effs) {
+      eff *= (1.0-lepton_eff);
+    }
+    eff = 1.0-eff;
+    return eff;
+  });
+
+  const NamedFunc eff_dilep("eff_dilep",[el_sig,mu_sig](const Baby &b) -> NamedFunc::ScalarType{
+    std::vector<double> el_sig_ = el_sig.GetVector(b);
+    std::vector<double> mu_sig_ = mu_sig.GetVector(b);
+    float eff_leadel = 0;
+    float eff_leadmu = 0;
+    float eff_sublel = 0;
+    float eff_sublmu = 0;
+    float lep_pt = 0;
+    float lep_abseta = 0;
+    int el_sig_idx = 0;
+    int mu_sig_idx = 0;
+    for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
+      if (el_sig_[iel]) {
+        lep_pt = b.Electron_pt()->at(iel);
+        lep_abseta = fabs(b.Electron_eta()->at(iel));
+        if (el_sig_idx == 0)
+          eff_leadel = eff_dielleg12(lep_pt,lep_abseta)[0]/eff_elhltpt12(lep_pt,lep_abseta)[0]*eff_elhltpt23(lep_pt,lep_abseta)[0];
+        else if (el_sig_idx == 1)
+          eff_sublel = eff_dielleg12(lep_pt,lep_abseta)[0];
+        el_sig_idx++;
+      }
+    }
+    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
+      if (mu_sig_[imu]) {
+        lep_pt = b.Muon_pt()->at(imu);
+        lep_abseta = fabs(b.Muon_eta()->at(imu));
+        if (mu_sig_idx == 0)
+          eff_leadmu = eff_dimuleg8(lep_pt,lep_abseta)[0]/eff_muhltpt8(lep_pt,lep_abseta)[0]*eff_muhltpt17(lep_pt,lep_abseta)[0];
+        else if (mu_sig_idx == 1)
+          eff_sublmu = eff_dimuleg8(lep_pt,lep_abseta)[0];
+        mu_sig_idx++;
+      }
+    }
+    if (isnan(eff_leadel)) eff_leadel = 0.0;
+    if (isnan(eff_sublel)) eff_sublel = 0.0;
+    if (isnan(eff_leadmu)) eff_leadmu = 0.0;
+    if (isnan(eff_sublmu)) eff_sublmu = 0.0;
+    return 1.0-(1.0-eff_leadel*eff_sublel)*(1.0-0.957*eff_leadmu*eff_sublmu);
+  });
+
+  const NamedFunc eff_singleanddilep("eff_singleanddilep",[eff_singlelep, eff_dilep](const Baby &b) -> NamedFunc::ScalarType{
+      return 1.0-(1.0-eff_singlelep.GetScalar(b))*(1.0-eff_dilep.GetScalar(b));
   });
 
   NamedFunc baseline_selection = ((ZCand_mass>50)&&((Lead_Electron_pt>25)||(Lead_Muon_pt>20))&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&delta_r_cut&&((HiggsCand_mass+ZCand_mass)>185));
@@ -1603,7 +1823,9 @@ int main(int argc, char *argv[]){
   bool make_rereco_plots = false;
   bool make_rereco_table_fail_reason = false;
   bool make_compare_preselection_table = false;
-  bool plot_trigeffs = true;
+  bool plot_trigeffs = false;
+  bool make_datamctrigefftable = false;
+  bool make_mu17ref = true;
 
   if (plot_fail_dilep_trig) {
     pm.Push<Hist1D>(Axis(4, -1.5, 2.5, Electron_hltId, "Electron HLT Status", {}),
@@ -2689,27 +2911,167 @@ int main(int argc, char *argv[]){
     },signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
   }
   
+  std::vector<std::string> histnames_elhltpt12;
+  std::vector<std::string> histnames_elhltpt23;
+  std::vector<std::string> histnames_dieleleg12;
+  std::vector<std::string> histnames_muhltpt8;
+  std::vector<std::string> histnames_muhltpt17;
+  std::vector<std::string> histnames_dimuleg8;
+  std::vector<std::string> histnames_isoel3235;
+  std::vector<std::string> histnames_isomu2427;
+  std::vector<std::string> histnames_mu17;
   if (plot_trigeffs) {
     for (unsigned ieta = 0; ieta < el_abseta_bins.size()-1; ieta++) {
+      histnames_elhltpt12.push_back("zghlt_dataeff_elhltpt12_eta"+std::to_string(ieta));
+      histnames_elhltpt23.push_back("zghlt_dataeff_elhltpt23_eta"+std::to_string(ieta));
+      histnames_dieleleg12.push_back("zghlt_dataeff_dieleleg12_eta"+std::to_string(ieta));
+      histnames_isoel3235.push_back("zghlt_dataeff_isoel3235_eta"+std::to_string(ieta));
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          "HLT_Ele35_WPTight_Gsf"&&(offline_nel==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Electron_OtherPassReference&&el_sig&&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
-          Electron_hltPt>23&&Electron_hltId>0.5,
-          procs_onelep_data,true,plt_lin).Weight("1").Tag("FixName:zghlt_dataeff_dieleleg23_eta"+std::to_string(ieta)).YTitle("Ele23_CaloIdL_TrackIdL_IsoVL").LuminosityTag(total_luminosity_string);
+          "HLT_Ele35_WPTight_Gsf"&&(offline_nel==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          &&Electron_OtherPassReference&&el_sig&&Electron_absEta>el_abseta_bins[ieta]
+          &&Electron_absEta<el_abseta_bins[ieta+1]&&Electron_hltId>0.5,
+          Electron_hltPt>12,
+          procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_elhltpt12_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 12 GeV").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          "HLT_Ele35_WPTight_Gsf"&&(offline_nel==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Electron_OtherPassReference&&el_sig&&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
-          Electron_hltPt>12&&Electron_hltId>0.5,
-          procs_onelep_data,true,plt_lin).Weight("1").Tag("FixName:zghlt_dataeff_dieleleg12_eta"+std::to_string(ieta)).YTitle("Ele12_CaloIdL_TrackIdL_IsoVL").LuminosityTag(total_luminosity_string);
+          "HLT_Ele35_WPTight_Gsf"&&(offline_nel==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          &&Electron_OtherPassReference&&el_sig&&Electron_absEta>el_abseta_bins[ieta]
+          &&Electron_absEta<el_abseta_bins[ieta+1]&&Electron_hltId>0.5,
+          Electron_hltPt>23,
+          procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_elhltpt23_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 23 GeV").LuminosityTag(total_luminosity_string);
+      pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
+          "HLT_Ele35_WPTight_Gsf"&&(offline_nel==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          &&Electron_OtherPassReference&&Electron_OtherPassUpperLeg&&el_sig&&!Electron_isLeading
+          &&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
+          hlt_el_trigger,
+          procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_dieleleg12_eta"+std::to_string(ieta)).YTitle("Ele12_CaloIdL_TrackIdL_IsoVL").LuminosityTag(total_luminosity_string);
+      pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
+          "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(offline_nel==1)&&(el_sig>0.5)&&"Electron_mvaFall17V2Iso_WP90"&&Electron_absEta>el_abseta_bins[ieta]
+          &&Electron_absEta<el_abseta_bins[ieta+1],
+          "HLT_Ele32_WPTight_Gsf_L1DoubleEG||HLT_Ele35_WPTight_Gsf",
+          procs_met_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_isoel3235_eta"+std::to_string(ieta)).YTitle("Single Electron Triggers").LuminosityTag(total_luminosity_string);
     }
     for (unsigned ieta = 0; ieta < mu_abseta_bins.size()-1; ieta++) {
+      histnames_muhltpt8.push_back("zghlt_dataeff_muhltpt8_eta"+std::to_string(ieta));
+      histnames_muhltpt17.push_back("zghlt_dataeff_muhltpt17_eta"+std::to_string(ieta));
+      histnames_dimuleg8.push_back("zghlt_dataeff_dimuleg8_eta"+std::to_string(ieta));
+      histnames_isomu2427.push_back("zghlt_dataeff_isomu2427_eta"+std::to_string(ieta));
+      histnames_mu17.push_back("zghlt_dataeff_mu17_eta"+std::to_string(ieta));
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          "HLT_IsoMu27"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&mu_sig&&Muon_absEta>mu_abseta_bins[ieta]&&Muon_absEta<mu_abseta_bins[ieta+1],
-          Muon_hltPt>17&&Muon_hltId>0.5,
-          procs_onelep_data,true,plt_lin).Weight("1").Tag("FixName:zghlt_dataeff_dimuleg17_eta"+std::to_string(ieta)).YTitle("Mu17_TrkIsoVVVL").LuminosityTag(total_luminosity_string);
+          "HLT_IsoMu27"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          &&Muon_OtherPassReference&&mu_sig&&Muon_absEta>mu_abseta_bins[ieta]
+          &&Muon_absEta<mu_abseta_bins[ieta+1]&&Muon_hltId>0.5,
+          Muon_hltPt>8,
+          procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_muhltpt8_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 8 GeV").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          "HLT_IsoMu27"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&mu_sig&&Muon_absEta>mu_abseta_bins[ieta]&&Muon_absEta<mu_abseta_bins[ieta+1],
-          Muon_hltPt>8&&Muon_hltId>0.5,
-          procs_onelep_data,true,plt_lin).Weight("1").Tag("FixName:zghlt_dataeff_dimuleg8_eta"+std::to_string(ieta)).YTitle("Mu8_TrkIsoVVVL").LuminosityTag(total_luminosity_string);
+          "HLT_IsoMu27"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          &&Muon_OtherPassReference&&mu_sig&&Muon_absEta>mu_abseta_bins[ieta]
+          &&Muon_absEta<mu_abseta_bins[ieta+1]&&Muon_hltId>0.5,
+          Muon_hltPt>17,
+          procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_muhltpt17_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 17 GeV").LuminosityTag(total_luminosity_string);
+      pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
+          "HLT_IsoMu27"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          &&Muon_OtherPassReference&&Muon_OtherPassUpperLeg&&mu_sig&&!Muon_isLeading
+          &&Muon_absEta>mu_abseta_bins[ieta]&&Muon_absEta<mu_abseta_bins[ieta+1],
+          hlt_mu_trigger,
+          procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_dimuleg8_eta"+std::to_string(ieta)).YTitle("Mu8_TrkIsoVVVL").LuminosityTag(total_luminosity_string);
+      pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
+          "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(offline_nmu==1)&&mu_sig&&"Muon_mediumId"&&Muon_absEta>mu_abseta_bins[ieta]
+          &&Muon_absEta<mu_abseta_bins[ieta+1],
+          "HLT_IsoMu27||HLT_IsoMu24",
+          procs_met_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_isomu2427_eta"+std::to_string(ieta)).YTitle("Single Muon Triggers").LuminosityTag(total_luminosity_string);
+      //pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
+      //    "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(offline_nmu==1)&&mu_sig&&"Muon_mediumId"&&Muon_absEta>mu_abseta_bins[ieta]
+      //    &&Muon_absEta<mu_abseta_bins[ieta+1],
+      //    "HLT_Mu17",
+      //    procs_met_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_mu17_eta"+std::to_string(ieta)).YTitle("Single Muon Triggers").LuminosityTag(total_luminosity_string);
     }
+  }
+
+  if (make_datamctrigefftable) {
+    pm.Push<Table>("datamc_trig_eff"+options.year_string, vector<TableRow>{
+      TableRow("\\hline \\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
+          (z_decay_pdgid==11),0,0,weight_noscale),
+      TableRow("Offline leptons and photon in acceptance", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1),0,0,weight_noscale),
+      TableRow("MC L1 Trigger", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger,0,0,weight_noscale),
+      TableRow("\\hline\n MC Single Lepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+      TableRow("MC Dilepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+      TableRow("MC Single or Dilepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+      TableRow("\\hline\n Data Single Lepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+      TableRow("Data Dilepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+      TableRow("Data Single or Dilepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+      TableRow("\\hline \\hline\n Baseline Selection", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection,0,0,weight_noscale),
+      TableRow("MC L1 Trigger", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale),
+      TableRow("\\hline\n MC Single Lepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+      TableRow("MC Dilepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+      TableRow("MC Single or Dilepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+      TableRow("\\hline\n Data Single Lepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+      TableRow("Data Dilepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+      TableRow("Data Single or Dilepton Triggers", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+
+      TableRow("\\hline \\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
+          (z_decay_pdgid==13),0,0,weight_noscale),
+      TableRow("Offline leptons and photon in acceptance", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1),0,0,weight_noscale),
+      TableRow("MC L1 Trigger", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger,0,0,weight_noscale),
+      TableRow("\\hline\n MC Single Lepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+      TableRow("MC Dilepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+      TableRow("MC Single or Dilepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+      TableRow("\\hline Data Single Lepton Triggers\n ", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+      TableRow("Data Dilepton Lepton Triggers\n ", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+      TableRow("Data Single or Dilepton Lepton Triggers\n ", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+      TableRow("\\hline \\hline\n Baseline Selection", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection,0,0,weight_noscale),
+      TableRow("MC L1 Trigger", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale),
+      TableRow("\\hline\n MC Single Lepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+      TableRow("MC Dilepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+      TableRow("MC Single or Dilepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+      TableRow("\\hline\n Data Single Lepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+      TableRow("Data Dilepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+      TableRow("Data Single or Dilepton Triggers", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    },signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
+  }
+
+  if (make_mu17ref) {
+    pm.Push<Table>("mu17_releff"+options.year_string, vector<TableRow>{
+      TableRow("Data (arbitrary lumi) events with Z and passing Mu17", 
+          "HLT_Mu17"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101),0,0,"1"),
+      TableRow("Pass Single Muon Trigger", 
+          "HLT_Mu17"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101)&&hlt_single_mu_trigger,0,0,"1"),
+      TableRow("Pass Dimuon Trigger", 
+          "HLT_Mu17"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101)&&hlt_mu_trigger,0,0,"1"),
+      TableRow("Pass Single or Dimuon Trigger", 
+          "HLT_Mu17"&&(offline_nmu==2)&&(ZCand_mass>81&&ZCand_mass<101)&&(hlt_mu_trigger||hlt_single_mu_trigger),0,0,"1"),
+    },procs_onelep_data,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
   }
   
   pm.multithreaded_ = !options.single_thread;
@@ -2720,7 +3082,81 @@ int main(int argc, char *argv[]){
   //                                     post processing
   //------------------------------------------------------------------------------------
 
+  if (plot_trigeffs) {
+    generate_2d_efficiencies(&pm, "eff_elhltpt12", histnames_elhltpt12, 
+        "src/zgamma/apply_zg_trigeffs.cpp", "pt", el_pt_bins, 
+        "abseta", el_abseta_bins);
+    generate_2d_efficiencies(&pm, "eff_elhltpt23", histnames_elhltpt23, 
+        "src/zgamma/apply_zg_trigeffs.cpp", "pt", el_pt_bins, 
+        "abseta", el_abseta_bins);
+    generate_2d_efficiencies(&pm, "eff_dielleg12", histnames_dieleleg12, 
+        "src/zgamma/apply_zg_trigeffs.cpp", "pt", el_pt_bins, 
+        "abseta", el_abseta_bins);
+    generate_2d_efficiencies(&pm, "eff_muhltpt8", histnames_muhltpt8, 
+        "src/zgamma/apply_zg_trigeffs.cpp", "pt", mu_pt_bins, 
+        "abseta", mu_abseta_bins);
+    generate_2d_efficiencies(&pm, "eff_muhltpt17", histnames_muhltpt17, 
+        "src/zgamma/apply_zg_trigeffs.cpp", "pt", mu_pt_bins, 
+        "abseta", mu_abseta_bins);
+    generate_2d_efficiencies(&pm, "eff_dimuleg8", histnames_dimuleg8, 
+        "src/zgamma/apply_zg_trigeffs.cpp", "pt", mu_pt_bins, 
+        "abseta", mu_abseta_bins);
+    generate_2d_efficiencies(&pm, "eff_isoel3235", histnames_isoel3235, 
+        "src/zgamma/apply_zg_trigeffs.cpp", "pt", el_pt_bins, 
+        "abseta", el_abseta_bins);
+    generate_2d_efficiencies(&pm, "eff_isomu2427", histnames_isomu2427, 
+        "src/zgamma/apply_zg_trigeffs.cpp", "pt", mu_pt_bins, 
+        "abseta", mu_abseta_bins);
+    //generate_2d_efficiencies(&pm, "eff_mu17", histnames_mu17, 
+    //    "src/zgamma/apply_zg_trigeffs.cpp", "pt", mu_pt_bins, 
+    //    "abseta", mu_abseta_bins);
+  }
+
   time(&endtime); 
   cout<<endl<<"Took "<<difftime(endtime, begtime)<<" seconds"<<endl<<endl;
 }
 
+//helper function definitions
+/*! Output efficiencies in C++ format
+ 
+  \param[in] pm pointer to PlotMaker that made efficiency plots
+  \param[in] func_name name of function in output file
+  \param[in] plot_names vector of names of efficiency plots
+  \param[in] out_file_name name of file to append to
+ */
+void generate_2d_efficiencies(PlotMaker* pm, std::string func_name, 
+    std::vector<std::string> plot_names, std::string out_file_name, 
+    std::string x_var_name, std::vector<double> x_var_bins,
+    std::string y_var_name, std::vector<double> y_var_bins) {
+  ofstream out_file;
+  out_file.open(out_file_name, std::ios_base::app);
+  out_file << "\n";
+  out_file << "std::vector<float> " << func_name << "(float " << x_var_name << ", float " << y_var_name << ") {\n";
+  out_file << "  float errup=0.0, errdown=0.0, eff=1.0;\n";
+  bool first_y = true;
+  for (unsigned iy = 0; iy < y_var_bins.size()-1; iy++) {
+    EfficiencyPlot * eff_plot = static_cast<EfficiencyPlot*>(pm->GetFigure(plot_names[iy]).get());
+    TGraphAsymmErrors* raw_eff_plot = static_cast<TGraphAsymmErrors*>((eff_plot->data_ratio_plots_[0]).get()->Clone());
+    out_file << "  ";
+    if (first_y) first_y = false;
+    else  out_file << "} else ";
+    out_file << "if (" << y_var_name << " > " << y_var_bins[iy] << " && ";
+    out_file << y_var_name << " < " << y_var_bins[iy+1] << ") {\n";
+    double* eff_x_vals = raw_eff_plot->GetY();
+    bool first_x = true;
+    for (unsigned ix = 0; ix < x_var_bins.size()-1; ix++) {
+      double x_upper = ix==(x_var_bins.size()-2) ? 9999 : x_var_bins[ix+1];
+      out_file << "    ";
+      if (first_x) first_x = false;
+      else out_file << "else ";
+      out_file << "if (" << x_var_name << " > " << x_var_bins[ix] << " && ";
+      out_file << x_var_name << " < " << x_upper << ")";
+      out_file << " {eff = " << eff_x_vals[ix] << "; errup = " << raw_eff_plot->GetErrorYhigh(ix) << "; errdown = " << raw_eff_plot->GetErrorYlow(ix) << ";}\n";
+    }
+    delete raw_eff_plot;
+  }
+  out_file << "  }\n";
+  out_file << "  return std::vector<float>({eff, errup, errdown});\n";
+  out_file << "}\n";
+  out_file.close();
+}

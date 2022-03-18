@@ -610,6 +610,7 @@ bool HLTriggerFirstPath
 bool HLTriggerFinalPath
 
 # Single lepton triggers
+bool HLT_Mu17
 bool HLT_IsoMu20
 bool HLT_IsoMu22
 bool HLT_IsoMu24

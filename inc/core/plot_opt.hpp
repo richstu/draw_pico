@@ -36,6 +36,9 @@ public:
   PlotOpt & YAxis(PlotOptTypes::YAxisType y_axis_type);
   PlotOptTypes::YAxisType YAxis() const;
 
+  PlotOpt & XAxis(PlotOptTypes::YAxisType x_axis_type);
+  PlotOptTypes::YAxisType XAxis() const;
+
   PlotOpt & Title(PlotOptTypes::TitleType title_type);
   PlotOptTypes::TitleType Title() const;
 
@@ -155,6 +158,7 @@ public:
 private:
   PlotOptTypes::BottomType bottom_type_;
   PlotOptTypes::YAxisType y_axis_type_;
+  PlotOptTypes::YAxisType x_axis_type_;
   PlotOptTypes::TitleType title_type_;
   PlotOptTypes::StackType stack_type_;
   PlotOptTypes::OverflowType overflow_type_;
