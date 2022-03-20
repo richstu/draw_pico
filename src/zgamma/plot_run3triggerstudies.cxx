@@ -1802,6 +1802,46 @@ int main(int argc, char *argv[]){
     return 1.0-(1.0-eff_leadel*eff_sublel)*(1.0-0.957*eff_leadmu*eff_sublmu);
   });
 
+  const NamedFunc eff_dilep_hig19014("eff_dilep_hig19014",[el_sig,mu_sig](const Baby &b) -> NamedFunc::ScalarType{
+    std::vector<double> el_sig_ = el_sig.GetVector(b);
+    std::vector<double> mu_sig_ = mu_sig.GetVector(b);
+    float eff_leadel = 0;
+    float eff_leadmu = 0;
+    float eff_sublel = 0;
+    float eff_sublmu = 0;
+    float lep_pt = 0;
+    float lep_abseta = 0;
+    int el_sig_idx = 0;
+    int mu_sig_idx = 0;
+    for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
+      if (el_sig_[iel]) {
+        lep_pt = b.Electron_pt()->at(iel);
+        lep_abseta = fabs(b.Electron_eta()->at(iel));
+        if (el_sig_idx == 0)
+          eff_leadel = eff_hig19014_ele23(lep_pt,lep_abseta);
+        else if (el_sig_idx == 1)
+          eff_sublel = eff_hig19014_ele12(lep_pt,lep_abseta);
+        el_sig_idx++;
+      }
+    }
+    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
+      if (mu_sig_[imu]) {
+        lep_pt = b.Muon_pt()->at(imu);
+        lep_abseta = fabs(b.Muon_eta()->at(imu));
+        if (mu_sig_idx == 0)
+          eff_leadmu = eff_hig19014_mu17(lep_pt, lep_abseta);
+        else if (mu_sig_idx == 1)
+          eff_sublmu = eff_hig19014_mu8(lep_pt,lep_abseta);
+        mu_sig_idx++;
+      }
+    }
+    if (isnan(eff_leadel)) eff_leadel = 0.0;
+    if (isnan(eff_sublel)) eff_sublel = 0.0;
+    if (isnan(eff_leadmu)) eff_leadmu = 0.0;
+    if (isnan(eff_sublmu)) eff_sublmu = 0.0;
+    return 1.0-(1.0-eff_leadel*eff_sublel)*(1.0-0.957*eff_leadmu*eff_sublmu);
+  });
+
   const NamedFunc eff_singleanddilep("eff_singleanddilep",[eff_singlelep, eff_dilep](const Baby &b) -> NamedFunc::ScalarType{
       return 1.0-(1.0-eff_singlelep.GetScalar(b))*(1.0-eff_dilep.GetScalar(b));
   });
@@ -1824,8 +1864,8 @@ int main(int argc, char *argv[]){
   bool make_rereco_table_fail_reason = false;
   bool make_compare_preselection_table = false;
   bool plot_trigeffs = false;
-  bool make_datamctrigefftable = false;
-  bool make_mu17ref = true;
+  bool make_datamctrigefftable = true;
+  bool make_mu17ref = false;
 
   if (plot_fail_dilep_trig) {
     pm.Push<Hist1D>(Axis(4, -1.5, 2.5, Electron_hltId, "Electron HLT Status", {}),
@@ -3005,6 +3045,8 @@ int main(int argc, char *argv[]){
           (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
       TableRow("Data Dilepton Triggers", 
           (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+      TableRow("Data Dilepton Triggers (HIG-19-014)", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
           (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
       TableRow("\\hline \\hline\n Baseline Selection", 
@@ -3021,6 +3063,8 @@ int main(int argc, char *argv[]){
           (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
       TableRow("Data Dilepton Triggers", 
           (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+      TableRow("Data Dilepton Triggers (HIG-19-014)", 
+          (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
           (z_decay_pdgid==11)&&(offline_nel>=2)&&(offline_nph>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
 
@@ -3036,11 +3080,13 @@ int main(int argc, char *argv[]){
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers", 
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
-      TableRow("\\hline Data Single Lepton Triggers\n ", 
+      TableRow("\\hline\n Data Single Lepton Triggers ", 
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
-      TableRow("Data Dilepton Lepton Triggers\n ", 
+      TableRow("Data Dilepton Lepton Triggers ", 
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
-      TableRow("Data Single or Dilepton Lepton Triggers\n ", 
+      TableRow("Data Dilepton Lepton Triggers (HIG-19-014)", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+      TableRow("Data Single or Dilepton Lepton Triggers ", 
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
       TableRow("\\hline \\hline\n Baseline Selection", 
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection,0,0,weight_noscale),
@@ -3056,6 +3102,8 @@ int main(int argc, char *argv[]){
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
       TableRow("Data Dilepton Triggers", 
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+      TableRow("Data Dilepton Triggers (HIG-19-014)", 
+          (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
           (z_decay_pdgid==13)&&(offline_nmu>=2)&&(offline_nph>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     },signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
