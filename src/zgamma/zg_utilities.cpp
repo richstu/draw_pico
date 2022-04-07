@@ -5,6 +5,7 @@
 #include "core/utilities.hpp"
 #include "core/palette.hpp"
 #include "core/baby.hpp"
+#include "zgamma/KinZfitter.h"
 
 namespace ZgUtilities {
   using std::string;
@@ -33,7 +34,7 @@ namespace ZgUtilities {
         else                                        il = b.ll_i2()->at(0);
         l1.SetPtEtaPhiM(b.el_pt() ->at(il), 
                         b.el_eta()->at(il),
-                        b.el_phi()->at(il), 0.00511);
+                        b.el_phi()->at(il), 0.000511);
       }
       else if(b.ll_lepid()->at(0) == 13){
         if(b.mu_charge()->at(b.ll_i1()->at(0)) < 0) il = b.ll_i1()->at(0);
@@ -68,7 +69,7 @@ namespace ZgUtilities {
         else                                        il = b.ll_i1()->at(0);
         l2.SetPtEtaPhiM(b.el_pt() ->at(il), 
                         b.el_eta()->at(il),
-                        b.el_phi()->at(il), 0.00511);
+                        b.el_phi()->at(il), 0.000511);
       }
       else if(b.ll_lepid()->at(0) == 13){
         if(b.mu_charge()->at(b.ll_i1()->at(0)) < 0) il = b.ll_i2()->at(0);
@@ -79,6 +80,86 @@ namespace ZgUtilities {
       }
     }
     return l2;
+  }
+
+  // Returns negative lepton 4-momentum error
+  double AssignL1Error(const Baby &b) {
+    double l1Err = 0.0;
+    double ecalEnergy = 0.0;
+    double perr = 0.0;
+    double err2 = 0.0;
+    int il(-1);
+    TLorentzVector l1;
+    if(b.ll_lepid()->at(0) == 11){
+      if(b.el_charge()->at(b.ll_i1()->at(0)) < 0) il = b.ll_i1()->at(0);
+      else                                        il = b.ll_i2()->at(0);
+      l1.SetPtEtaPhiM(b.el_pt() ->at(il),
+                      b.el_eta()->at(il),
+                      b.el_phi()->at(il), 0.000511);
+      if (b.el_ecal()->at(il)) {
+        ecalEnergy = (b.el_etPt()->at(il) + 1.0) * b.el_pt()->at(il);
+        if (abs(b.el_eta()->at(il)) < 1.5) {
+          err2 += (5.24e-02*5.24e-02)/ecalEnergy;
+          err2 += (2.01e-01*2.01e-01)/(ecalEnergy*ecalEnergy);
+          err2 += 1.00e-02*1.00e-02;
+        } else {
+          err2 += (1.46e-01*1.46e-01)/ecalEnergy;
+          err2 += (9.21e-01*9.21e-01)/(ecalEnergy*ecalEnergy);
+          err2 += 1.94e-03*1.94e-03;
+        }
+        perr = ecalEnergy * sqrt(err2);
+      }
+      else {
+        perr = b.el_energyErr()->at(il);
+      }
+      l1Err = perr * l1.Pt() / l1.P();
+    }
+    else if(b.ll_lepid()->at(0) == 13){
+      if(b.mu_charge()->at(b.ll_i1()->at(0)) < 0) il = b.ll_i1()->at(0);
+      else                                        il = b.ll_i2()->at(0);
+      l1Err = b.mu_ptErr()->at(il);
+    }
+    return l1Err;
+  }
+
+  // Returns positive lepton 4-momentum error
+  double AssignL2Error(const Baby &b) {
+    double l2Err = 0.0;
+    double ecalEnergy = 0.0;
+    double perr = 0.0;
+    double err2 = 0.0;
+    int il(-1);
+    TLorentzVector l2;
+    if(b.ll_lepid()->at(0) == 11){
+      if(b.el_charge()->at(b.ll_i1()->at(0)) < 0) il = b.ll_i2()->at(0);
+      else                                        il = b.ll_i1()->at(0);
+      l2.SetPtEtaPhiM(b.el_pt() ->at(il),
+                      b.el_eta()->at(il),
+                      b.el_phi()->at(il), 0.000511);
+      if (b.el_ecal()->at(il)) {
+        ecalEnergy = (b.el_etPt()->at(il) + 1.0) * b.el_pt()->at(il);
+        if (abs(b.el_eta()->at(il)) < 1.5) {
+          err2 += (5.24e-02*5.24e-02)/ecalEnergy;
+          err2 += (2.01e-01*2.01e-01)/(ecalEnergy*ecalEnergy);
+          err2 += 1.00e-02*1.00e-02;
+        } else {
+          err2 += (1.46e-01*1.46e-01)/ecalEnergy;
+          err2 += (9.21e-01*9.21e-01)/(ecalEnergy*ecalEnergy);
+          err2 += 1.94e-03*1.94e-03;
+        }
+        perr = ecalEnergy * sqrt(err2);
+      }
+      else {
+        perr = b.el_energyErr()->at(il);
+      }
+      l2Err = perr * l2.Pt() / l2.P();
+    }
+    else if(b.ll_lepid()->at(0) == 13){
+      if(b.mu_charge()->at(b.ll_i1()->at(0)) < 0) il = b.ll_i2()->at(0);
+      else                                        il = b.ll_i1()->at(0);
+      l2Err = b.mu_ptErr()->at(il);
+    }
+    return l2Err;
   }
 
   // Returns Z 4-momentum
@@ -234,6 +315,53 @@ namespace ZgUtilities {
     else           phi = acos(cosphi);
     return phi;
   }
+
+  double KinRefit(const Baby &b) {
+    KinZfitter *kinZfitter;
+    bool isData = false;
+    kinZfitter = new KinZfitter(isData);
+
+    std::map<unsigned int, TLorentzVector> selectedLeptons;
+    selectedLeptons[0] = AssignL1(b);
+    selectedLeptons[1] = AssignL2(b);
+    std::map<unsigned int, double> errorLeptons;
+    errorLeptons[0] = AssignL1Error(b);
+    errorLeptons[1] = AssignL2Error(b);
+    std::map<unsigned int, TLorentzVector> selectedFsrMap;
+    // TLorentzVector nullFourVector(0, 0, 0, 0);  
+    // selectedFsrMap[0] = nullFourVector;
+    // selectedFsrMap[1] = nullFourVector;
+
+    // Need to updated selectedFsrMap to incorporate FSR contribution
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kinZfitter->KinRefitZ1();
+    double massZ1REFIT = kinZfitter->GetRefitMZ1();
+    return massZ1REFIT;
+  }
+
+  std::vector<TLorentzVector> RefitP4(const Baby &b) {
+    KinZfitter *kinZfitter;
+    bool isData = false;
+    kinZfitter = new KinZfitter(isData);
+
+    std::map<unsigned int, TLorentzVector> selectedLeptons;
+    selectedLeptons[0] = AssignL1(b);
+    selectedLeptons[1] = AssignL2(b);
+    std::map<unsigned int, double> errorLeptons;
+    errorLeptons[0] = AssignL1Error(b);
+    errorLeptons[1] = AssignL2Error(b);
+    std::map<unsigned int, TLorentzVector> selectedFsrMap;
+    // TLorentzVector nullFourVector(0, 0, 0, 0);  
+    // selectedFsrMap[0] = nullFourVector;
+    // selectedFsrMap[1] = nullFourVector;
+
+    // Need to updated selectedFsrMap to incorporate FSR contribution
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kinZfitter->KinRefitZ1();
+    std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
+    return reFit;
+  }
+
 }
 
 

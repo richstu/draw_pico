@@ -37,7 +37,7 @@ you can use the below commands for the setup.
 This also sets up the environment for the batch system at UCSB
 
 ~~~~bash
-git clone --recurse-submodules git@github.com:richstu/draw_pico.git
+git clone --recursive git@github.com:richstu/draw_pico.git
 cd draw_pico
 source set_env.sh
 ./compile.py or scons
