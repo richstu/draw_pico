@@ -6,6 +6,7 @@ int type
 bool stitch
 bool stitch_ht
 bool stitch_htmet
+bool stitch_photon
 bool stitch_dy
 
 ####################   Global   ###################
@@ -56,12 +57,21 @@ std::vector<float> llphoton_pt
 std::vector<float> llphoton_eta
 std::vector<float> llphoton_phi
 std::vector<float> llphoton_m
+std::vector<float> llphoton_l1_masserr
+std::vector<float> llphoton_l2_masserr
+std::vector<float> llphoton_ph_masserr
 std::vector<float> llphoton_dr
 std::vector<float> llphoton_dphi
 std::vector<float> llphoton_deta
 std::vector<float> llphoton_costhj
+std::vector<float> llphoton_costheta
+std::vector<float> llphoton_cosTheta
+std::vector<float> llphoton_psi
 std::vector<int>   llphoton_iph
 std::vector<int>   llphoton_ill
+std::vector<float> llphoton_dijet_dphi
+std::vector<float> llphoton_dijet_balance
+std::vector<float> llphoton_pTt2
 
 ###################   Jets   ##################
 int njet
@@ -86,6 +96,7 @@ std::vector<float> jet_puid_disc
 std::vector<float> jet_ne_emef
 std::vector<float> jet_qgl
 std::vector<bool>  jet_islep
+std::vector<bool>  jet_isvlep
 std::vector<bool>  jet_isphoton
 std::vector<bool>  jet_isgood
 std::vector<bool>  jet_id
@@ -117,6 +128,7 @@ std::vector<float> fjet_msoftdrop
 std::vector<float> fjet_deep_md_hbb_btv
 std::vector<float> fjet_mva_hbb_btv
 std::vector<float> fjet_deep_md_hbb_jme
+std::vector<float> fjet_deep_md_tvsqcd
 std::vector<float> fjet_deep_tvsqcd
 std::vector<int>   fjet_subjet_idx1
 std::vector<int>   fjet_subjet_idx2
@@ -160,6 +172,7 @@ int nvmu
 std::vector<float> mu_pt
 std::vector<float> mu_eta
 std::vector<float> mu_phi
+std::vector<float> mu_ptErr
 std::vector<float> mu_miniso
 std::vector<float> mu_reliso
 std::vector<float> mu_dz
@@ -167,15 +180,24 @@ std::vector<float> mu_dxy
 std::vector<float> mu_ip3d
 std::vector<float> mu_sip3d
 std::vector<bool>  mu_id
+std::vector<bool>  mu_mediumid
+std::vector<bool>  mu_tightid
+std::vector<char>  mu_highptid
 std::vector<bool>  mu_sig
 std::vector<int>   mu_charge
 std::vector<int>   mu_pflavor
+std::vector<int>   mu_fsrphotonid
 
 int nel
 int nvel
 std::vector<float> el_pt
 std::vector<float> el_eta
+std::vector<float> el_etasc
 std::vector<float> el_phi
+std::vector<float> el_etPt
+std::vector<float> el_eminusp
+std::vector<float> el_energyErr
+std::vector<int>   el_phidx
 std::vector<float> el_miniso
 std::vector<float> el_reliso
 std::vector<float> el_dz
@@ -184,10 +206,14 @@ std::vector<float> el_ip3d
 std::vector<float> el_sip3d
 std::vector<float> el_idmva
 std::vector<bool>  el_id
+std::vector<bool>  el_id80
+std::vector<bool>  el_id90
+std::vector<bool>  el_idLoose
 std::vector<bool>  el_sig
 std::vector<bool>  el_ispf
 std::vector<int>   el_charge
 std::vector<int>   el_pflavor
+std::vector<bool>  el_ecal
 
 ##################   Di-Leptons   ################
 int nll
@@ -195,12 +221,15 @@ std::vector<float> ll_pt
 std::vector<float> ll_eta
 std::vector<float> ll_phi
 std::vector<float> ll_m
+std::vector<int>   ll_l1_masserr
+std::vector<int>   ll_l2_masserr
 std::vector<float> ll_dr
 std::vector<float> ll_dphi
 std::vector<float> ll_deta
 std::vector<int>   ll_lepid
 std::vector<int>   ll_i1
 std::vector<int>   ll_i2
+std::vector<int>   ll_charge
 
 ##################   Photons   ###################
 int nphoton
@@ -217,10 +246,23 @@ std::vector<int>   photon_pflavor
 std::vector<bool>  photon_id
 std::vector<bool>  photon_elveto
 std::vector<bool>  photon_sig
+std::vector<bool>  photon_id80
+std::vector<float> photon_sieie
+std::vector<int>   photon_elidx
+std::vector<float> photon_jet_mindr
+std::vector<float> photon_zeppenfeld
+
+#################   FsrPhotons  ##################
+int nfsrphoton
+std::vector<float> fsrphoton_droveret2
+std::vector<float> fsrphoton_eta
+std::vector<float> fsrphoton_phi
+std::vector<float> fsrphoton_pt
+std::vector<float> fsrphoton_reliso
+std::vector<int>   fsrphoton_muonidx
 
 ###################   Tracks    ##################
 int ntk
-
 std::vector<float> tk_pt
 std::vector<float> tk_eta
 std::vector<float> tk_phi
@@ -230,7 +272,8 @@ std::vector<int>   tk_pdgid
 std::vector<float> tk_miniso_chg
 std::vector<float> tk_reliso_chg
 std::vector<float> tk_mt
-
+std::vector<bool>  tk_nano_electron
+std::vector<bool>  tk_nano_muon
 
 ###################   Quality   ##################
 bool pass_jets
@@ -245,9 +288,10 @@ bool pass_mubadtrk
 bool pass_badchhad
 bool pass_muon_jet
 # pass_ra2_badmu is for higgsino_angeles compatibility
-bool pass_ra2_badmu 
+bool pass_ra2_badmu
 bool pass_low_neutral_jet
 bool pass_htratio_dphi_tight
+bool pass_ecalnoisejet
 bool pass_badcalib
 bool pass_boosted
 bool pass
@@ -394,6 +438,9 @@ bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL
 bool HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL
 bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ
 bool HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ
+bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
+bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8
+bool HLT_Photon175
 
 ################  Systematic variations  - to be implemented as needed  ##################
 
