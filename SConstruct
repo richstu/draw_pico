@@ -26,12 +26,12 @@ def returnEnviornment(scriptname):
 
 def addRootEnv(_env):
   _env.Append (CCFLAGS = '-isystem `root-config --incdir`' )
-  _env.Append (CCFLAGS = '-g' )
+  #_env.Append (CCFLAGS = '-g' ) #debug symbols cause big executables, use only when gdb is needed
   _env.Append (CCFLAGS = '`root-config --cflags`' )
   _env.Append (LINKFLAGS = '`root-config --glibs`') 
   _env.Append (LINKFLAGS = '`root-config --ldflags`')
   #_env.Append (LINKFLAGS = ['-lRooFit', '-lGenVector', '-lRooStats', '-lRooFitCore', '-lMathMore']) #MathMore not in ROOT 6.18??
-  _env.Append (LINKFLAGS = ['-lRooFit', '-lGenVector', '-lRooStats', '-lRooFitCore'])
+  _env.Append (LINKFLAGS = ['-lRooFit', '-lGenVector', '-lRooStats', '-lRooFitCore', '-lTMVA'])
 
 def addWarningEnv(_env):
   _env.Append (CCFLAGS = ['-pedantic', 

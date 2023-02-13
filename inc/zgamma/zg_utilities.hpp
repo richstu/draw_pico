@@ -16,6 +16,7 @@
 #include "core/named_func.hpp"
 #include "core/process.hpp"
 #include "core/plot_maker.hpp"
+#include "core/sample_loader.hpp"
 #include "core/table.hpp"
 #include "core/table_row.hpp"
 #include "core/gamma_params.hpp"
@@ -32,5 +33,8 @@ namespace ZgUtilities {
   double cos_theta(const Baby &b, bool gen = false);
   double cos_Theta(const Baby &b, bool gen = false);
   double Getphi(const Baby &b, bool gen = false);
+  double pdrmax(const Baby &b);
+
+  SampleLoader ZgSampleLoader();
 }
 #endif

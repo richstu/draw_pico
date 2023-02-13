@@ -199,7 +199,8 @@ EfficiencyPlot::EfficiencyPlot(const Axis &xaxis, const NamedFunc &denominator_c
   backgrounds_(),
   signals_(),
   datas_(),
-  luminosity_(){
+  luminosity_(),
+  ymax_(-1){
 
   std::string x_title = xaxis_.title_;
   if(xaxis_.units_ != "") x_title += " ["+xaxis_.units_+"]";
@@ -359,6 +360,8 @@ void EfficiencyPlot::Print(double luminosity,
       if (this_ratio_y_max > ratio_y_max) ratio_y_max = this_ratio_y_max;
     }
   }
+  if (ymax_ > 0)
+    ratio_y_max = ymax_/1.4;
 
   //second loop: draw
   std::string draw_options = "AP"; //change after axes are drawn once
@@ -623,6 +626,11 @@ EfficiencyPlot & EfficiencyPlot::Tag(const std::string &tag){
 
 EfficiencyPlot & EfficiencyPlot::YTitle(const std::string &ytitle){
   ytitle_ = ytitle;
+  return *this;
+}
+
+EfficiencyPlot & EfficiencyPlot::YAxisMax(const double ymax){
+  ymax_ = ymax;
   return *this;
 }
 

@@ -1,10 +1,14 @@
+#include "zgamma/zg_utilities.hpp"
+
 #include <algorithm>
 #include <stdlib.h>
 #include <regex>
-#include "zgamma/zg_utilities.hpp"
-#include "core/utilities.hpp"
-#include "core/palette.hpp"
+
 #include "core/baby.hpp"
+#include "core/palette.hpp"
+#include "core/sample_loader.hpp"
+#include "core/utilities.hpp"
+#include "zgamma/zg_functions.hpp"
 
 namespace ZgUtilities {
   using std::string;
@@ -233,6 +237,35 @@ namespace ZgUtilities {
     if(sinphi < 0) phi = -1*acos(cosphi);
     else           phi = acos(cosphi);
     return phi;
+  }
+
+  double pdrmax(const Baby &b){ 
+    //TVector3 photon = AssignGamma(b).Vect();
+    //TVector3 l1     = AssignL1(b).Vect();
+    //TVector3 l2     = AssignL2(b).Vect();
+    //return max(photon.DeltaR(l1),photon.DeltaR(l2));
+    float l1eta = 0, l1phi = 0, l2eta = 0, l2phi = 0;
+    if( b.ll_lepid() -> at(0) == 11){
+      l1eta = b.el_eta() -> at( b.ll_i1() -> at(0) );
+      l2eta = b.el_eta() -> at( b.ll_i2() -> at(0) );
+      l1phi = b.el_phi() -> at( b.ll_i1() -> at(0) );
+      l2phi = b.el_phi() -> at( b.ll_i2() -> at(0) );
+    } else if( b.ll_lepid() -> at(0) == 13 ) {
+      l1eta = b.mu_eta() -> at( b.ll_i1() -> at(0) );
+      l2eta = b.mu_eta() -> at( b.ll_i2() -> at(0) );
+      l1phi = b.mu_phi() -> at( b.ll_i1() -> at(0) );
+      l2phi = b.mu_phi() -> at( b.ll_i2() -> at(0) );
+    }
+    float dr1 = deltaR(b.photon_eta()->at(0),b.photon_phi()->at(0),l1eta,l1phi);
+    float dr2 = deltaR(b.photon_eta()->at(0),b.photon_phi()->at(0),l2eta,l2phi);
+    return std::max(dr1, dr2);
+  }
+
+  SampleLoader ZgSampleLoader() {
+    SampleLoader zg_sample_loader;
+    zg_sample_loader.LoadNamedFunc("trigger_and_stitch",ZgFunctions::trigger_and_stitch);
+    zg_sample_loader.LoadPalette("txt/colors_zgamma.txt","default");
+    return zg_sample_loader;
   }
 }
 

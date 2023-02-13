@@ -7,7 +7,9 @@ envClone = exportEnv.Clone()
 # source_directories = ['core', 'higgsino', ...]
 #source_directories = next(os.walk('src'))[1]
 # os.walk glitching out for some reason
-source_directories = ['core', 'higgsino', 'zgamma']
+#source_directories = ['core', 'higgsino', 'zgamma']
+#Higgsino takes massive disk space for some reason
+source_directories = ['core', 'zgamma']
 if len(source_directories) == 0:
   source_directories = ['./']
 

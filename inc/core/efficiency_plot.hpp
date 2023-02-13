@@ -70,6 +70,7 @@ public:
   EfficiencyPlot & LuminosityTag(const std::string &tag);
   EfficiencyPlot & FixTitle(const std::string &title);
   EfficiencyPlot & YTitle(const std::string &ytitle);
+  EfficiencyPlot & YAxisMax(const double ymax);
 
   Axis xaxis_;//!<Specification of content: plotted variable, binning, etc.
   NamedFunc cut_;//!<Event selection
@@ -96,6 +97,7 @@ private:
   std::vector<std::string> signal_names_;//!<names of the signal samples, for legends
   std::vector<std::string> data_names_;//!<names of the data samples, for legends
   mutable double luminosity_;//!<Luminosity currently being drawn
+  double ymax_;//!<top of y-axis in ratio plot
 
   EfficiencyPlot(const EfficiencyPlot &) = delete;
   EfficiencyPlot& operator=(const EfficiencyPlot &) = delete;

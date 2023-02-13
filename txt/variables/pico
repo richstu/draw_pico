@@ -56,12 +56,21 @@ std::vector<float> llphoton_pt
 std::vector<float> llphoton_eta
 std::vector<float> llphoton_phi
 std::vector<float> llphoton_m
+std::vector<float> llphoton_l1_masserr
+std::vector<float> llphoton_l2_masserr
+std::vector<float> llphoton_ph_masserr
 std::vector<float> llphoton_dr
 std::vector<float> llphoton_dphi
 std::vector<float> llphoton_deta
 std::vector<float> llphoton_costhj
+std::vector<float> llphoton_costheta
+std::vector<float> llphoton_cosTheta
+std::vector<float> llphoton_psi
 std::vector<int>   llphoton_iph
 std::vector<int>   llphoton_ill
+std::vector<float> llphoton_dijet_dphi
+std::vector<float> llphoton_dijet_balance
+std::vector<float> llphoton_pTt2
 
 ###################   Jets   ##################
 int njet
@@ -167,6 +176,9 @@ std::vector<float> mu_dxy
 std::vector<float> mu_ip3d
 std::vector<float> mu_sip3d
 std::vector<bool>  mu_id
+std::vector<bool>  mu_mediumid
+std::vector<bool>  mu_tightid
+std::vector<int>   mu_highptid
 std::vector<bool>  mu_sig
 std::vector<int>   mu_charge
 std::vector<int>   mu_pflavor
@@ -184,6 +196,9 @@ std::vector<float> el_ip3d
 std::vector<float> el_sip3d
 std::vector<float> el_idmva
 std::vector<bool>  el_id
+std::vector<bool>  el_id80
+std::vector<bool>  el_id90
+std::vector<bool>  el_idLoose
 std::vector<bool>  el_sig
 std::vector<bool>  el_ispf
 std::vector<int>   el_charge
@@ -394,6 +409,8 @@ bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL
 bool HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL
 bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ
 bool HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ
+bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
+bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8
 
 ################  Systematic variations  - to be implemented as needed  ##################
 

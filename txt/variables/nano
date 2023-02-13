@@ -709,32 +709,49 @@ bool HLT_PFHT1050
 bool HLT_PFHT250
 bool HLT_PFHT350
 
-# ZGamma triggers
-bool HLT_Mu17_Photon30_IsoCaloId
+# Dilepton Triggers
 bool HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ
 bool HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL
 bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL
 bool HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL
 bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ
 bool HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ
-bool HLT_Photon175
 bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
 bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8
-#trigger studies
+bool HLT_DoubleEle25_CaloIdL_MW
+bool HLT_Mu37_TkMu27
+
+#Photon Triggers
+bool HLT_Mu17_Photon30_IsoCaloId
 bool HLT_Photon50
 bool HLT_Photon33
 bool HLT_Photon25
 bool HLT_Photon20_HoverELoose
+bool HLT_Photon175
+bool HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55
+bool HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto
+bool HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+bool HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass95
 
-#ZGamma L1 Triggers (2017 only so far)
+#ZGamma L1 Triggers 
 bool L1_SingleEG24
+bool L1_SingleEG26er2p5
 bool L1_SingleEG34er2p1
 bool L1_SingleIsoEG24er2p1
 bool L1_SingleIsoEG24
+bool L1_SingleIsoEG26er2p5
 bool L1_DoubleEG_18_17
 bool L1_DoubleEG_22_10
+bool L1_DoubleEG_22_10_er2p5
 bool L1_DoubleEG_LooseIso23_10
 bool L1_DoubleEG_LooseIso24_10
 bool L1_DoubleMu_12_5
+bool L1_DoubleMu_15_7
 bool L1_DoubleMu_15_7_SQ
 bool L1_DoubleMu_15_7_SQ_Mass_Min4
+bool L1_SingleMu22
+bool L1_SingleMu25
+bool L1_Mu5_EG23
+bool L1_Mu5_LooseIsoEG20
+bool L1_Mu5_EG23er2p5
+bool L1_Mu5_LooseIsoEG20er2p5
