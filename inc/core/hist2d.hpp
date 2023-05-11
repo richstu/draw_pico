@@ -60,6 +60,8 @@ public:
   Hist2D & Tag(const std::string &tag);
   Hist2D & LuminosityTag(const std::string &tag);
 
+  void SetLuminosityTag(const std::string &tag);
+
   Axis xaxis_, yaxis_;
   NamedFunc cut_, weight_;
   std::string tag_;

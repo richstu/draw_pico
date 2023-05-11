@@ -644,6 +644,10 @@ EfficiencyPlot & EfficiencyPlot::FixTitle(const std::string &title){
   return *this;
 }
 
+void EfficiencyPlot::SetLuminosityTag(const std::string &tag) {
+  this->LuminosityTag(tag);
+}
+
 void EfficiencyPlot::SetRatioPlotDrawOptions(std::unique_ptr<TGraphAsymmErrors> &ratio_plot, 
                                              double ymin, double ymax) {
   double xmin = xaxis_.Bins().at(0);

@@ -25,6 +25,9 @@ namespace ZgFunctions {
   //year integrated lumi weights
   extern const NamedFunc w_years;
 
+  //Run 3 weight-up
+  extern const NamedFunc w_run3;
+
   //common NamedFuncs for run 2 baseline selection
   extern const NamedFunc zg_baseline_el;
   extern const NamedFunc zg_baseline_mu;
@@ -44,8 +47,8 @@ namespace ZgFunctions {
   //only works for 2 lepton events
   extern const NamedFunc sublead_lepton_eta;
 
-  //and of trigger and stitch
-  extern const NamedFunc trigger_and_stitch;
+  //pT/m of Higgs candidate
+  extern const NamedFunc llphoton_rel_pt;
 }
 
 #endif

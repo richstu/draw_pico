@@ -224,6 +224,8 @@ string CodeToRootTex(string code){
   ReplaceAll(code, "ntrulep", "N^{true}_{lep}");
   ReplaceAll(code, "npv", "N_{PV}");
 
+  ReplaceAll(code, "resolved_baseline", "Resolved topology baseline selection");
+
   ReplaceAll(code, "njet>=4&&njet<=5","4-5j");
   ReplaceAll(code, "njet","N_{jet}");
   ReplaceAll(code, "nfjet","N_{J}");

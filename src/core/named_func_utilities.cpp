@@ -108,4 +108,53 @@ namespace NamedFuncUtilities {
     return next;
   }
 
+  //return value of second array (data[1]) corresponding to maximum of first array (data[0])
+  double reduce_maxfirst(std::vector<std::vector<double>> data) {
+    if (data.size()<2) return 0;
+    if (data[0].size() != data[1].size()) return 0;
+    if (data[0].size()==0) return 0;
+    double max = data[0][0];
+    double ret = data[1][0];
+    for (unsigned i = 1; i < data[0].size(); i++) {
+      if (data[0][i] > max) {
+        max = data[0][i];
+        ret = data[1][i];
+      }
+    }
+    return ret;
+  }
+  
+  //return value of second array (data[1]) corresponding to second highest value of first array (data[0])
+  double reduce_subleadfirst(std::vector<std::vector<double>> data) {
+    if (data.size()<2) return 0;
+    if (data[0].size() != data[1].size()) return 0;
+    if (data[0].size()<2) return 0;
+    double max = 0, next = 0, max_ret = 0, next_ret = 0;
+    if (data[0][0] > data[0][1]) {
+      max = data[0][0];
+      next = data[0][1];
+      max_ret = data[1][0];
+      next_ret = data[1][1];
+    }
+    else {
+      max = data[0][1];
+      next = data[0][0];
+      max_ret = data[1][1];
+      next_ret = data[1][0];
+    }
+    for (unsigned i = 2; i < data[0].size(); i++) {
+      if (data[0][i] > max) {
+        next = max;
+        max = data[0][i];
+        next_ret = max_ret;
+        max_ret = data[1][i];
+      }
+      else if (data[0][i] > next) {
+        next = data[0][i];
+        next_ret = data[1][i];
+      }
+    }
+    return next_ret;
+  }
+
 }

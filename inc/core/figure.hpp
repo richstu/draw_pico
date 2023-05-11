@@ -43,6 +43,8 @@ public:
   virtual void Print(double luminosity,
                      const std::string &subdir) = 0;
 
+  virtual void SetLuminosityTag(const std::string &tag) = 0;
+
   virtual std::set<const Process*> GetProcesses() const = 0;
 
   virtual std::string GetTag() const {return "";}

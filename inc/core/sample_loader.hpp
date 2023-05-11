@@ -58,12 +58,16 @@ private:
 
   std::map<std::string, std::set<std::string>> macros_;
   std::set<std::string> overwrite_macro_keys_;
-  std::map<std::string, DataSample> samples_;
+  //std::map<std::string, DataSample> samples_;
+  std::vector<DataSample> samples_;
   Palette palette_;
   std::map<std::string, std::shared_ptr<NamedFunc>> loaded_namedfuncs_;
   bool verbose_;
 
   std::set<std::string> ExpandMacros(const std::string &str_to_expand);
+  bool SampleExists(const std::string sample_name);
+  unsigned int SampleIndex(const std::string sample_name);
+
 
 };
 

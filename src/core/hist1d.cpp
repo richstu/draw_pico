@@ -623,6 +623,10 @@ Hist1D & Hist1D::DrawPlot(const bool &draw_plot) {
   return *this;
 }
 
+void Hist1D::SetLuminosityTag(const string &tag) {
+  this->LuminosityTag(tag);
+}
+
 /*!\brief Generates stacked and scaled histograms from unstacked and unscaled
   ones
 

@@ -49,7 +49,8 @@ PlotOpt::PlotOpt():
   font_(42),
   show_background_error_(true),
   use_cmyk_(true),
-  print_vals_(false){
+  print_vals_(false),
+  title_in_frame_(false){
 }
 
 PlotOpt::PlotOpt(const string &file_name,
@@ -568,6 +569,11 @@ string PlotOpt::TypeString() const{
   case YAxisType::linear: out += "lin"; break;
   case YAxisType::log: out += "log"; break;
   }
+
+  if (bottom_type_==BottomType::sorb)
+    out += "_sorb";
+  if (bottom_type_==BottomType::sorb_cut_upper)
+    out += "_sorbupper";
 
   return out;
 }

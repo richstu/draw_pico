@@ -55,9 +55,11 @@
 //#include "higgsino/script_utilities.hpp"
 //#include "higgsino/hig_functions.hpp"
 #include "zgamma/apply_zg_trigeffs.hpp"
+#include "zgamma/nano_functions.hpp"
 
 using namespace std;
 using namespace PlotOptTypes;
+using namespace NanoFunctions;
 
 //declare helper functions
 //these are defined at the end of the file, after main()
@@ -356,6 +358,18 @@ int main(int argc, char *argv[]){
   //------------------------------------------------------------------------------------
   //                                    initialization
   //------------------------------------------------------------------------------------
+
+  //remove 120-130 mass range
+  const NamedFunc blind_sr("blind_sr",[](const Baby &b) -> NamedFunc::ScalarType{
+    double mllg = HiggsCandidate_mass.GetScalar(b);
+    if (mllg>120 && mllg<130) return 0;
+    return 1;
+  });
+
+  //remove events failing golden json
+  GoldenJsonLoader golden_json_loader;
+  NamedFunc pass_json = golden_json_loader.pass_json();
+
   gErrorIgnoreLevel = 6000;
   time_t begtime, endtime;
   time(&begtime);
@@ -500,6 +514,40 @@ int main(int argc, char *argv[]){
       Process::Type::data, kBlack,
       {base_folder_v9+"2018/data/EGamma*"},"1"));
 
+  std::vector<std::shared_ptr<Process>> procs_data_sideband;
+  //for Nanos, have to do overlap removal by hand
+  procs_data_sideband.push_back(Process::MakeShared<Baby_nano>("DoubleMuon", 
+      Process::Type::data, kBlack,
+      {base_folder_v9+"2016/data/DoubleMuon*",
+      base_folder_v9+"2016APV/data/DoubleMuon*",
+      base_folder_v9+"2017/data/DoubleMuon*",
+      base_folder_v9+"2018/data/DoubleMuon*"},pass_json&&blind_sr));
+  procs_data_sideband.push_back(Process::MakeShared<Baby_nano>("EGamma", 
+      Process::Type::data, kBlack,
+      {base_folder_v9+"2018/data/EGamma*"},pass_json&&blind_sr&&!HLT_pass_dimuon));
+  procs_data_sideband.push_back(Process::MakeShared<Baby_nano>("DoubleEG", 
+      Process::Type::data, kBlack,
+      {base_folder_v9+"2016/data/DoubleEG*",
+      base_folder_v9+"2016APV/data/DoubleEG*",
+      base_folder_v9+"2017/data/DoubleEG*"},pass_json&&blind_sr&&!HLT_pass_dimuon));
+  procs_data_sideband.push_back(Process::MakeShared<Baby_nano>("SingleElectron", 
+      Process::Type::data, kBlack,
+      {base_folder_v9+"2016/data/SingleElectron*",
+      base_folder_v9+"2016APV/data/SingleElectron*",
+      base_folder_v9+"2017/data/SingleElectron*"},pass_json&&blind_sr&&!HLT_pass_dilepton&&!HLT_pass_diphoton));
+  procs_data_sideband.push_back(Process::MakeShared<Baby_nano>("SingleMuon", 
+      Process::Type::data, kBlack,
+      {base_folder_v9+"2016/data/SingleMuon*",
+      base_folder_v9+"2016APV/data/SingleMuon*",
+      base_folder_v9+"2017/data/SingleMuon*",
+      base_folder_v9+"2018/data/SingleMuon*"},pass_json&&blind_sr&&!HLT_pass_dilepton&&!HLT_pass_diphoton&&!HLT_pass_singleelectron));
+  procs_data_sideband.push_back(Process::MakeShared<Baby_nano>("MuonEG", 
+      Process::Type::data, kBlack,
+      {base_folder_v9+"2016/data/MuonEG*",
+      base_folder_v9+"2016APV/data/MuonEG*",
+      base_folder_v9+"2017/data/MuonEG*",
+      base_folder_v9+"2018/data/MuonEG*"},pass_json&&blind_sr&&!HLT_pass_dilepton&&!HLT_pass_diphoton&&!HLT_pass_singlelepton));
+
   std::vector<std::shared_ptr<Process>> dy_procs;
   dy_procs.push_back(Process::MakeShared<Baby_nano>("Z/#gamma*+jets", 
       Process::Type::background, TColor::GetColor("#ffb400"),
@@ -635,147 +683,11 @@ int main(int argc, char *argv[]){
   //                      named funcs to be moved to a common location
   //------------------------------------------------------------------------------------
 
-  const NamedFunc Electron_sig("Electron_sig",[](const Baby &b) -> NamedFunc::VectorType{
-    std::vector<double> Electron_sig_;
-    for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
-      bool is_sig = true;
-      if (b.Electron_pt()->at(iel) < 7) is_sig = false; //was 15
-      float etasc = b.Electron_deltaEtaSC()->at(iel) + b.Electron_eta()->at(iel);
-      if (abs(etasc) > 2.5) is_sig = false;
-      if (abs(b.Electron_dz()->at(iel))>1.0) is_sig = false;
-      if (abs(b.Electron_dxy()->at(iel))>0.5) is_sig = false; 
-      double wp[2][3] = {{-0.145237, -0.0315746, -0.032173},
-                         { 0.604775,  0.628743,   0.896462}};
-      int ipt(1), ieta(2);
-      if(b.Electron_pt()->at(iel)>10) ipt = 0;
-      if(fabs(etasc) < 0.8) ieta = 0;
-      else if(fabs(etasc) < 1.479) ieta = 1;
-      double mva = b.Electron_mvaFall17V2Iso()->at(iel);
-      if (mva <= wp[ipt][ieta])
-        is_sig = false;
-      if (is_sig)
-        Electron_sig_.push_back(1.0);
-      else
-        Electron_sig_.push_back(0.0);
-    }
-    return Electron_sig_;
-  });
-
-  const NamedFunc Muon_sig("Muon_sig",[](const Baby &b) -> NamedFunc::VectorType{
-    std::vector<double> Muon_sig_;
-    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
-      bool is_sig = true;
-      if (b.Muon_pt()->at(imu) < 5) is_sig = false; //was 10
-      if (abs(b.Muon_eta()->at(imu)) > 2.4) is_sig = false;
-      if (abs(b.Muon_dz()->at(imu))>1.0)  is_sig = false;
-      if (abs(b.Muon_dxy()->at(imu))>0.5) is_sig = false; 
-      if (!((b.Muon_looseId()->at(imu) || (b.Muon_pt()->at(imu) > 200 && b.Muon_highPtId()->at(imu))) && 
-          b.Muon_pfRelIso03_all()->at(imu) < 0.35 &&
-          b.Muon_sip3d()->at(imu) < 4)) is_sig = false;
-      if (is_sig)
-        Muon_sig_.push_back(1.0);
-      else
-        Muon_sig_.push_back(0.0);
-    }
-    return Muon_sig_;
-  });
-
-  const NamedFunc Photon_sig("Photon_sig",[](const Baby &b) -> NamedFunc::VectorType{
-    std::vector<double> Photon_sig_;
-    for (unsigned iph = 0; iph < b.Photon_pt()->size(); iph++) {
-      double sig = 1;
-      if (b.Photon_pt()->at(iph) < 15) sig = 0;
-      if (abs(b.Photon_eta()->at(iph)) > 2.5) sig = 0;
-      if (!(b.Photon_isScEtaEB()->at(iph) || b.Photon_isScEtaEE()->at(iph))) sig = 0;
-      // if (b.Photon_pfRelIso03_all()->at(iph)==PhotonRelIsoCut) continue; // no isolation cut in 2016...?
-      if (!(b.Photon_mvaID()->at(iph) > 0.2 && 
-          b.Photon_electronVeto()->at(iph))) sig = 0;
-      Photon_sig_.push_back(sig);
-    }
-    return Photon_sig_;
-  });
-
-  const NamedFunc NMuon_sig = SumNamedFunc(Muon_sig); //pt>5
-  const NamedFunc NElectron_sig = SumNamedFunc(Electron_sig); //pt>7
-  const NamedFunc NLepton_sig = NMuon_sig+NElectron_sig;
-  const NamedFunc NPhoton_sig = SumNamedFunc(Photon_sig); //pt>15
-
   const NamedFunc NMuon_trig = SumNamedFunc("TrigObj_id==13");
   const NamedFunc NElectron_trig = SumNamedFunc("TrigObj_id==11");
   const NamedFunc NPhoton_trig = SumNamedFunc("TrigObj_id==22");
 
-  //const NamedFunc Lead_Electron_pt = AtNamedFunc("Electron_pt", Electron_sig, 0);
-  //const NamedFunc Sublead_Electron_pt = AtNamedFunc("Electron_pt", Electron_sig, 1);
-  //const NamedFunc Lead_Muon_pt = AtNamedFunc("Muon_pt", Electron_sig, 0);
-  //const NamedFunc Sublead_Muon_pt = AtNamedFunc("Muon_pt", Electron_sig, 1);
-  //const NamedFunc Lead_Photon_pt = AtNamedFunc("Photon_pt", Photon_sig, 0);
-  
-  //const NamedFunc Lead_Electron_pt = FilterNamedFunc("Electron_pt", Electron_sig)[static_cast<int>(0)];
-  //const NamedFunc Sublead_Electron_pt = FilterNamedFunc("Electron_pt", Electron_sig)[1];
-  //const NamedFunc Lead_Muon_pt = FilterNamedFunc("Muon_pt", Muon_sig)[static_cast<int>(0)];
-  //const NamedFunc Sublead_Muon_pt = FilterNamedFunc("Muon_pt", Muon_sig)[1];
-  //const NamedFunc Lead_Photon_pt = FilterNamedFunc("Photon_pt", Photon_sig)[static_cast<int>(0)];
-
-  //TODO: fix these
-  const NamedFunc Lead_Electron_pt("Lead_Electron_pt",[Electron_sig](const Baby &b) -> NamedFunc::ScalarType{
-    double el_pt = 0;
-    std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
-    for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
-      if (Electron_sig_[iel]) {
-        if (b.Electron_pt()->at(iel) > el_pt)
-          el_pt = b.Electron_pt()->at(iel);
-      }
-    }
-    return el_pt;
-  });
-
-  const NamedFunc Sublead_Electron_pt("Sublead_Electron_pt",[Electron_sig](const Baby &b) -> NamedFunc::ScalarType{
-    double sublead_el_pt = 0;
-    double lead_el_pt = 0;
-    std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
-    for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
-      if (Electron_sig_[iel]) {
-        if (b.Electron_pt()->at(iel) > lead_el_pt) {
-          sublead_el_pt = lead_el_pt;
-          lead_el_pt = b.Electron_pt()->at(iel);
-        }
-        else if (b.Electron_pt()->at(iel) > sublead_el_pt)
-          sublead_el_pt = b.Electron_pt()->at(iel);
-      }
-    }
-    return sublead_el_pt;
-  });
-
-  const NamedFunc Lead_Muon_pt("Lead_Muon_pt",[Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
-    double mu_pt = 0;
-    std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
-    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
-      if (Muon_sig_[imu]) {
-        if (b.Muon_pt()->at(imu) > mu_pt)
-          mu_pt = b.Muon_pt()->at(imu);
-      }
-    }
-    return mu_pt;
-  });
-
-  const NamedFunc Sublead_Muon_pt("Sublead_Muon_pt",[Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
-    double lead_mu_pt = 0;
-    double sublead_mu_pt = 0;
-    std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
-    for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
-      if (Muon_sig_[imu]) {
-        if (b.Muon_pt()->at(imu) > lead_mu_pt) {
-          sublead_mu_pt = lead_mu_pt;
-          lead_mu_pt = b.Muon_pt()->at(imu);
-        }
-        else if (b.Muon_pt()->at(imu) > sublead_mu_pt)
-          sublead_mu_pt = b.Muon_pt()->at(imu);
-      }
-    }
-    return sublead_mu_pt;
-  });
-
-  const NamedFunc Lead_Electron_abseta("Lead_Electron_abseta",[Electron_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc Lead_Electron_abseta("Lead_Electron_abseta",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
       if (Electron_sig_[iel]) {
@@ -785,7 +697,7 @@ int main(int argc, char *argv[]){
     return -999;
   });
 
-  const NamedFunc Sublead_Electron_abseta("Sublead_Electron_abseta",[Electron_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc Sublead_Electron_abseta("Sublead_Electron_abseta",[](const Baby &b) -> NamedFunc::ScalarType{
     int sig_idx = 0;
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
@@ -799,7 +711,7 @@ int main(int argc, char *argv[]){
     return -999;
   });
 
-  const NamedFunc Lead_Muon_abseta("Lead_Muon_abseta",[Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc Lead_Muon_abseta("Lead_Muon_abseta",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
       if (Muon_sig_[imu]) {
@@ -809,7 +721,7 @@ int main(int argc, char *argv[]){
     return -999;
   });
 
-  const NamedFunc Sublead_Muon_abseta("Sublead_Muon_abseta",[Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc Sublead_Muon_abseta("Sublead_Muon_abseta",[](const Baby &b) -> NamedFunc::ScalarType{
     int sig_idx = 0;
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
@@ -820,18 +732,6 @@ int main(int argc, char *argv[]){
       }
     }
     return -999;
-  });
-
-  const NamedFunc Lead_Photon_pt("Lead_Photon_pt",[Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
-    double ph_pt = 0;
-    std::vector<double> ph_sig_ = Photon_sig.GetVector(b);
-    for (unsigned iph = 0; iph < b.Photon_pt()->size(); iph++) {
-      if (ph_sig_[iph]) {
-        if (b.Photon_pt()->at(iph) > ph_pt)
-          ph_pt = b.Photon_pt()->at(iph);
-      }
-    }
-    return ph_pt;
   });
 
   //------------------------------------------------------------------------------------
@@ -1492,7 +1392,7 @@ int main(int argc, char *argv[]){
     return true;
   });
 
-  const NamedFunc Electron_hltIndex("Electron_hltIndex",[Electron_sig](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Electron_hltIndex("Electron_hltIndex",[](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> el_matchhlt_;
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     double matchhlt = -1.0;
@@ -1540,7 +1440,7 @@ int main(int argc, char *argv[]){
     return el_hltid;
   });
 
-  const NamedFunc Muon_hltIndex("Muon_hltIndex",[Muon_sig](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Muon_hltIndex("Muon_hltIndex",[](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> mu_matchhlt_;
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     double matchhlt = -1.0;
@@ -1588,7 +1488,7 @@ int main(int argc, char *argv[]){
     return mu_hltid;
   });
 
-  const NamedFunc el_gap("el_gap",[Electron_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc el_gap("el_gap",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
       if (Electron_sig_[iel] > 0.5) {
@@ -1601,7 +1501,7 @@ int main(int argc, char *argv[]){
     return false;
   });
 
-  const NamedFunc Lead_Photon_mvaID("Lead_Photon_mvaID",[Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc Lead_Photon_mvaID("Lead_Photon_mvaID",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Photon_sig_ = Photon_sig.GetVector(b);
     for (unsigned iph = 0; iph < b.Photon_pt()->size(); iph++) {
       if (Photon_sig_[iph]) {
@@ -1611,7 +1511,7 @@ int main(int argc, char *argv[]){
     return 0;
   });
 
-  const NamedFunc LeadMuon_absEta("LeadMuon_absEta",[Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc LeadMuon_absEta("LeadMuon_absEta",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
       if (Muon_sig_[imu]) {
@@ -1629,49 +1529,7 @@ int main(int argc, char *argv[]){
     return filterbit2;
   });
 
-  const NamedFunc Jet_sig("Jet_sig",[Electron_sig, Muon_sig, Photon_sig](const Baby &b) -> NamedFunc::VectorType{
-    std::vector<double> Jet_sig_;
-    std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
-    std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
-    std::vector<double> ph_sig_ = Photon_sig.GetVector(b);
-    for (unsigned ijet = 0; ijet < b.Jet_pt()->size(); ijet++) {
-      double sig = 1;
-      if (b.Jet_pt()->at(ijet) < 30) sig = 0;
-      if (abs(b.Jet_eta()->at(ijet)) > 2.4) sig = 0;
-      for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
-        if (Electron_sig_[iel] > 0.5) {
-          if (deltaR(b.Electron_eta()->at(iel), b.Electron_phi()->at(iel), b.Jet_eta()->at(ijet), b.Jet_phi()->at(ijet)) < 0.4)
-            sig = 0;
-        }
-      }
-      for (unsigned imu = 0; imu < b.Muon_pt()->size(); imu++) {
-        if (Muon_sig_[imu] > 0.5) {
-          if (deltaR(b.Muon_eta()->at(imu), b.Muon_phi()->at(imu), b.Jet_eta()->at(ijet), b.Jet_phi()->at(ijet)) < 0.4)
-            sig = 0;
-        }
-      }
-      for (unsigned iph = 0; iph < b.Photon_pt()->size(); iph++) {
-        if (ph_sig_[iph] > 0.5) {
-          if (deltaR(b.Photon_eta()->at(iph), b.Photon_phi()->at(iph), b.Jet_eta()->at(ijet), b.Jet_phi()->at(ijet)) < 0.4)
-            sig = 0;
-        }
-      }
-      Jet_sig_.push_back(sig);
-    }
-    return Jet_sig_;
-  });
-
-  const NamedFunc nJet_sig("nJet_sig",[Jet_sig](const Baby &b) -> NamedFunc::ScalarType{
-    int njet_sig = 0;
-    std::vector<double> jet_sig_ = Jet_sig.GetVector(b);
-    for (double ijet_sig_ : jet_sig_) {
-      if (ijet_sig_ > 0.5)
-        njet_sig++;
-    }
-    return njet_sig;
-  });
-
-  const NamedFunc Electron_IsoPhotonPt("Electron_IsoPhotonPt",[Photon_sig](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Electron_IsoPhotonPt("Electron_IsoPhotonPt",[](const Baby &b) -> NamedFunc::VectorType{
     //-1 - no HLT object, 0 - fails all, 1 - pass CaloIdL_TrackIdL_IsoVL, 2 - pass WPTight
     std::vector<double> el_isophpt;
     std::vector<double> ph_sig_ = Photon_sig.GetVector(b);
@@ -1690,7 +1548,7 @@ int main(int argc, char *argv[]){
     return el_isophpt;
   });
 
-  const NamedFunc Electron_IsoElectronPt("Electron_IsoElectronPt",[Electron_sig](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Electron_IsoElectronPt("Electron_IsoElectronPt",[](const Baby &b) -> NamedFunc::VectorType{
     //-1 - no HLT object, 0 - fails all, 1 - pass CaloIdL_TrackIdL_IsoVL, 2 - pass WPTight
     std::vector<double> el_isoelpt;
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
@@ -1710,7 +1568,7 @@ int main(int argc, char *argv[]){
     return el_isoelpt;
   });
 
-  const NamedFunc Electron_IsoJetPt("Electron_IsoJetPt",[Jet_sig](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Electron_IsoJetPt("Electron_IsoJetPt",[](const Baby &b) -> NamedFunc::VectorType{
     //-1 - no HLT object, 0 - fails all, 1 - pass CaloIdL_TrackIdL_IsoVL, 2 - pass WPTight
     std::vector<double> el_isojetpt;
     std::vector<double> jet_sig_ = Jet_sig.GetVector(b);
@@ -1729,7 +1587,7 @@ int main(int argc, char *argv[]){
     return el_isojetpt;
   });
 
-  const NamedFunc stitch_dy("stitch_dy",[Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc stitch_dy("stitch_dy",[](const Baby &b) -> NamedFunc::ScalarType{
     //extra factor for weighting is xs/nevts_effective where effective events are calculated including negative weights
     //0.007519850838359999 GluGluH->ZG->llG xs (pb)
     //967054
@@ -1753,90 +1611,8 @@ int main(int argc, char *argv[]){
     return 1;
   });
 
-  const NamedFunc ZCand_mass("ZCand_mass",[Electron_sig, Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
-    std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
-    std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
-    double m_ll = -999;
-    for (unsigned iel = 1; iel < b.Electron_pt()->size(); iel++) {
-      if (Electron_sig_[iel]) {
-        for (unsigned iel2 = 0; iel2 < iel; iel2++) {
-          if (Electron_sig_[iel2]) {
-            ROOT::Math::PtEtaPhiMVector p1(b.Electron_pt()->at(iel),b.Electron_eta()->at(iel),b.Electron_phi()->at(iel),0.000511);
-            ROOT::Math::PtEtaPhiMVector p2(b.Electron_pt()->at(iel2),b.Electron_eta()->at(iel2),b.Electron_phi()->at(iel2),0.000511);
-            double this_mll = (p1+p2).M();
-            if (fabs(this_mll-91.2)<fabs(m_ll-91.2))
-              m_ll = this_mll;
-          }
-        }
-      }
-    }
-    for (unsigned imu = 1; imu < b.Muon_pt()->size(); imu++) {
-      if (Muon_sig_[imu]) {
-        for (unsigned imu2 = 0; imu2 < imu; imu2++) {
-          if (Muon_sig_[imu2]) {
-            ROOT::Math::PtEtaPhiMVector p1(b.Muon_pt()->at(imu),b.Muon_eta()->at(imu),b.Muon_phi()->at(imu),0.106);
-            ROOT::Math::PtEtaPhiMVector p2(b.Muon_pt()->at(imu2),b.Muon_eta()->at(imu2),b.Muon_phi()->at(imu2),0.106);
-            double this_mll = (p1+p2).M();
-            if (fabs(this_mll-91.2)<fabs(m_ll-91.2))
-              m_ll = this_mll;
-          }
-        }
-      }
-    }
-    return m_ll;
-  });
 
-  const NamedFunc HiggsCand_mass("HiggsCand_mass",[Electron_sig, Muon_sig, Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
-    std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
-    std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
-    std::vector<double> ph_sig_ = Photon_sig.GetVector(b);
-    ROOT::Math::PtEtaPhiMVector ll_p;
-    double m_ll = -999;
-    double m_llg = -999;
-    for (unsigned iel = 1; iel < b.Electron_pt()->size(); iel++) {
-      if (Electron_sig_[iel]) {
-        for (unsigned iel2 = 0; iel2 < iel; iel2++) {
-          if (Electron_sig_[iel2]) {
-            ROOT::Math::PtEtaPhiMVector p1(b.Electron_pt()->at(iel),b.Electron_eta()->at(iel),b.Electron_phi()->at(iel),0.000511);
-            ROOT::Math::PtEtaPhiMVector p2(b.Electron_pt()->at(iel2),b.Electron_eta()->at(iel2),b.Electron_phi()->at(iel2),0.000511);
-            double this_mll = (p1+p2).M();
-            if (fabs(this_mll-91.2)<fabs(m_ll-91.2)) {
-              ll_p = p1+p2;
-              m_ll = this_mll;
-            }
-          }
-        }
-      }
-    }
-    for (unsigned imu = 1; imu < b.Muon_pt()->size(); imu++) {
-      if (Muon_sig_[imu]) {
-        for (unsigned imu2 = 0; imu2 < imu; imu2++) {
-          if (Muon_sig_[imu2]) {
-            ROOT::Math::PtEtaPhiMVector p1(b.Muon_pt()->at(imu),b.Muon_eta()->at(imu),b.Muon_phi()->at(imu),0.106);
-            ROOT::Math::PtEtaPhiMVector p2(b.Muon_pt()->at(imu2),b.Muon_eta()->at(imu2),b.Muon_phi()->at(imu2),0.106);
-            double this_mll = (p1+p2).M();
-            if (fabs(this_mll-91.2)<fabs(m_ll-91.2)) {
-              ll_p = p1+p2; 
-              m_ll = this_mll;
-            }
-          }
-        }
-      }
-    }
-    if (m_ll > 0) {
-      for (unsigned iph = 0; iph < b.Photon_pt()->size(); iph++) {
-        if (ph_sig_[iph]) {
-          ROOT::Math::PtEtaPhiMVector pph(b.Photon_pt()->at(iph),b.Photon_eta()->at(iph),b.Photon_phi()->at(iph),0.0);
-          double this_mass = (pph+ll_p).M();
-          if (fabs(this_mass-125.3)<fabs(m_llg-125.3))
-            m_llg = this_mass;
-        }
-      }
-    }
-    return m_llg;
-  });
-
-  const NamedFunc HiggsCand_ptOverMass("HiggsCand_ptOverMass",[Electron_sig, Muon_sig, Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc HiggsCandidate_ptOverMass("HiggsCandidate_ptOverMass",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     std::vector<double> ph_sig_ = Photon_sig.GetVector(b);
@@ -1889,7 +1665,7 @@ int main(int argc, char *argv[]){
     return pt_llg/m_llg;
   });
 
-  const NamedFunc HiggsCand_mass_cleaned("HiggsCand_mass_cleaned",[Electron_sig, Muon_sig, Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc HiggsCandidate_mass_cleaned("HiggsCandidate_mass_cleaned",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     std::vector<double> ph_sig_ = Photon_sig.GetVector(b);
@@ -1939,7 +1715,7 @@ int main(int argc, char *argv[]){
     return m_llg;
   });
 
-  const NamedFunc delta_r_cut("delta_r_cut",[Electron_sig, Muon_sig, Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc delta_r_cut("delta_r_cut",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     std::vector<double> ph_sig_ = Photon_sig.GetVector(b);
@@ -1968,7 +1744,7 @@ int main(int argc, char *argv[]){
     return 1;
   });
 
-  const NamedFunc Min_Lepton_Photon_deltaR("Min_Lepton_Photon_deltaR",[Electron_sig, Muon_sig, Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc Min_Lepton_Photon_deltaR("Min_Lepton_Photon_deltaR",[](const Baby &b) -> NamedFunc::ScalarType{
     double min_deltar = 999;
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
@@ -1998,7 +1774,7 @@ int main(int argc, char *argv[]){
     return min_deltar;
   });
 
-  const NamedFunc ElectronGenPhotonDeltaR("ElectronGenPhotonDeltaR",[Electron_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc ElectronGenPhotonDeltaR("ElectronGenPhotonDeltaR",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     double min_deltar = 999;
     for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
@@ -2037,7 +1813,7 @@ int main(int argc, char *argv[]){
     return abseta;
   });
 
-  const NamedFunc LeadElectron_PassReference("LeadElectron_PassReference",[Electron_sig, Electron_hltIndex](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc LeadElectron_PassReference("LeadElectron_PassReference",[Electron_hltIndex](const Baby &b) -> NamedFunc::ScalarType{
     double leadel_passref = 0;
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> hlt_idx = Electron_hltIndex.GetVector(b);
@@ -2055,7 +1831,7 @@ int main(int argc, char *argv[]){
     return leadel_passref;
   });
 
-  const NamedFunc SubleadElectron_PassReference("SubleadElectron_PassReference",[Electron_sig, Electron_hltIndex](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc SubleadElectron_PassReference("SubleadElectron_PassReference",[Electron_hltIndex](const Baby &b) -> NamedFunc::ScalarType{
     double leadel_passref = 0;
     int Electron_sig_idx = 0;
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
@@ -2077,7 +1853,7 @@ int main(int argc, char *argv[]){
     return leadel_passref;
   });
 
-  const NamedFunc Electron_OtherPassReference("Electron_OtherPassReference",[Electron_sig, LeadElectron_PassReference, SubleadElectron_PassReference](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Electron_OtherPassReference("Electron_OtherPassReference",[LeadElectron_PassReference, SubleadElectron_PassReference](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> otherpassref;
     double ot_passref = 0;
     double leadpassref = LeadElectron_PassReference.GetScalar(b);
@@ -2097,7 +1873,7 @@ int main(int argc, char *argv[]){
     return otherpassref;
   });
 
-  const NamedFunc Electron_OtherPassUpperLeg("Electron_OtherPassUpperLeg",[Electron_sig, Electron_hltIndex](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Electron_OtherPassUpperLeg("Electron_OtherPassUpperLeg",[Electron_hltIndex](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> otherpassupperleg;
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> hlt_idx = Electron_hltIndex.GetVector(b);
@@ -2122,7 +1898,7 @@ int main(int argc, char *argv[]){
     return otherpassupperleg;
   });
 
-  const NamedFunc Electron_OtherPassLowerLeg("Electron_OtherPassLowerLeg",[Electron_sig, Electron_hltIndex](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Electron_OtherPassLowerLeg("Electron_OtherPassLowerLeg",[Electron_hltIndex](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> otherpassupperleg;
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> hlt_idx = Electron_hltIndex.GetVector(b);
@@ -2161,7 +1937,7 @@ int main(int argc, char *argv[]){
     return hlt_pt;
   });
 
-  const NamedFunc LeadMuon_PassReference("LeadMuon_PassReference",[Muon_sig, Muon_hltIndex](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc LeadMuon_PassReference("LeadMuon_PassReference",[Muon_hltIndex](const Baby &b) -> NamedFunc::ScalarType{
     double leadmu_passref = 0;
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     std::vector<double> hlt_idx = Muon_hltIndex.GetVector(b);
@@ -2179,7 +1955,7 @@ int main(int argc, char *argv[]){
     return leadmu_passref;
   });
 
-  const NamedFunc SubleadMuon_PassReference("SubleadMuon_PassReference",[Muon_sig, Muon_hltIndex](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc SubleadMuon_PassReference("SubleadMuon_PassReference",[Muon_hltIndex](const Baby &b) -> NamedFunc::ScalarType{
     double leadmu_passref = 0;
     int Muon_sig_idx = 0;
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
@@ -2201,7 +1977,7 @@ int main(int argc, char *argv[]){
     return leadmu_passref;
   });
 
-  const NamedFunc Muon_OtherPassReference("Muon_OtherPassReference",[Muon_sig, LeadMuon_PassReference, SubleadMuon_PassReference](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Muon_OtherPassReference("Muon_OtherPassReference",[LeadMuon_PassReference, SubleadMuon_PassReference](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> otherpassref;
     double ot_passref = 0;
     double leadpassref = LeadMuon_PassReference.GetScalar(b);
@@ -2221,7 +1997,7 @@ int main(int argc, char *argv[]){
     return otherpassref;
   });
 
-  const NamedFunc Muon_OtherPassUpperLeg("Muon_OtherPassUpperLeg",[Muon_sig, Muon_hltIndex](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Muon_OtherPassUpperLeg("Muon_OtherPassUpperLeg",[Muon_hltIndex](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> otherpassupperleg;
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     std::vector<double> hlt_idx = Muon_hltIndex.GetVector(b);
@@ -2247,7 +2023,7 @@ int main(int argc, char *argv[]){
   });
 
 
-  const NamedFunc Muon_OtherPassLowerLeg("Muon_OtherPassLowerLeg",[Muon_sig, Muon_hltIndex](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Muon_OtherPassLowerLeg("Muon_OtherPassLowerLeg",[Muon_hltIndex](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> otherpassupperleg;
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     std::vector<double> hlt_idx = Muon_hltIndex.GetVector(b);
@@ -2272,7 +2048,7 @@ int main(int argc, char *argv[]){
     return otherpassupperleg;
   });
 
-  const NamedFunc Electron_isLeading("Electron_isLeading",[Electron_sig](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Electron_isLeading("Electron_isLeading",[](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> is_leading;
     double this_is_leading = 0;
     bool first_sig = true;
@@ -2290,7 +2066,7 @@ int main(int argc, char *argv[]){
     return is_leading;
   });
 
-  const NamedFunc Muon_isLeading("Muon_isLeading",[Muon_sig](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc Muon_isLeading("Muon_isLeading",[](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> is_leading;
     double this_is_leading = 0;
     bool first_sig = true;
@@ -2322,7 +2098,7 @@ int main(int argc, char *argv[]){
     return hlt_pt;
   });
 
-  const NamedFunc eff_singlelep("eff_singlelep",[Electron_sig,Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc eff_singlelep("eff_singlelep",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     std::vector<float> lepton_effs;
@@ -2344,7 +2120,7 @@ int main(int argc, char *argv[]){
     return eff;
   });
 
-  const NamedFunc eff_dilep("eff_dilep",[Electron_sig,Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc eff_dilep("eff_dilep",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     float eff_leadel = 0;
@@ -2384,7 +2160,7 @@ int main(int argc, char *argv[]){
     return 1.0-(1.0-eff_leadel*eff_sublel)*(1.0-0.957*eff_leadmu*eff_sublmu);
   });
 
-  const NamedFunc eff_singlelepgivendi("eff_singlelepgivendi",[Electron_sig,Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc eff_singlelepgivendi("eff_singlelepgivendi",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     float eff_leadel = 0;
@@ -2437,7 +2213,7 @@ int main(int argc, char *argv[]){
   });
 
   //somehow regress Higgs momentum
-  //const NamedFunc Sum_SoftActivityJet_pz("Sum_SoftActivityJet_pz",[Electron_sig,Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  //const NamedFunc Sum_SoftActivityJet_pz("Sum_SoftActivityJet_pz",[](const Baby &b) -> NamedFunc::ScalarType{
   //  ROOT::Math::PtEtaPhiMVector total_p;
   //  for (unsigned isj = 0; isj < b.SoftActivityJet_pt->size(); isj++) {
   //    ROOT::Math::PtEtaPhiMVector p;
@@ -2446,7 +2222,7 @@ int main(int argc, char *argv[]){
   //  }
   //});
 
-  const NamedFunc eff_dilep_hig19014("eff_dilep_hig19014",[Electron_sig,Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc eff_dilep_hig19014("eff_dilep_hig19014",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
     float eff_leadel = 0;
@@ -2490,7 +2266,7 @@ int main(int argc, char *argv[]){
       return eff_singlelep.GetScalar(b)+eff_dilep.GetScalar(b)-eff_dilep.GetScalar(b)*eff_singlelepgivendi.GetScalar(b);
   });
 
-  const NamedFunc LeptonPhoton_mass("LeptonPhoton_mass",[Photon_sig, Electron_sig](const Baby &b) -> NamedFunc::VectorType{
+  const NamedFunc LeptonPhoton_mass("LeptonPhoton_mass",[](const Baby &b) -> NamedFunc::VectorType{
     //get dilepton scale factors
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Photon_sig_ = Photon_sig.GetVector(b);
@@ -2521,7 +2297,7 @@ int main(int argc, char *argv[]){
     return max_lepph_mass;
   });
 
-  const NamedFunc ScaleFactor_Triggers_Old("ScaleFactor_Triggers_Old",[Electron_sig, Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc ScaleFactor_Triggers_Old("ScaleFactor_Triggers_Old",[](const Baby &b) -> NamedFunc::ScalarType{
     float total_sf = 1;
     //get dilepton scale factors
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
@@ -2637,7 +2413,7 @@ int main(int argc, char *argv[]){
     return total_sf;
   });
 
-  const NamedFunc ScaleFactor_Triggers("ScaleFactor_Triggers",[Electron_sig, Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc ScaleFactor_Triggers("ScaleFactor_Triggers",[](const Baby &b) -> NamedFunc::ScalarType{
     float total_prob_simu = 0;
     float total_prob_data = 0;
     //loop over leptons and construct table of probabilities
@@ -2759,18 +2535,18 @@ int main(int argc, char *argv[]){
     return total_prob_data/total_prob_simu;
   });
 
-  const NamedFunc trigger_dependent_ptcut("trigger_dependent_ptcut",[hlt_el_trigger,hlt_single_el_trigger,hlt_mu_trigger,hlt_single_mu_trigger,Lead_Electron_pt,Lead_Muon_pt,Sublead_Electron_pt,Sublead_Muon_pt,Electron_hltId,Muon_hltId,Electron_sig,Muon_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc trigger_dependent_ptcut("trigger_dependent_ptcut",[hlt_el_trigger,hlt_single_el_trigger,hlt_mu_trigger,hlt_single_mu_trigger,Electron_hltId,Muon_hltId](const Baby &b) -> NamedFunc::ScalarType{
       std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
       std::vector<double> Muon_sig_ = Muon_sig.GetVector(b);
       std::vector<double> el_hlt_ = Electron_hltId.GetVector(b);
       std::vector<double> mu_hlt_ = Muon_hltId.GetVector(b);
       if (hlt_el_trigger.GetScalar(b)) {
-        if (Lead_Electron_pt.GetScalar(b)>25 && Sublead_Electron_pt.GetScalar(b)>15)
+        if (Lead_SignalElectron_pt.GetScalar(b)>25 && Sublead_SignalElectron_pt.GetScalar(b)>15)
           return 1;
         return 0;
       }
       else if (hlt_mu_trigger.GetScalar(b)) {
-        if (Lead_Muon_pt.GetScalar(b)>20 && Sublead_Muon_pt.GetScalar(b)>10)
+        if (Lead_SignalMuon_pt.GetScalar(b)>20 && Sublead_SignalMuon_pt.GetScalar(b)>10)
           return 1;
         return 0;
       }
@@ -2786,11 +2562,11 @@ int main(int argc, char *argv[]){
           }
         }
         if (good_lead) {
-          if (Lead_Electron_pt.GetScalar(b)>35)
+          if (Lead_SignalElectron_pt.GetScalar(b)>35)
             return 1;
         }
         else {
-          if (Sublead_Electron_pt.GetScalar(b)>35)
+          if (Sublead_SignalElectron_pt.GetScalar(b)>35)
             return 1;
         }
         return 0;
@@ -2807,11 +2583,11 @@ int main(int argc, char *argv[]){
           }
         }
         if (good_lead) {
-          if (Lead_Muon_pt.GetScalar(b)>29)
+          if (Lead_SignalMuon_pt.GetScalar(b)>29)
             return 1;
         }
         else {
-          if (Sublead_Muon_pt.GetScalar(b)>29)
+          if (Sublead_SignalMuon_pt.GetScalar(b)>29)
             return 1;
         }
         return 0;
@@ -3241,7 +3017,7 @@ int main(int argc, char *argv[]){
     return -999;
   });
 
-  const NamedFunc GenPart_W_Sublead_Muon_pt("GenPart_W_Sublead_Muon_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc GenPart_W_Sublead_SignalMuon_pt("GenPart_W_Sublead_SignalMuon_pt",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<std::vector<double>> hz_lepton_pt;
     for (unsigned imc = 0; imc < b.GenPart_pdgId()->size(); imc++) {
       int abs_pdgid = abs(b.GenPart_pdgId()->at(imc));
@@ -3263,7 +3039,7 @@ int main(int argc, char *argv[]){
     return -999;
   });
 
-  const NamedFunc GenPart_W_Lead_Muon_pt("GenPart_W_Lead_Muon_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc GenPart_W_Lead_SignalMuon_pt("GenPart_W_Lead_SignalMuon_pt",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<std::vector<double>> hz_lepton_pt;
     for (unsigned imc = 0; imc < b.GenPart_pdgId()->size(); imc++) {
       int abs_pdgid = abs(b.GenPart_pdgId()->at(imc));
@@ -3285,7 +3061,7 @@ int main(int argc, char *argv[]){
     return -999;
   });
 
-  const NamedFunc GenPart_W_Sublead_Electron_pt("GenPart_W_Sublead_Electron_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc GenPart_W_Sublead_SignalElectron_pt("GenPart_W_Sublead_SignalElectron_pt",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<std::vector<double>> hz_lepton_pt;
     for (unsigned imc = 0; imc < b.GenPart_pdgId()->size(); imc++) {
       int abs_pdgid = abs(b.GenPart_pdgId()->at(imc));
@@ -3307,7 +3083,7 @@ int main(int argc, char *argv[]){
     return -999;
   });
 
-  const NamedFunc GenPart_W_Lead_Electron_pt("GenPart_W_Lead_Electron_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc GenPart_W_Lead_SignalElectron_pt("GenPart_W_Lead_SignalElectron_pt",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<std::vector<double>> hz_lepton_pt;
     for (unsigned imc = 0; imc < b.GenPart_pdgId()->size(); imc++) {
       int abs_pdgid = abs(b.GenPart_pdgId()->at(imc));
@@ -3451,16 +3227,8 @@ int main(int argc, char *argv[]){
     return n_truth;
   });
 
-  //remove 120-130 mass range
-  const NamedFunc blind_sr("blind_sr",[HiggsCand_mass](const Baby &b) -> NamedFunc::ScalarType{
-    double mllg = HiggsCand_mass.GetScalar(b);
-    if (mllg>120 && mllg<130) return 0;
-    return 1;
-  });
-
-
   //hem veto
-  const NamedFunc pass_hemveto("pass_hemveto", [Electron_sig](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc pass_hemveto("pass_hemveto", [](const Baby &b) -> NamedFunc::ScalarType{
       std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
       //only apply for 2018 era C+D and MC
       if (abs(b.SampleType())!=2018) return true; // accept 2016 and 2017 data and mc
@@ -3483,13 +3251,13 @@ int main(int argc, char *argv[]){
       return pass_hem;
   });
 
-  NamedFunc baseline_selection = ((ZCand_mass>50)&&((Lead_Electron_pt>25)||(Lead_Muon_pt>20))&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&delta_r_cut&&((HiggsCand_mass+ZCand_mass)>185));
-  NamedFunc baseline_selection_nopt = ((ZCand_mass>50)&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&delta_r_cut&&((HiggsCand_mass+ZCand_mass)>185));
-  NamedFunc baseline_selection_nodr = ((ZCand_mass>50)&&((Lead_Electron_pt>25)||(Lead_Muon_pt>20))&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&((HiggsCand_mass+ZCand_mass)>185));
-  NamedFunc midleadpt = ((Lead_Electron_pt>25)||(Lead_Muon_pt>20));
-  NamedFunc highleadpt = ((Lead_Electron_pt>38)||(Lead_Muon_pt>29));
-  NamedFunc highpt = ((Lead_Electron_pt>38&&Sublead_Electron_pt>38)||(Lead_Muon_pt>29&&Sublead_Muon_pt>29));
-  NamedFunc dy_selection = ((ZCand_mass>81)&&(ZCand_mass<101))&&(NElectron_sig>=2||NMuon_sig>=2);
+  NamedFunc baseline_selection = ((ZCandidate_mass>50)&&((Lead_SignalElectron_pt>25)||(Lead_SignalMuon_pt>20))&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut&&((HiggsCandidate_mass+ZCandidate_mass)>185));
+  NamedFunc baseline_selection_nopt = ((ZCandidate_mass>50)&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut&&((HiggsCandidate_mass+ZCandidate_mass)>185));
+  NamedFunc baseline_selection_nodr = ((ZCandidate_mass>50)&&((Lead_SignalElectron_pt>25)||(Lead_SignalMuon_pt>20))&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&((HiggsCandidate_mass+ZCandidate_mass)>185));
+  NamedFunc midleadpt = ((Lead_SignalElectron_pt>25)||(Lead_SignalMuon_pt>20));
+  NamedFunc highleadpt = ((Lead_SignalElectron_pt>38)||(Lead_SignalMuon_pt>29));
+  NamedFunc highpt = ((Lead_SignalElectron_pt>38&&Sublead_SignalElectron_pt>38)||(Lead_SignalMuon_pt>29&&Sublead_SignalMuon_pt>29));
+  NamedFunc dy_selection = ((ZCandidate_mass>81)&&(ZCandidate_mass<101))&&(nSignalElectron>=2||nSignalMuon>=2);
 
   //------------------------------------------------------------------------------------
   //                                     make plots and pie charts
@@ -3516,7 +3284,7 @@ int main(int argc, char *argv[]){
   bool plot_jaebak_cutflow = false;
   bool plot_associated_acceptance = false;
   bool plot_ptg = false;
-  bool plot_diphoton_sidebands = true;
+  bool plot_data_sidebands = true;
 
   if (plot_associated_acceptance) {
     //ggh
@@ -3662,7 +3430,7 @@ int main(int argc, char *argv[]){
         signal_procs_wplush, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__wplush_zsublead_muon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_Muon_pt, "W Muon p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_SignalMuon_pt, "W Muon p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==1),
         signal_procs_wplush, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__wplush_w_muon_pt")
@@ -3672,7 +3440,7 @@ int main(int argc, char *argv[]){
         signal_procs_wplush, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__wplush_w_muon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_Electron_pt, "W Electron p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_SignalElectron_pt, "W Electron p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==1),
         signal_procs_wplush, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__wplush_w_electron_pt")
@@ -3733,7 +3501,7 @@ int main(int argc, char *argv[]){
         signal_procs_wminush, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__wminush_zsublead_muon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_Muon_pt, "W Muon p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_SignalMuon_pt, "W Muon p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==1),
         signal_procs_wminush, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__wminush_w_muon_pt")
@@ -3743,7 +3511,7 @@ int main(int argc, char *argv[]){
         signal_procs_wminush, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__wminush_w_muon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_Electron_pt, "W Electron p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_SignalElectron_pt, "W Electron p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==1),
         signal_procs_wminush, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__wminush_w_electron_pt")
@@ -3895,7 +3663,7 @@ int main(int argc, char *argv[]){
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth3l_zsublead_muon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_Muon_pt, "W Muon p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_SignalMuon_pt, "W Muon p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==1),
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth3l_w_muon_pt")
@@ -3905,7 +3673,7 @@ int main(int argc, char *argv[]){
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth3l_w_muon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_Electron_pt, "W Electron p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_SignalElectron_pt, "W Electron p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==1),
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth3l_w_electron_pt")
@@ -3966,7 +3734,7 @@ int main(int argc, char *argv[]){
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth4l_zsublead_muon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_Muon_pt, "W Lead Muon p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_SignalMuon_pt, "W Lead Muon p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==2),
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth4l_w_leadmuon_pt")
@@ -3976,7 +3744,7 @@ int main(int argc, char *argv[]){
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth4l_w_leadmuon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_Electron_pt, "W Lead Electron p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Lead_SignalElectron_pt, "W Lead Electron p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==2),
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth4l_w_leadelectron_pt")
@@ -3986,7 +3754,7 @@ int main(int argc, char *argv[]){
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth4l_w_leadelectron_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Sublead_Muon_pt, "W Sublead Muon p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Sublead_SignalMuon_pt, "W Sublead Muon p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==2),
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth4l_w_subleadmuon_pt")
@@ -3996,7 +3764,7 @@ int main(int argc, char *argv[]){
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth4l_w_subleadmuon_eta")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Sublead_Electron_pt, "W Sublead Electron p_{T}", {}),
+    pm.Push<Hist1D>(Axis(30, 0.0, 120.0, GenPart_W_Sublead_SignalElectron_pt, "W Sublead Electron p_{T}", {}),
         (z_decay_pdgid==13||z_decay_pdgid==11)&&(N_Leptonic_W==2),
         signal_procs_tth, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__tth4l_w_subleadelectron_pt")
@@ -4025,19 +3793,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Electrons reconstructed", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       //
       TableRow("\\hline $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13),0,0,weight_noscale),
@@ -4046,19 +3814,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Muons reconstructed", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(3);
     pm.Push<Table>("zghlt_vbf_accept", vector<TableRow>{
       TableRow("\\hline $Z\\rightarrow e^{+}e^{-}$ decays", 
@@ -4068,19 +3836,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Electrons reconstructed", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       //
       TableRow("\\hline $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13),0,0,weight_noscale),
@@ -4089,19 +3857,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Muons reconstructed", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(NTruthLeptonAccept>=2)&&(NTruthPhotonAccept>=1)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_vbf,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(3);
     pm.Push<Table>("zghlt_wplush_accept", vector<TableRow>{
       TableRow("\\hline $Z\\rightarrow e^{+}e^{-}$ decays", 
@@ -4111,19 +3879,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Electrons reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       //
       TableRow("\\hline $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13)&&(N_Leptonic_W==1),0,0,weight_noscale),
@@ -4132,19 +3900,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Muons reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_wplush,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(3);
     pm.Push<Table>("zghlt_wminush_accept", vector<TableRow>{
       TableRow("\\hline $Z\\rightarrow e^{+}e^{-}$ decays", 
@@ -4154,19 +3922,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Electrons reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       //
       TableRow("\\hline $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13)&&(N_Leptonic_W==1),0,0,weight_noscale),
@@ -4175,19 +3943,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Muons reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_wminush,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(3);
     pm.Push<Table>("zghlt_zh_accept", vector<TableRow>{
       TableRow("\\hline $Z\\rightarrow e^{+}e^{-}$ decays", 
@@ -4197,19 +3965,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Electrons reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       //
       TableRow("\\hline $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13)&&(N_Leptonic_Z==2),0,0,weight_noscale),
@@ -4218,19 +3986,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Muons reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_Z==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_zh,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(3);
     pm.Push<Table>("zghlt_tth3l_accept", vector<TableRow>{
       TableRow("\\hline $Z\\rightarrow e^{+}e^{-}$ decays", 
@@ -4240,19 +4008,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Electrons reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       //
       TableRow("\\hline $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13)&&(N_Leptonic_W==1),0,0,weight_noscale),
@@ -4261,19 +4029,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Muons reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=3)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==1)&&(NTruthLeptonAccept>=3)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=3)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_tth,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(3);
     pm.Push<Table>("zghlt_tth4l_accept", vector<TableRow>{
       TableRow("\\hline $Z\\rightarrow e^{+}e^{-}$ decays", 
@@ -4283,19 +4051,19 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Electrons reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       //
       TableRow("\\hline $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13)&&(N_Leptonic_W==2),0,0,weight_noscale),
@@ -4304,191 +4072,191 @@ int main(int argc, char *argv[]){
       TableRow("Photon in acceptance", 
           (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1),0,0,weight_noscale),
       TableRow("Muons reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4),0,0,weight_noscale),
       TableRow("Photon reconstructed", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale),
       TableRow("HLT 2l or 1l Trigger (MC)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale),
       TableRow("HLT 2l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("HLT 2l or 1l Trigger (Data SFs)", 
-          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(NLepton_sig>=4)&&(NPhoton_sig>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(N_Leptonic_W==2)&&(NTruthLeptonAccept>=4)&&(NTruthPhotonAccept>=1)&&(nSignalLepton>=4)&&(nSignalPhoton>=1)&&l1_lep_trigger&&hlt_lep_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_tth,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(3);
 
   }
 
   if (plot_fail_dilep_trig) {
     pm.Push<Hist1D>(Axis(4, -1.5, 2.5, Electron_hltId, "Electron HLT Status", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__elhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(4, -1.5, 2.5, Muon_hltId, "Muon HLT Status", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        l1_mu_trigger&&hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__muhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(4, -1.5, 2.5, Electron_hltId, "Electron HLT Status", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_elhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(4, -1.5, 2.5, Muon_hltId, "Muon HLT Status", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_muhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Electron_pt", "Electron p_{T} (no HLT match) [GeV]", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_pt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -2.5, 2.5, "Electron_eta", "Electron #eta (no HLT match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -3.16, 3.16, "Electron_phi", "Electron #phi (no HLT match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_phi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Electron_eta", "Electron #eta (no HLT match)", {}),
         Axis(12, -3.16, 3.16, "Electron_phi", "Electron #phi (no HLT match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Electron_pfRelIso03_all", "Electron I_{rel,all} (no HLT match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_iso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Electron_pfRelIso03_chg", "Electron I_{rel,chg} (no HLT match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_isochg")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Electron_pt", "Electron p_{T} (no HLT ID) [GeV]", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_pt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -2.5, 2.5, "Electron_eta", "Electron #eta (no HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -3.16, 3.16, "Electron_phi", "Electron #phi (no HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_phi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Electron_eta", "Electron #eta (no HLT ID)", {}),
         Axis(12, -3.16, 3.16, "Electron_phi", "Electron #phi (no HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Electron_pfRelIso03_all", "Electron I_{rel,all} (no HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_iso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Electron_pfRelIso03_chg", "Electron I_{rel,chg} (no HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_isochg")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Muon_pt", "Muon p_{T} (no HLT match) [GeV]", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_pt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -2.5, 2.5, "Muon_eta", "Muon #eta (no HLT match)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -3.16, 3.16, "Muon_phi", "Muon #phi (no HLT match)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_phi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Muon_eta", "Muon #eta (no HLT match)", {}),
         Axis(12, -3.16, 3.16, "Muon_phi", "Muon #phi (no HLT match)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Muon_pfRelIso03_all", "Muon I_{rel,all} (no HLT match)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_iso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Muon_pfRelIso03_chg", "Muon I_{rel,chg} (no HLT match)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_isochg")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Muon_pt", "Muon p_{T} (no HLT ID) [GeV]", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidmu_pt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -2.5, 2.5, "Muon_eta", "Muon #eta (no HLT ID)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidmu_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -3.16, 3.16, "Muon_phi", "Muon #phi (no HLT ID)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidmu_phi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Muon_eta", "Muon #eta (no HLT ID)", {}),
         Axis(12, -3.16, 3.16, "Muon_phi", "Muon #phi (no HLT ID)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidmu_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Muon_pfRelIso03_all", "Muon I_{rel,all} (no HLT ID)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidmu_iso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Muon_pfRelIso03_chg", "Muon I_{rel,chg} (no HLT ID)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId==0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidmu_isochg")
         .LuminosityTag(total_luminosity_string);
     //muon eta stuff
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Muon_eta", "Muon #eta (no HLT match)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&baseline_selection_nopt,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&baseline_selection_nopt,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Muon_eta", "Muon #eta (no HLT ID)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId=0.0&&Muon_sig==1.0&&baseline_selection_nopt,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId=0.0&&Muon_sig==1.0&&baseline_selection_nopt,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidmu_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Muon_eta", "Muon #eta (HLT ID)", {}),
-        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId>=1.0&&Muon_sig==1.0&&baseline_selection_nopt,
+        (l1_mu_trigger||l1_mu_trigger_singlemu)&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId>=1.0&&Muon_sig==1.0&&baseline_selection_nopt,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_idmu_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Muon_eta", "Muon #eta (no HLT req, 1#mu and not 2#mu L1 trigger)", {}),
-        (!l1_mu_trigger&&l1_mu_trigger_singlemu)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0&&baseline_selection_nopt,
+        (!l1_mu_trigger&&l1_mu_trigger_singlemu)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0&&baseline_selection_nopt,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_newl1_mu_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Muon_eta", "Muon #eta (no HLT req, 2#mu L1 trigger)", {}),
-        (l1_mu_trigger)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0&&baseline_selection_nopt,
+        (l1_mu_trigger)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0&&baseline_selection_nopt,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_oldl1_mu_eta")
         .LuminosityTag(total_luminosity_string);
@@ -4499,12 +4267,12 @@ int main(int argc, char *argv[]){
   if (plot_more_fail_dilep) {
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "TrigObj_eta", "HLT Muon #eta", {}),
         Axis(12, -3.16, 3.16, "TrigObj_phi", "HLT Muon #phi", {}),
-        "TrigObj_id==11" && (NMuon_sig>=2)&&(NPhoton_sig>=1),
+        "TrigObj_id==11" && (nSignalMuon>=2)&&(nSignalPhoton>=1),
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_hltmu_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(12, -3.16, 3.16, "TrigObj_phi", "HLT Muon #phi", {}),
-        "TrigObj_id==11" && (NMuon_sig>=2)&&(NPhoton_sig>=1),
+        "TrigObj_id==11" && (nSignalMuon>=2)&&(nSignalPhoton>=1),
         signal_procs_noscale_2d, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_hltmu_phi")
         .LuminosityTag(total_luminosity_string);
@@ -4522,7 +4290,7 @@ int main(int argc, char *argv[]){
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Muon_eta", "Offline Muon #eta", {}),
         Axis(12, -3.16, 3.16, "Muon_phi", "Offline Muon #phi", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offmu_etaphi")
         .LuminosityTag(total_luminosity_string);
@@ -4534,7 +4302,7 @@ int main(int argc, char *argv[]){
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Muon_eta", "Offline Muon #eta", {}),
         Axis(12, -3.16, 3.16, "Muon_phi", "Offline Muon #phi", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig,
         dy_procs, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offmu_etaphi_dy")
         .LuminosityTag(total_luminosity_string);
@@ -4546,69 +4314,69 @@ int main(int argc, char *argv[]){
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Muon_eta", "Offline Muon #eta", {}),
         Axis(12, -3.16, 3.16, "Muon_phi", "Offline Muon #phi", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig,
         dy_procs_2016, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offmu_etaphi_dy16")
         .LuminosityTag(total_luminosity_string);
     
     pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "Muon_nStations", "Muon nStations (No HLT Match)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_nstations")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(21, -0.5, 20.5, "Muon_nTrackerLayers", "Muon nTrackerLayers (No HLT Match)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_ntrackerlayers")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(2, -0.5, 1.5, "Muon_isGlobal", "Muon is global muon (No HLT Match)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_isglobal")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "Muon_nStations", "Muon nStations (No HLT Match) (not 0.75 < |#eta| < 1.5)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"(Muon_eta>1.5||Muon_eta<-1.5||(Muon_eta>-0.75&&Muon_eta<0.75))",
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"(Muon_eta>1.5||Muon_eta<-1.5||(Muon_eta>-0.75&&Muon_eta<0.75))",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_etapeak_nstations")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(21, -0.5, 20.5, "Muon_nTrackerLayers", "Muon nTrackerLayers (No HLT Match) (not 0.75 < |#eta| < 1.5)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"(Muon_eta>1.5||Muon_eta<-1.5||(Muon_eta>-0.75&&Muon_eta<0.75))",
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"(Muon_eta>1.5||Muon_eta<-1.5||(Muon_eta>-0.75&&Muon_eta<0.75))",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_etapeak_ntrackerlayers")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(2, -0.5, 1.5, "Muon_isGlobal", "Muon is global muon (No HLT Match) (not 0.75 < |#eta| < 1.5)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"(Muon_eta>1.5||Muon_eta<-1.5||(Muon_eta>-0.75&&Muon_eta<0.75))",
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"(Muon_eta>1.5||Muon_eta<-1.5||(Muon_eta>-0.75&&Muon_eta<0.75))",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_etapeak_isglobal")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "Muon_nStations", "Muon nStations (No HLT Match) (0.75 < |#eta| < 1.5)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"((Muon_eta>-1.5&&Muon_eta<-0.75)||(Muon_eta>0.75&&Muon_eta<1.5))",
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"((Muon_eta>-1.5&&Muon_eta<-0.75)||(Muon_eta>0.75&&Muon_eta<1.5))",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_offetapeak_nstations")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(21, -0.5, 20.5, "Muon_nTrackerLayers", "Muon nTrackerLayers (No HLT Match) (0.75 < |#eta| < 1.5)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"((Muon_eta>-1.5&&Muon_eta<-0.75)||(Muon_eta>0.75&&Muon_eta<1.5))",
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"((Muon_eta>-1.5&&Muon_eta<-0.75)||(Muon_eta>0.75&&Muon_eta<1.5))",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_offetapeak_ntrackerlayers")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(2, -0.5, 1.5, "Muon_isGlobal", "Muon is global muon (No HLT Match) (0.75 < |#eta| < 1.5)", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"((Muon_eta>-1.5&&Muon_eta<-0.75)||(Muon_eta>0.75&&Muon_eta<1.5))",
+        l1_mu_trigger&&hlt_mu_trigger_plus&&!hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0&&"((Muon_eta>-1.5&&Muon_eta<-0.75)||(Muon_eta>0.75&&Muon_eta<1.5))",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecomu_offetapeak_isglobal")
         .LuminosityTag(total_luminosity_string);
 
     pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "Muon_nStations", "Offline Muon nStations", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        l1_mu_trigger&&hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offmu_nstations")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(21, -0.5, 20.5, "Muon_nTrackerLayers", "Offline Muon nTrackerLayers", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        l1_mu_trigger&&hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offmu_ntrackerlayers")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(2, -0.5, 1.5, "Muon_isGlobal", "Offline Muon is global muon", {}),
-        l1_mu_trigger&&hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        l1_mu_trigger&&hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offmu_isglobal")
         .LuminosityTag(total_luminosity_string);
@@ -4627,7 +4395,7 @@ int main(int argc, char *argv[]){
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Electron_eta", "Offline Electron #eta", {}),
         Axis(12, -3.16, 3.16, "Electron_phi", "Offline Electron #phi", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offel_etaphi")
         .LuminosityTag(total_luminosity_string);
@@ -4645,7 +4413,7 @@ int main(int argc, char *argv[]){
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Electron_eta", "Offline Electron #eta", {}),
         Axis(12, -3.16, 3.16, "Electron_phi", "Offline Electron #phi", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig,
         dy_procs, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offel_etaphi_dy")
         .LuminosityTag(total_luminosity_string);
@@ -4663,97 +4431,97 @@ int main(int argc, char *argv[]){
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Electron_eta", "Offline Electron #eta", {}),
         Axis(12, -3.16, 3.16, "Electron_phi", "Offline Electron #phi", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig,
         dy_procs_2016, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offel_etaphi_dy16")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(8, -0.5, 7.5, "Electron_lostHits", "Electron Lost Hits (No HLT Match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_losthits")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, -0.1, 0.1, "Electron_deltaEtaSC", "Electron #Delta#eta_{SC} (No HLT Match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_deltaeta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(15, 0.0, 0.03, "Electron_sieie", "Electron #sigma_{i#etai#eta} (No HLT Match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_sieie")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 1.0, "Electron_r9", "Electron R_{9} (No HLT Match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_r9")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 0.2, "Electron_hoe", "Electron H/E (No HLT Match)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_norecoel_hoe")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(8, -0.5, 7.5, "Electron_lostHits", "Electron Lost Hits (No HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_losthits")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, -0.1, 0.1, "Electron_deltaEtaSC", "Electron #Delta#eta_{SC} (No HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_deltaeta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(15, 0.0, 0.03, "Electron_sieie", "Electron #sigma_{i#etai#eta} (No HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_sieie")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 1.0, "Electron_r9", "Electron R_{9} (No HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_r9")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 0.2, "Electron_hoe", "Electron H/E (No HLT ID)", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_hoe")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(8, -0.5, 7.5, "Electron_lostHits", "Offline Electron Lost Hits", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offel_losthits")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, -0.1, 0.1, "Electron_deltaEtaSC", "Offline Electron #Delta#eta_{SC}", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offel_deltaeta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(15, 0.0, 0.03, "Electron_sieie", "Offline Electron #sigma_{i#etai#eta}", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offel_sieie")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 1.0, "Electron_r9", "Offline Electron R_{9}", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offel_r9")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 0.2, "Electron_hoe", "Offline Electron H/E", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_offel_hoe")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 50.0, Electron_IsoPhotonPt, "Sum photon p_{T} in electron isolation cone [GeV]", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0&&"Electron_pfRelIso03_all>0.4",
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0&&"Electron_pfRelIso03_all>0.4",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_isophpt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 50.0, Electron_IsoElectronPt, "Sum electron p_{T} in electron isolation cone [GeV]", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0&&"Electron_pfRelIso03_all>0.4",
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0&&"Electron_pfRelIso03_all>0.4",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_isoelpt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 50.0, Electron_IsoJetPt, "Sum jet p_{T} in electron isolation cone [GeV]", {}),
-        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId==0.0&&Electron_sig==1.0&&"Electron_pfRelIso03_all>0.4",
+        l1_el_trigger&&hlt_el_trigger_plus&&!hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId==0.0&&Electron_sig==1.0&&"Electron_pfRelIso03_all>0.4",
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__dilepfail_noidel_isojetpt")
         .LuminosityTag(total_luminosity_string);
@@ -4761,242 +4529,242 @@ int main(int argc, char *argv[]){
 
   if (plot_fail_singlelep_trig) {
     pm.Push<Hist1D>(Axis(4, -1.5, 2.5, Electron_hltId, "Electron HLT Status", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_elhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(4, -1.5, 2.5, Muon_hltId, "Muon HLT Status", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_muhlt")
         .LuminosityTag(total_luminosity_string);
 
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Electron_pt", "Electron p_{T} (no HLT match) [GeV]", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_pt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -2.5, 2.5, "Electron_eta", "Electron #eta (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -3.16, 3.16, "Electron_phi", "Electron #phi (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_phi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Electron_eta", "Electron #eta (no HLT match)", {}),
         Axis(12, -3.16, 3.16, "Electron_phi", "Electron #phi (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Electron_pfRelIso03_all", "Electron I_{rel,all} (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_iso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(8, -0.5, 7.5, "Electron_lostHits", "Electron Lost Hits (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_losthits")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, -0.1, 0.1, "Electron_deltaEtaSC", "Electron #Delta#eta_{SC} (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_deltaeta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(15, 0.0, 0.03, "Electron_sieie", "Electron #sigma_{i#etai#eta} (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_sieie")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 1.0, "Electron_r9", "Electron R_{9} (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_r9")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 0.2, "Electron_hoe", "Electron H/E (no HLT match)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_hltId<0.0&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecoel_hoe")
         .LuminosityTag(total_luminosity_string);
 
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Electron_pt", "Electron p_{T} (no HLT ID) [GeV]", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_pt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -2.5, 2.5, "Electron_eta", "Electron #eta (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -3.16, 3.16, "Electron_phi", "Electron #phi (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_phi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Electron_eta", "Electron #eta (no HLT ID)", {}),
         Axis(12, -3.16, 3.16, "Electron_phi", "Electron #phi (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Electron_pfRelIso03_all", "Electron I_{rel,all} (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_iso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(8, -0.5, 7.5, "Electron_lostHits", "Electron Lost Hits (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_losthits")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, -0.1, 0.1, "Electron_deltaEtaSC", "Electron #Delta#eta_{SC} (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_deltaeta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(15, 0.0, 0.03, "Electron_sieie", "Electron #sigma_{i#etai#eta} (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_sieie")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 1.0, "Electron_r9", "Electron R_{9} (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_r9")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 0.2, "Electron_hoe", "Electron H/E (no HLT ID)", {}),
-        l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
+        l1_el_trigger&&!hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Electron_hltId==0.0||Electron_hltId==1.0)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidel_hoe")
         .LuminosityTag(total_luminosity_string);
 
     pm.Push<Hist1D>(Axis(8, -0.5, 7.5, "Electron_lostHits", "Offline Electron Lost Hits", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_offel_lostHits")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, -0.1, 0.1, "Electron_deltaEtaSC", "Offline Electron #Delta#eta_{SC}", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_offel_deltaeta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(15, 0.0, 0.03, "Electron_sieie", "Offline Electron #sigma_{i#etai#eta}", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_offel_sieie")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 1.0, "Electron_r9", "Offline Electron R_{9}", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_offel_r9")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(16, 0.0, 0.2, "Electron_hoe", "Offline Electron H/E", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&Electron_sig==1.0,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&Electron_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_offel_hoe")
         .LuminosityTag(total_luminosity_string);
 
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Muon_pt", "Muon p_{T} (no HLT match) [GeV]", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecomu_pt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -2.5, 2.5, "Muon_eta", "Muon #eta (no HLT match)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecomu_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -3.16, 3.16, "Muon_phi", "Muon #phi (no HLT match)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecomu_phi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Muon_eta", "Muon #eta (no HLT match)", {}),
         Axis(12, -3.16, 3.16, "Muon_phi", "Muon #phi (no HLT match)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecomu_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Muon_pfRelIso03_all", "Muon I_{rel,all} (no HLT match)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecomu_iso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "Muon_nStations", "Muon nStations (no HLT match)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecomu_nstations")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(21, -0.5, 20.5, "Muon_nTrackerLayers", "Muon nTrackerLayers (no HLT match)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecomu_ntrackerlayers")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(2, -0.5, 1.5, "Muon_isGlobal", "Muon is global muon (no HLT match)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_hltId<0.0&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_norecomu_isglobal")
         .LuminosityTag(total_luminosity_string);
 
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Muon_pt", "Muon p_{T} (no HLT ID) [GeV]", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidmu_pt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -2.5, 2.5, "Muon_eta", "Muon #eta (no HLT ID)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidmu_eta")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -3.16, 3.16, "Muon_phi", "Muon #phi (no HLT ID)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidmu_phi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(12, -2.5, 2.5, "Muon_eta", "Muon #eta (no HLT ID)", {}),
         Axis(12, -3.16, 3.16, "Muon_phi", "Muon #phi (no HLT ID)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
         signal_procs_noscale_2d, twodim_plotopts).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidmu_etaphi")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 2.0, "Muon_pfRelIso03_all", "Muon I_{rel,all} (no HLT ID)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidmu_iso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "Muon_nStations", "Muon nStations (no HLT ID)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidmu_nstations")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(21, -0.5, 20.5, "Muon_nTrackerLayers", "Muon nTrackerLayers (no HLT ID)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidmu_ntrackerlayers")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(2, -0.5, 1.5, "Muon_isGlobal", "Muon is global muon (no HLT ID)", {}),
-        l1_mu_trigger&&!hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
+        l1_mu_trigger&&!hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Muon_hltId==0.0||Muon_hltId==1.0)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_noidmu_isglobal")
         .LuminosityTag(total_luminosity_string);
 
     pm.Push<Hist1D>(Axis(6, -0.5, 5.5, "Muon_nStations", "Offline Muon nStations", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_offmu_nstations")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(21, -0.5, 20.5, "Muon_nTrackerLayers", "Offline Muon nTrackerLayers", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_offmu_ntrackerlayers")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(2, -0.5, 1.5, "Muon_isGlobal", "Offline Muon is global muon", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&Muon_sig==1.0,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&Muon_sig==1.0,
         signal_procs_noscale, plt_lin).Weight(weight_noscale)
         .Tag("FixName:zghlt__singlelepfail_offmu_isglobal")
         .LuminosityTag(total_luminosity_string);
@@ -5004,70 +4772,70 @@ int main(int argc, char *argv[]){
 
   if (plot_diphoton_trig_effects) {
     pm.Push<Hist1D>(Axis(40, 0.0, 160.0, LeptonPhoton_mass, "m_{e#gamma} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__diph_meg")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(40, 0.0, 160.0, ZCand_mass, "m_{ee} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    pm.Push<Hist1D>(Axis(40, 0.0, 160.0, ZCandidate_mass, "m_{ee} [GeV]", {}),
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__diph_mee")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, 0.0, 160.0, Max_LeptonPhoton_mass, "Max m_{e#gamma} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__diph_maxmeg")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, 0.0, 160.0, Max_LeptonPhoton_mass, "Max m_{e#gamma} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90",
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90",
         signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__diph_maxmeg_addedbydiph90")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(40, 0.0, 160.0, ZCand_mass, "m_{ee} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90",
+    pm.Push<Hist1D>(Axis(40, 0.0, 160.0, ZCandidate_mass, "m_{ee} [GeV]", {}),
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90",
         signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__diph_mee_addedbydiph90")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(15, 110.0, 140.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    pm.Push<Hist1D>(Axis(15, 110.0, 140.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_diph_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__mllg_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
   }
 
   if (plot_cleanmask) {
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-        stitch_dy&&hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nodr,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+        stitch_dy&&hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nodr,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__clean_mllg_diel")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{#mu#mu#gamma} [GeV]", {}),
-        stitch_dy&&hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nodr,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{#mu#mu#gamma} [GeV]", {}),
+        stitch_dy&&hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nodr,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__clean_mllg_dimu")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass_cleaned, "m_{ee#gamma} [GeV]", {}),
-        stitch_dy&&hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nodr,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass_cleaned, "m_{ee#gamma} [GeV]", {}),
+        stitch_dy&&hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nodr,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__clean_mllgclean_diel")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass_cleaned, "m_{#mu#mu#gamma} [GeV]", {}),
-        stitch_dy&&hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nodr,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass_cleaned, "m_{#mu#mu#gamma} [GeV]", {}),
+        stitch_dy&&hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nodr,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__clean_mllgclean_dimu")
         .LuminosityTag(total_luminosity_string);
   }
 
-  //NamedFunc baseline_selection = ((ZCand_mass>50)&&((Lead_Electron_pt>25)||(Lead_Muon_pt>20))&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&delta_r_cut&&((HiggsCand_mass+ZCand_mass)>185));
-  NamedFunc higgs_window = (HiggsCand_mass>120)&&(HiggsCand_mass<130);
+  //NamedFunc baseline_selection = ((ZCandidate_mass>50)&&((Lead_SignalElectron_pt>25)||(Lead_SignalMuon_pt>20))&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut&&((HiggsCandidate_mass+ZCandidate_mass)>185));
+  NamedFunc higgs_window = (HiggsCandidate_mass>120)&&(HiggsCandidate_mass<130);
   if (plot_ptg) {
-    pm.Push<Hist1D>(Axis(15, 15.0, 60.0, Lead_Photon_pt, "p_{T#gamma} [GeV]", {}),
-        stitch_dy&&hlt_el_trigger_plus&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&higgs_window,
+    pm.Push<Hist1D>(Axis(15, 15.0, 60.0, Lead_SignalPhoton_pt, "p_{T#gamma} [GeV]", {}),
+        stitch_dy&&hlt_el_trigger_plus&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&higgs_window,
         full_procs, plt_lin).Weight(weight*138.0/41.0)
         .Tag("FixName:zghlt__clean_mllg_diel")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(15, 15.0, 60.0, Lead_Photon_pt, "p_{T#gamma} [GeV]", {}),
-        stitch_dy&&hlt_mu_trigger_plus&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&higgs_window,
+    pm.Push<Hist1D>(Axis(15, 15.0, 60.0, Lead_SignalPhoton_pt, "p_{T#gamma} [GeV]", {}),
+        stitch_dy&&hlt_mu_trigger_plus&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&higgs_window,
         full_procs, plt_lin).Weight(weight*138.0/41.0)
         .Tag("FixName:zghlt__clean_mllg_dimu")
         .LuminosityTag(total_luminosity_string);
@@ -5082,86 +4850,86 @@ int main(int argc, char *argv[]){
       TableRow("\\hline Dielectron Trigger", 
           stitch_dy&&hlt_el_trigger,0,0,weight),
       TableRow(">=2 Signal Electrons", 
-          stitch_dy&&hlt_el_trigger&&(NElectron_sig==2),0,0,weight),
+          stitch_dy&&hlt_el_trigger&&(nSignalElectron==2),0,0,weight),
       TableRow(">=1 Signal Photon", 
-          stitch_dy&&hlt_el_trigger&&(NElectron_sig==2)&&(NPhoton_sig>=1),0,0,weight),
+          stitch_dy&&hlt_el_trigger&&(nSignalElectron==2)&&(nSignalPhoton>=1),0,0,weight),
       TableRow("Z mass > 50 GeV", 
-          stitch_dy&&hlt_el_trigger&&(NElectron_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50),0,0,weight),
+          stitch_dy&&hlt_el_trigger&&(nSignalElectron==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50),0,0,weight),
       TableRow("Lead electron pT > 25 GeV", 
-          stitch_dy&&hlt_el_trigger&&(NElectron_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50)&&(Lead_Electron_pt>25),0,0,weight),
+          stitch_dy&&hlt_el_trigger&&(nSignalElectron==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50)&&(Lead_SignalElectron_pt>25),0,0,weight),
       TableRow("Lead photon pT/Higgs mass > 0.14", 
-          stitch_dy&&hlt_el_trigger&&(NElectron_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50)&&(Lead_Electron_pt>25)&&(Lead_Photon_pt/HiggsCand_mass>0.14),0,0,weight),
+          stitch_dy&&hlt_el_trigger&&(nSignalElectron==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50)&&(Lead_SignalElectron_pt>25)&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14),0,0,weight),
       TableRow("Electron-photon Delta R > 0.4", 
-          stitch_dy&&hlt_el_trigger&&(NElectron_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50)&&(Lead_Electron_pt>25)&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&delta_r_cut,0,0,weight),
+          stitch_dy&&hlt_el_trigger&&(nSignalElectron==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50)&&(Lead_SignalElectron_pt>25)&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut,0,0,weight),
       TableRow("H mass + Z mass > 185 GeV", 
-          stitch_dy&&hlt_el_trigger&&(NElectron_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50)&&(Lead_Electron_pt>25)&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&delta_r_cut&&((HiggsCand_mass+ZCand_mass)>185),0,0,weight),
+          stitch_dy&&hlt_el_trigger&&(nSignalElectron==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50)&&(Lead_SignalElectron_pt>25)&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut&&((HiggsCandidate_mass+ZCandidate_mass)>185),0,0,weight),
       TableRow("\\hline Dimuon Trigger", 
           stitch_dy&&hlt_mu_trigger,0,0,weight),
       TableRow(">=2 Signal Muons", 
-          stitch_dy&&hlt_mu_trigger&&(NMuon_sig==2),0,0,weight),
+          stitch_dy&&hlt_mu_trigger&&(nSignalMuon==2),0,0,weight),
       TableRow(">=1 Signal Photon", 
-          stitch_dy&&hlt_mu_trigger&&(NMuon_sig==2)&&(NPhoton_sig>=1),0,0,weight),
+          stitch_dy&&hlt_mu_trigger&&(nSignalMuon==2)&&(nSignalPhoton>=1),0,0,weight),
       TableRow("Z mass > 50 GeV", 
-          stitch_dy&&hlt_mu_trigger&&(NMuon_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50),0,0,weight),
+          stitch_dy&&hlt_mu_trigger&&(nSignalMuon==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50),0,0,weight),
       TableRow("Lead muon pT > 20 GeV", 
-          stitch_dy&&hlt_mu_trigger&&(NMuon_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50)&&(Lead_Muon_pt>20),0,0,weight),
+          stitch_dy&&hlt_mu_trigger&&(nSignalMuon==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50)&&(Lead_SignalMuon_pt>20),0,0,weight),
       TableRow("Lead photon pT/Higgs mass > 0.14", 
-          stitch_dy&&hlt_mu_trigger&&(NMuon_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50)&&(Lead_Muon_pt>20)&&(Lead_Photon_pt/HiggsCand_mass>0.14),0,0,weight),
+          stitch_dy&&hlt_mu_trigger&&(nSignalMuon==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50)&&(Lead_SignalMuon_pt>20)&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14),0,0,weight),
       TableRow("Muon-photon Delta R > 0.4", 
-          stitch_dy&&hlt_mu_trigger&&(NMuon_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50)&&(Lead_Muon_pt>20)&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&delta_r_cut,0,0,weight),
+          stitch_dy&&hlt_mu_trigger&&(nSignalMuon==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50)&&(Lead_SignalMuon_pt>20)&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut,0,0,weight),
       TableRow("H mass + Z mass > 185 GeV", 
-          stitch_dy&&hlt_mu_trigger&&(NMuon_sig==2)&&(NPhoton_sig>=1)&&(ZCand_mass>50)&&(Lead_Muon_pt>20)&&(Lead_Photon_pt/HiggsCand_mass>0.14)&&delta_r_cut&&((HiggsCand_mass+ZCand_mass)>185),0,0,weight),
+          stitch_dy&&hlt_mu_trigger&&(nSignalMuon==2)&&(nSignalPhoton>=1)&&(ZCandidate_mass>50)&&(Lead_SignalMuon_pt>20)&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut&&((HiggsCandidate_mass+ZCandidate_mass)>185),0,0,weight),
     },full_procs,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
   }
 
   if (plot_single_lep_trig_effects) {
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-        stitch_dy&&hlt_el_trigger&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+        stitch_dy&&hlt_el_trigger&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_diel")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{#mu#mu#gamma} [GeV]", {}),
-        stitch_dy&&hlt_mu_trigger&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{#mu#mu#gamma} [GeV]", {}),
+        stitch_dy&&hlt_mu_trigger&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_dimu")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-        stitch_dy&&(hlt_el_trigger||hlt_single_el_trigger)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+        stitch_dy&&(hlt_el_trigger||hlt_single_el_trigger)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_eldiel")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{#mu#mu#gamma} [GeV]", {}),
-        stitch_dy&&(hlt_mu_trigger||hlt_single_mu_trigger)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{#mu#mu#gamma} [GeV]", {}),
+        stitch_dy&&(hlt_mu_trigger||hlt_single_mu_trigger)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_mudimu")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-        stitch_dy&&(!hlt_el_trigger&&hlt_single_el_trigger)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+        stitch_dy&&(!hlt_el_trigger&&hlt_single_el_trigger)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_onlyel")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{#mu#mu#gamma} [GeV]", {}),
-        stitch_dy&&(!hlt_mu_trigger&&hlt_single_mu_trigger)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{#mu#mu#gamma} [GeV]", {}),
+        stitch_dy&&(!hlt_mu_trigger&&hlt_single_mu_trigger)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_onlymu")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-        stitch_dy&&(hlt_el_trigger&&!hlt_single_el_trigger)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+        stitch_dy&&(hlt_el_trigger&&!hlt_single_el_trigger)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_onlydiel")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{#mu#mu#gamma} [GeV]", {}),
-        stitch_dy&&(hlt_mu_trigger&&!hlt_single_mu_trigger)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{#mu#mu#gamma} [GeV]", {}),
+        stitch_dy&&(hlt_mu_trigger&&!hlt_single_mu_trigger)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_onlydimu")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-        stitch_dy&&(hlt_el_trigger&&hlt_single_el_trigger)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+        stitch_dy&&(hlt_el_trigger&&hlt_single_el_trigger)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_botheldiel")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCand_mass, "m_{#mu#mu#gamma} [GeV]", {}),
-        stitch_dy&&(hlt_mu_trigger&&hlt_single_mu_trigger)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,
+    pm.Push<Hist1D>(Axis(16, 100.0, 180.0, HiggsCandidate_mass, "m_{#mu#mu#gamma} [GeV]", {}),
+        stitch_dy&&(hlt_mu_trigger&&hlt_single_mu_trigger)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,
         full_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_bothmudimu")
         .LuminosityTag(total_luminosity_string);
@@ -5169,99 +4937,99 @@ int main(int argc, char *argv[]){
 
   if (plot_single_lep_trig_effects_sig) {
     //single trigger plots
-    //pm.Push<Hist1D>(Axis(45, 50.0, 140.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-    //    (NElectron_sig>=2)&&(NPhoton_sig>=1),
+    //pm.Push<Hist1D>(Axis(45, 50.0, 140.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+    //    (nSignalElectron>=2)&&(nSignalPhoton>=1),
     //    signal_trigger_procs, plt_shapes).Weight(weight)
     //    .Tag("FixName:zghlt__mllg_signal_shape_trigs_el")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(15, 110.0, 140.0, HiggsCand_mass, "m_{#mu#mu#gamma} [GeV]", {}),
-    //    (NMuon_sig>=2)&&(NPhoton_sig>=1),
+    //pm.Push<Hist1D>(Axis(15, 110.0, 140.0, HiggsCandidate_mass, "m_{#mu#mu#gamma} [GeV]", {}),
+    //    (nSignalMuon>=2)&&(nSignalPhoton>=1),
     //    signal_trigger_procs, plt_shapes).Weight(weight)
     //    .Tag("FixName:zghlt__mllg_signal_shape_trigs_mu")
     //    .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(15, 110.0, 140.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    pm.Push<Hist1D>(Axis(15, 110.0, 140.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__mllg_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(15, 110.0, 140.0, HiggsCand_mass, "m_{#mu#mu#gamma} [GeV]", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    pm.Push<Hist1D>(Axis(15, 110.0, 140.0, HiggsCandidate_mass, "m_{#mu#mu#gamma} [GeV]", {}),
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__mllg_signal_shape_trigs_baseline_mu")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -0.5, 1.0, Lead_Photon_mvaID, "Photon ID MVA score", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__phmva_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, -0.5, 1.0, Lead_Photon_mvaID, "Photon ID MVA score", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__phmva_signal_shape_trigs_baseline_mu")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 4.0, Min_Lepton_Photon_deltaR, "Min Lepton-Photon #DeltaR", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__deltar_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 4.0, Min_Lepton_Photon_deltaR, "Min Lepton-Photon #DeltaR", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__deltar_signal_shape_trigs_baseline_mu")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(20, 0.0, 2.5, HiggsCand_ptOverMass, "p_{Tll#gamma}/m_{ll#gamma}", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    pm.Push<Hist1D>(Axis(20, 0.0, 2.5, HiggsCandidate_ptOverMass, "p_{Tll#gamma}/m_{ll#gamma}", {}),
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__ptovermllg_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist1D>(Axis(20, 0.0, 2.5, HiggsCand_ptOverMass, "p_{Tll#gamma}/m_{ll#gamma}", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    pm.Push<Hist1D>(Axis(20, 0.0, 2.5, HiggsCandidate_ptOverMass, "p_{Tll#gamma}/m_{ll#gamma}", {}),
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__ptovermllg_signal_shape_trigs_baseline_mu")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Electron_eta", "Electron #eta", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&Electron_sig,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&Electron_sig,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__eleta_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Muon_eta", "Muon #eta", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&Muon_sig,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&Muon_sig,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__mueta_signal_shape_trigs_baseline_mu")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Electron_pt", "Electron p_{T} [GeV]", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&Electron_sig,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&Electron_sig,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__elpt_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Muon_pt", "Muon p_{T} [GeV]", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&Muon_sig,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&Muon_sig,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__mupt_signal_shape_trigs_baseline_mu")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Photon_eta", "Photon #eta", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&Photon_sig,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&Photon_sig,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__pheta_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(40, -3.0, 3.0, "Photon_eta", "Photon #eta", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&Photon_sig,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&Photon_sig,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__pheta_signal_shape_trigs_baseline_mu")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Photon_pt", "Photon p_{T} [GeV]", {}),
-        (NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&Photon_sig,
+        (nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&Photon_sig,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__phpt_signal_shape_trigs_baseline_el")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, "Photon_pt", "Photon p_{T} [GeV]", {}),
-        (NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&Photon_sig,
+        (nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&Photon_sig,
         signal_trigger_procs, plt_shapes).Weight(weight*ScaleFactor_Triggers)
         .Tag("FixName:zghlt__phpt_signal_shape_trigs_baseline_mu")
         .LuminosityTag(total_luminosity_string);
-    pm.Push<Hist2D>(Axis(20, 50.0, 150.0, HiggsCand_mass, "m_{ee#gamma} [GeV]", {}),
+    pm.Push<Hist2D>(Axis(20, 50.0, 150.0, HiggsCandidate_mass, "m_{ee#gamma} [GeV]", {}),
         Axis(20, 0.0, 4.0, ElectronGenPhotonDeltaR, "#Delta R_{e#gamma}^{min}", {}),
-        stitch_dy&&(!hlt_el_trigger&&hlt_single_el_trigger)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),
+        stitch_dy&&(!hlt_el_trigger&&hlt_single_el_trigger)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),
         signal_procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mllg_deltaregamma")
         .LuminosityTag(total_luminosity_string);
@@ -5269,89 +5037,89 @@ int main(int argc, char *argv[]){
 
   if (make_rereco_plots) {
     pm.Push<Hist1D>(Axis(20, 0.0, 100.0, hlt_max_el_pt, "HLT Electron p_{T}", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger_plus,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger_plus,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__hltelpt__failhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(27, 0.0, 90.0, "Electron_pt", "Electron p_{T}", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__elpt__passhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(27, 0.0, 90.0, "Electron_pt", "Electron p_{T}", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__elpt__failhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, -2.5, 2.5, "Electron_eta", "Electron #eta", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__eleta__passhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, -2.5, 2.5, "Electron_eta", "Electron #eta", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__eleta__failhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, -2.5, 2.5, "Electron_eta", "Electron #eta", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1)&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1)&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__eleta__failhltreco")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, 0.0, 2.0, "Electron_pfRelIso03_all", "Electron I_{rel}", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__elreliso__passhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, 0.0, 2.0, "Electron_pfRelIso03_all", "Electron I_{rel}", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__elreliso__failhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, 0.0, 2.0, "Electron_pfRelIso03_all", "Electron I_{rel}", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==2)&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==2)&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__elreliso__failhltiso")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, 0.0, 2.0, "Electron_pfRelIso03_chg", "Electron I_{rel,chg}", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__elrelisochg__passhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, 0.0, 2.0, "Electron_pfRelIso03_chg", "Electron I_{rel,chg}", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__elrelisochg__failhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, 0.0, 2.0, "Muon_pfRelIso03_all", "Muon I_{rel}", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger&&Muon_sig,
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger&&Muon_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mureliso__passhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, 0.0, 2.0, "Muon_pfRelIso03_all", "Muon I_{rel}", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&Muon_sig,
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&Muon_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mureliso__failhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist1D>(Axis(30, 0.0, 2.0, "Muon_pfRelIso03_all", "Muon I_{rel}", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==2)&&Muon_sig,
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==2)&&Muon_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__mureliso__failhltiso")
         .LuminosityTag(total_luminosity_string);
 
 
     pm.Push<Hist2D>(Axis(15, -2.5, 2.5, "Electron_eta", "Electron #eta", {}), Axis(10, -3.14, 3.14, "Electron_phi", "Electron #phi", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__eletaphi__passhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(15, -2.5, 2.5, "Electron_eta", "Electron #eta", {}), Axis(10, -3.14, 3.14, "Electron_phi", "Electron #phi", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__eletaphi__failhlt")
         .LuminosityTag(total_luminosity_string);
     pm.Push<Hist2D>(Axis(15, -2.5, 2.5, "Electron_eta", "Electron #eta", {}), Axis(10, -3.14, 3.14, "Electron_phi", "Electron #phi", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1)&&Electron_sig,
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1)&&Electron_sig,
         procs, plt_lin).Weight(weight)
         .Tag("FixName:zghlt__eletaphi__failhltreco")
         .LuminosityTag(total_luminosity_string);
@@ -5362,152 +5130,152 @@ int main(int argc, char *argv[]){
       TableRow("\\hline \\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
           (z_decay_pdgid==11),0,0,weight_noscale),
       TableRow("Offline leptons and photon in acceptance", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("Baseline Selection (No pT cut)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
       TableRow("L1 Trigger", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
       TableRow("Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("Dilepton Triggers (Data SFs)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger,0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Data SFs)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers - 1 Trigger Object", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1),0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Data SFs) - 1 Trigger Object", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers - Failed ID/iso", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==2),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==2),0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Data SFs) - Failed ID/iso", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==2),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==2),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers - Failed top leg pT cut", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==3),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==3),0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Data SFs) - Failed top leg pT cut", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==3),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==3),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers - Failed bottom leg pT cut", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==4),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==4),0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Data SFs) - Failed bottom leg pT cut", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==4),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==4),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("\\hline Fail Single and Dilepton Triggers (Data SFs)", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Fail Single and Dilepton Triggers (Data SFs) 0e0ph", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Fail Single and Dilepton Triggers (Data SFs) 0e1ph", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Fail Single and Dilepton Triggers (Data SFs) 1e0ph", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Fail Single and Dilepton Triggers (Data SFs) 1e1ph", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Fail Single and Dilepton Triggers (Data SFs) 2e0ph", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Fail Single and Dilepton Triggers (Data SFs) 2e1ph", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&!hlt_el_trigger_plus&&(NElectron_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("\\hline Fail Single and Dilepton Triggers (No L1) (Data SFs)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Single and Dilepton Triggers (Data SFs) 0e0ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Single and Dilepton Triggers (Data SFs) 0e1ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Single and Dilepton Triggers (Data SFs) 1e0ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Single and Dilepton Triggers (Data SFs) 1e1ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Single and Dilepton Triggers (Data SFs) 2e0ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Single and Dilepton Triggers (Data SFs) 2e1ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_el_trigger_plus&&(NElectron_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("\\hline Fail e, ee, phph Triggers (No L1) (Data SFs)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail e, ee, phph Triggers (Data SFs) 0e0ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail e, ee, phph Triggers (Data SFs) 0e1ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail e, ee, phph Triggers (Data SFs) 1e0ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail e, ee, phph Triggers (Data SFs) 1e1ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail e, ee, phph Triggers (Data SFs) 2e0ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail e, ee, phph Triggers (Data SFs) 2e1ph", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_el_trigger_plus||hlt_doubleph_trigger)&&(NElectron_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale*ScaleFactor_Triggers),
 
       TableRow("\\hline \\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13),0,0,weight_noscale),
       TableRow("Offline leptons and photon in acceptance", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("Baseline Selection (No pT cut)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
       TableRow("L1 Trigger (only 2l)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger),0,0,weight_noscale),
       TableRow("Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("Dilepton Triggers (Sata SFs)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger,0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Sata SFs)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers - 1 Trigger Object", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==1),0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Sata SFs) - 1 Trigger Object", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==1),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==1),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers - Failed ID/iso", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==2),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==2),0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Sata SFs) - Failed ID/iso", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==2),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==2),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers - Failed top leg pT cut", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==3),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==3),0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Sata SFs) - Failed top leg pT cut", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==3),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==3),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Fail Dilepton Triggers - Failed bottom leg pT cut", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==4),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==4),0,0,weight_noscale),
       TableRow("Fail Dilepton Triggers (Sata SFs) - Failed bottom leg pT cut", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==4),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==4),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Fail Single and Dimuon Triggers (Data SFs)", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus,0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus,0,0,weight_noscale),
       //TableRow("Fail Single and Dimuon Triggers (Data SFs) 0mu0ph", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       //TableRow("Fail Single and Dimuon Triggers (Data SFs) 0mu1ph", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       //TableRow("Fail Single and Dimuon Triggers (Data SFs) 1mu0ph", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       //TableRow("Fail Single and Dimuon Triggers (Data SFs) 1mu1ph", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       //TableRow("Fail Single and Dimuon Triggers (Data SFs) 2mu0ph", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       //TableRow("Fail Single and Dimuon Triggers (Data SFs) 2mu1ph", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu)&&!hlt_mu_trigger_plus&&(NMuon_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail Single and Dimuon Triggers (No L1) (Data SFs)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("Fail Single and Dimuon Triggers (Data SFs) 0mu0ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail Single and Dimuon Triggers (Data SFs) 0mu1ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail Single and Dimuon Triggers (Data SFs) 1mu0ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail Single and Dimuon Triggers (Data SFs) 1mu1ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail Single and Dimuon Triggers (Data SFs) 2mu0ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail Single and Dimuon Triggers (Data SFs) 2mu1ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!hlt_mu_trigger_plus&&(NMuon_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail mu, mumu, muph Triggers (No L1) (Data SFs)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,weight_noscale),
       TableRow("Fail mu, mumu, muph Triggers (Data SFs) 0mu0ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==0.0&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail mu, mumu, muph Triggers (Data SFs) 0mu1ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==0.0&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail mu, mumu, muph Triggers (Data SFs) 1mu0ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail mu, mumu, muph Triggers (Data SFs) 1mu1ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail mu, mumu, muph Triggers (Data SFs) 2mu0ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
       TableRow("Fail mu, mumu, muph Triggers (Data SFs) 2mu1ph", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&!(hlt_mu_trigger_plus||hlt_mu_ph_trigger)&&(NMuon_trig==2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)"),0,0,weight_noscale),
     },signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
 
     //pm.Push<Table>("zgtrig_el_"+options.year_string, vector<TableRow>{
@@ -5519,106 +5287,106 @@ int main(int argc, char *argv[]){
     //  TableRow("$Z\\rightarrow e^{+}e^{-}$ decays", 
     //      (z_decay_pdgid==11),0,0,weight),
     //  TableRow("Offline electrons in acceptance", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2),0,0,weight),
     //  TableRow("Offline photon in acceptance", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight),
     //  TableRow("L1 Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight),
     //  TableRow("HLT Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight),
     //  TableRow("HLT Triggers (incl el)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight),
     //  TableRow("Events that fail HLT - $0\\gamma 0e$", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt<1)&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt<1)&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $0\\gamma 1e$", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt==1)&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt==1)&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $0\\gamma \\geq 1e$", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt>=2)&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt>=2)&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $1\\gamma 0e$", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt<1)&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt<1)&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $1\\gamma 1e$", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt==1)&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt==1)&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $1\\gamma \\geq 1e$", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt>=2)&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger_plus&&(nel_id_hlt>=2)&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("HLT Triggers (incl Ele27Ph50)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele27_CaloIdL_TrackIdL_IsoVL_Photon50),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele27_CaloIdL_TrackIdL_IsoVL_Photon50),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele27Ph33)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele27_CaloIdL_TrackIdL_IsoVL_Photon33),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele27_CaloIdL_TrackIdL_IsoVL_Photon33),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele27Ph25)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele27_CaloIdL_TrackIdL_IsoVL_Photon25),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele27_CaloIdL_TrackIdL_IsoVL_Photon25),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele27Ph20)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele27_CaloIdL_TrackIdL_IsoVL_Photon20_HoverELoose),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele27_CaloIdL_TrackIdL_IsoVL_Photon20_HoverELoose),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele22Ph50)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele22_CaloIdL_TrackIdL_IsoVL_Photon50),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele22_CaloIdL_TrackIdL_IsoVL_Photon50),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele22Ph33)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele22_CaloIdL_TrackIdL_IsoVL_Photon33),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele22_CaloIdL_TrackIdL_IsoVL_Photon33),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele22Ph25)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele22_CaloIdL_TrackIdL_IsoVL_Photon25),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele22_CaloIdL_TrackIdL_IsoVL_Photon25),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele22Ph20)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele22_CaloIdL_TrackIdL_IsoVL_Photon20_HoverELoose),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele22_CaloIdL_TrackIdL_IsoVL_Photon20_HoverELoose),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele17Ele8Ph25)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele17_Ele8_CaloIdL_TrackIdL_IsoVL_Photon25),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele17_Ele8_CaloIdL_TrackIdL_IsoVL_Photon25),0,0,weight),
     //  TableRow("HLT Triggers (incl Ele17Ele8Ph20)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele17_Ele8_CaloIdL_TrackIdL_IsoVL_Photon20_HoverELoose),0,0,weight),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&(hlt_el_trigger_plus||HLT_Ele17_Ele8_CaloIdL_TrackIdL_IsoVL_Photon20_HoverELoose),0,0,weight),
     //  //TableRow("HLT Triggers (incl el, el+ph)", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger_plusplus,0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger_plusplus,0,0,weight),
     //  //TableRow("Electrons out of HLT p_{T} acceptance", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&el_oohltpt,0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&el_oohltpt,0,0,weight),
     //  //TableRow("Electrons nearly out of HLT p_{T} acceptance", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&el_noohltpt,0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&el_noohltpt,0,0,weight),
     //  //TableRow("Expected events with electrons failing HLT", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&el_oohltpt,0,0,weight*hlt_fail_weights),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&el_oohltpt,0,0,weight*hlt_fail_weights),
     //  //TableRow("HLT fail reason: unknown", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==0.0),0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==0.0),0,0,weight),
     //  //TableRow("HLT fail reason: reconstruction", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1),0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1),0,0,weight),
     //  //TableRow("HLT fail reason: reconstruction, e in gap", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1)&&el_gap,0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==1)&&el_gap,0,0,weight),
     //  //TableRow("HLT fail reason: id/iso", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==2),0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==2),0,0,weight),
     //  //TableRow("HLT fail reason: top leg", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==3),0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==3),0,0,weight),
     //  //TableRow("HLT fail reason: bottom leg", 
-    //  //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==4),0,0,weight),
+    //  //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&!hlt_el_trigger&&(el_hlt_fail_reason==4),0,0,weight),
 
     //  TableRow("$Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
     //      (z_decay_pdgid==13),0,0,weight),
     //  TableRow("Offline muons in acceptance", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2),0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2),0,0,weight),
     //  TableRow("Offline photon in acceptance", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight),
     //  TableRow("L1 Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight),
     //  TableRow("HLT Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight),
     //  TableRow("HLT Triggers (incl mu)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight),
     //  TableRow("Events that fail HLT - $0\\gamma 0 \\mu$", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt<1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt<1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $0\\gamma 1 \\mu$", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt==1&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $0\\gamma 2 \\mu$", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt>=2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt>=2&&"!(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $1\\gamma 0 \\mu$", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt<1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt<1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $1\\gamma 1 \\mu$", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt==1&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("Events that fail HLT - $1\\gamma 2 \\mu$", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt>=2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger_plus&&nmu_id_hlt>=2&&"(HLT_Photon25||HLT_Photon20_HoverELoose)",0,0,weight),
     //  TableRow("HLT Triggers (incl mu, mu+ph)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger_plusplus,0,0,weight),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger_plusplus,0,0,weight),
     //  //TableRow("Muons out of HLT acceptance", 
-    //  //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger&&mu_oohltpt,0,0,weight),
+    //  //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger&&mu_oohltpt,0,0,weight),
     //  //TableRow("HLT fail reason: unknown", 
-    //  //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==0.0),0,0,weight),
+    //  //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==0.0),0,0,weight),
     //  //TableRow("HLT fail reason: reconstruction", 
-    //  //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==1),0,0,weight),
+    //  //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==1),0,0,weight),
     //  //TableRow("HLT fail reason: iso", 
-    //  //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==2),0,0,weight),
+    //  //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==2),0,0,weight),
     //  //TableRow("HLT fail reason: top leg", 
-    //  //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==3),0,0,weight),
+    //  //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==3),0,0,weight),
     //  //TableRow("HLT fail reason: bottom leg", 
-    //  //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==4),0,0,weight),
+    //  //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&!hlt_mu_trigger&&(mu_hlt_fail_reason==4),0,0,weight),
 
     //  TableRow("$Z\\rightarrow e^{+}e^{-}$ decays", 
     //      (z_decay_pdgid==11),0,0,weight),
@@ -5674,31 +5442,31 @@ int main(int argc, char *argv[]){
       TableRow("\\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
           (z_decay_pdgid==11),0,0,weight_noscale),
       TableRow("Offline electrons in acceptance", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2),0,0,weight_noscale),
       TableRow("Offline photon in acceptance", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight_noscale),
       TableRow("HLT Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
       TableRow("HLT Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("\\hline\n Baseline Selection", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale),
       TableRow("L1 Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale),
       TableRow("HLT Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
       TableRow("HLT Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("\\hline\n Lepton $p_\\text{T}$ cuts", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Lead_Electron_pt>23)&&(Sublead_Electron_pt>12),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Lead_SignalElectron_pt>23)&&(Sublead_SignalElectron_pt>12),0,0,weight_noscale),
       TableRow("L1 Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Lead_Electron_pt>23)&&(Sublead_Electron_pt>12)&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Lead_SignalElectron_pt>23)&&(Sublead_SignalElectron_pt>12)&&l1_el_trigger,0,0,weight_noscale),
       TableRow("HLT Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Lead_Electron_pt>23)&&(Sublead_Electron_pt>12)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Lead_SignalElectron_pt>23)&&(Sublead_SignalElectron_pt>12)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
       TableRow("HLT Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&(Lead_Electron_pt>23)&&(Sublead_Electron_pt>12)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&(Lead_SignalElectron_pt>23)&&(Sublead_SignalElectron_pt>12)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("\\hline\n No Selection", 
           (z_decay_pdgid==11),0,0,weight_noscale),
       TableRow("L1 Triggers", 
@@ -5711,31 +5479,31 @@ int main(int argc, char *argv[]){
       TableRow("\\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13),0,0,weight_noscale),
       TableRow("Offline muons in acceptance", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2),0,0,weight_noscale),
       TableRow("Offline photon in acceptance", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("L1 Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight_noscale),
       TableRow("HLT Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("HLT Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("\\hline\n Baseline Selection", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale),
       TableRow("L1 Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale),
       TableRow("HLT Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("HLT Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("\\hline\n Lepton $p_\\text{T}$ cuts", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Lead_Muon_pt>17)&&(Sublead_Muon_pt>10),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Lead_SignalMuon_pt>17)&&(Sublead_SignalMuon_pt>10),0,0,weight_noscale),
       TableRow("L1 Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Lead_Muon_pt>17)&&(Sublead_Muon_pt>10)&&l1_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Lead_SignalMuon_pt>17)&&(Sublead_SignalMuon_pt>10)&&l1_mu_trigger,0,0,weight_noscale),
       TableRow("HLT Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Lead_Muon_pt>17)&&(Sublead_Muon_pt>10)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Lead_SignalMuon_pt>17)&&(Sublead_SignalMuon_pt>10)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("HLT Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&(Lead_Muon_pt>17)&&(Sublead_Muon_pt>10)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&(Lead_SignalMuon_pt>17)&&(Sublead_SignalMuon_pt>10)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("\\hline\n No Selection", 
           (z_decay_pdgid==13),0,0,weight_noscale),
       TableRow("L1 Triggers", 
@@ -5763,25 +5531,25 @@ int main(int argc, char *argv[]){
       histnames_dieleleg12.push_back("zghlt_dataeff_dieleleg12_eta"+std::to_string(ieta));
       histnames_isoel3235.push_back("zghlt_dataeff_isoel3235_eta"+std::to_string(ieta));
       //pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-      //    "HLT_Ele35_WPTight_Gsf"&&(NElectron_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+      //    "HLT_Ele35_WPTight_Gsf"&&(nSignalElectron==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
       //    &&Electron_OtherPassReference&&Electron_sig&&Electron_absEta>el_abseta_bins[ieta]
       //    &&Electron_absEta<el_abseta_bins[ieta+1]&&Electron_hltId>0.5,
       //    Electron_hltPt>12,
       //    procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_elhltpt12_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 12 GeV").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins_ptcut, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          "HLT_Ele35_WPTight_Gsf"&&(NElectron_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          "HLT_Ele35_WPTight_Gsf"&&(nSignalElectron==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
           &&Electron_OtherPassReference&&Electron_sig&&Electron_absEta>el_abseta_bins[ieta]
           &&Electron_absEta<el_abseta_bins[ieta+1]&&Electron_hltId>-0.5,
           Electron_hltPt>23,
           procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_elhltpt23_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 23 GeV").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          "HLT_Ele35_WPTight_Gsf"&&(NElectron_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          "HLT_Ele35_WPTight_Gsf"&&(nSignalElectron==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
           &&Electron_OtherPassReference&&Electron_OtherPassUpperLeg&&Electron_sig&&!Electron_isLeading
           &&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
           hlt_el_trigger,
           procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_dieleleg12_eta"+std::to_string(ieta)).YTitle("Ele12_CaloIdL_TrackIdL_IsoVL").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(NElectron_sig==1)&&(Electron_sig>0.5)&&"Electron_mvaFall17V2Iso_WP90"&&Electron_absEta>el_abseta_bins[ieta]
+          "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(nSignalElectron==1)&&(Electron_sig>0.5)&&"Electron_mvaFall17V2Iso_WP90"&&Electron_absEta>el_abseta_bins[ieta]
           &&Electron_absEta<el_abseta_bins[ieta+1],
           "HLT_Ele32_WPTight_Gsf_L1DoubleEG||HLT_Ele35_WPTight_Gsf",
           procs_met_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_isoel3235_eta"+std::to_string(ieta)).YTitle("Single Electron Triggers").LuminosityTag(total_luminosity_string);
@@ -5793,30 +5561,30 @@ int main(int argc, char *argv[]){
       histnames_isomu2427.push_back("zghlt_dataeff_isomu2427_eta"+std::to_string(ieta));
       histnames_mu17.push_back("zghlt_dataeff_mu17_eta"+std::to_string(ieta));
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins_ptcut, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
           &&Muon_OtherPassReference&&Muon_sig&&Muon_absEta>mu_abseta_bins[ieta]
           &&Muon_absEta<mu_abseta_bins[ieta+1]&&Muon_hltId>-0.5,
           Muon_hltPt>17,
           procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_muhltpt17_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 17 GeV").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+          "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
           &&Muon_OtherPassReference&&Muon_OtherPassUpperLeg&&Muon_sig&&!Muon_isLeading
           &&Muon_absEta>mu_abseta_bins[ieta]&&Muon_absEta<mu_abseta_bins[ieta+1],
           hlt_mu_trigger,
           procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_dimuleg8_eta"+std::to_string(ieta)).YTitle("Mu8_TrkIsoVVVL").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(NMuon_sig==1)&&Muon_sig&&"Muon_mediumId"&&Muon_absEta>mu_abseta_bins[ieta]
+          "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(nSignalMuon==1)&&Muon_sig&&"Muon_mediumId"&&Muon_absEta>mu_abseta_bins[ieta]
           &&Muon_absEta<mu_abseta_bins[ieta+1],
           "HLT_IsoMu27||HLT_IsoMu24",
           procs_met_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_isomu2427_eta"+std::to_string(ieta)).YTitle("Single Muon Triggers").LuminosityTag(total_luminosity_string);
       //pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-      //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+      //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
       //    &&Muon_OtherPassReference&&Muon_sig&&Muon_absEta>mu_abseta_bins[ieta]
       //    &&Muon_absEta<mu_abseta_bins[ieta+1]&&Muon_hltId>0.5,
       //    Muon_hltPt>8,
       //    procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_muhltpt8_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 8 GeV").LuminosityTag(total_luminosity_string);
       //pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-      //    "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(NMuon_sig==1)&&Muon_sig&&"Muon_mediumId"&&Muon_absEta>mu_abseta_bins[ieta]
+      //    "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(nSignalMuon==1)&&Muon_sig&&"Muon_mediumId"&&Muon_absEta>mu_abseta_bins[ieta]
       //    &&Muon_absEta<mu_abseta_bins[ieta+1],
       //    "HLT_Mu17",
       //    procs_met_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_mu17_eta"+std::to_string(ieta)).YTitle("Single Muon Triggers").LuminosityTag(total_luminosity_string);
@@ -5838,24 +5606,24 @@ int main(int argc, char *argv[]){
       histnames_sigdieleleg23.push_back("zghlt_sigeff_dieleleg23_eta"+std::to_string(ieta));
       histnames_sigisoel3235.push_back("zghlt_sigeff_isoel3235_eta"+std::to_string(ieta));
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins_ptcut, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          (NElectron_sig==2)&&Electron_sig&&Electron_absEta>el_abseta_bins[ieta]
+          (nSignalElectron==2)&&Electron_sig&&Electron_absEta>el_abseta_bins[ieta]
           &&Electron_absEta<el_abseta_bins[ieta+1]&&Electron_hltId>-0.5,
           Electron_hltPt>23,
           signal_procs_noscale,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_sigeff_elhltpt23_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 23 GeV").LuminosityTag(total_luminosity_string);
       //for statistics at high pT allow leading leptons where pT is not a concern
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          (NElectron_sig==2)&&Electron_sig&&delta_r_cut
+          (nSignalElectron==2)&&Electron_sig&&delta_r_cut
           &&((Electron_OtherPassUpperLeg&&!Electron_isLeading)||("Electron_pt>30"&&Electron_OtherPassLowerLeg&&Electron_isLeading))
           &&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
           hlt_el_trigger,
           signal_procs_noscale,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_sigeff_dieleleg12_eta"+std::to_string(ieta)).YTitle("Ele12_CaloIdL_TrackIdL_IsoVL").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          (NElectron_sig==2)&&Electron_OtherPassLowerLeg&&Electron_sig&&Electron_isLeading&&delta_r_cut
+          (nSignalElectron==2)&&Electron_OtherPassLowerLeg&&Electron_sig&&Electron_isLeading&&delta_r_cut
           &&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
           hlt_el_trigger,
           signal_procs_noscale,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_sigeff_dieleleg23_eta"+std::to_string(ieta)).YTitle("Ele23_CaloIdL_TrackIdL_IsoVL").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-          OneElectronOutOfAcceptance&&(NElectron_sig==1)&&Electron_sig&&delta_r_cut
+          OneElectronOutOfAcceptance&&(nSignalElectron==1)&&Electron_sig&&delta_r_cut
           &&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
           "HLT_Ele32_WPTight_Gsf_L1DoubleEG||HLT_Ele35_WPTight_Gsf",
           signal_procs_noscale,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_sigeff_isoel3235_eta"+std::to_string(ieta)).YTitle("Single Electron Triggers").LuminosityTag(total_luminosity_string);
@@ -5866,24 +5634,24 @@ int main(int argc, char *argv[]){
       histnames_sigdimuleg17.push_back("zghlt_sigeff_dimuleg17_eta"+std::to_string(ieta));
       histnames_sigisomu2427.push_back("zghlt_sigeff_isomu2427_eta"+std::to_string(ieta));
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins_ptcut, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          (NMuon_sig==2)&&Muon_sig&&delta_r_cut&&Muon_absEta>mu_abseta_bins[ieta]
+          (nSignalMuon==2)&&Muon_sig&&delta_r_cut&&Muon_absEta>mu_abseta_bins[ieta]
           &&Muon_absEta<mu_abseta_bins[ieta+1]&&Muon_hltId>-0.5,
           Muon_hltPt>17,
           signal_procs_noscale,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_sigeff_muhltpt17_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 17 GeV").LuminosityTag(total_luminosity_string);
       //for statistics at high pT allow leading leptons where pT is not a concern
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          (NMuon_sig==2)&&Muon_sig&&delta_r_cut
+          (nSignalMuon==2)&&Muon_sig&&delta_r_cut
           &&((Muon_OtherPassUpperLeg&&!Muon_isLeading)||("Muon_pt>30"&&Muon_OtherPassLowerLeg&&Muon_isLeading))
           &&Muon_absEta>mu_abseta_bins[ieta]&&Muon_absEta<mu_abseta_bins[ieta+1],
           hlt_mu_trigger,
           signal_procs_noscale,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_sigeff_dimuleg8_eta"+std::to_string(ieta)).YTitle("Mu8_TrkIsoVVVL").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          (NMuon_sig==2)&&Muon_OtherPassLowerLeg&&Muon_sig&&Muon_isLeading&&delta_r_cut
+          (nSignalMuon==2)&&Muon_OtherPassLowerLeg&&Muon_sig&&Muon_isLeading&&delta_r_cut
           &&Muon_absEta>mu_abseta_bins[ieta]&&Muon_absEta<mu_abseta_bins[ieta+1],
           hlt_mu_trigger,
           signal_procs_noscale,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_sigeff_dimuleg17_eta"+std::to_string(ieta)).YTitle("Mu17_TrkIsoVVVL").LuminosityTag(total_luminosity_string);
       pm.Push<EfficiencyPlot>(Axis(mu_pt_bins, "Muon_pt", "Offline Muon p_{T} [GeV]", {}),
-          OneMuonOutOfAcceptance&&(NMuon_sig==1)&&Muon_sig&&delta_r_cut&&Muon_absEta>mu_abseta_bins[ieta]
+          OneMuonOutOfAcceptance&&(nSignalMuon==1)&&Muon_sig&&delta_r_cut&&Muon_absEta>mu_abseta_bins[ieta]
           &&Muon_absEta<mu_abseta_bins[ieta+1],
           "HLT_IsoMu27||HLT_IsoMu24",
           signal_procs_noscale,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_sigeff_isomu2427_eta"+std::to_string(ieta)).YTitle("Single Muon Triggers").LuminosityTag(total_luminosity_string);
@@ -5899,19 +5667,19 @@ int main(int argc, char *argv[]){
   //    histnames_isoel3235.push_back("zghlt_dataeff_isoel3235_eta"+std::to_string(ieta));
   //    //scEt = pt*(scetoverpt+1)
   //    pm.Push<EfficiencyPlot>(Axis(el_pt_bins_ptcut, Electron_scEt, "Offline Electron SC E_{T} [GeV]", {}),
-  //        "HLT_Ele35_WPTight_Gsf"&&(NElectron_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+  //        "HLT_Ele35_WPTight_Gsf"&&(nSignalElectron==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
   //        &&Electron_OtherPassReference&&Electron_sig&&Electron_absEta>el_abseta_bins[ieta]
   //        &&Electron_absEta<el_abseta_bins[ieta+1]&&Electron_hltId>-0.5,
   //        hlt_doubleph_trigger,
   //        procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_elhltpt23_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 23 GeV").LuminosityTag(total_luminosity_string);
   //    pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-  //        "HLT_Ele35_WPTight_Gsf"&&(NElectron_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+  //        "HLT_Ele35_WPTight_Gsf"&&(nSignalElectron==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
   //        &&Electron_OtherPassReference&&Electron_OtherPassUpperLeg&&Electron_sig&&!Electron_isLeading
   //        &&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
   //        hlt_el_trigger,
   //        procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_dieleleg12_eta"+std::to_string(ieta)).YTitle("Ele12_CaloIdL_TrackIdL_IsoVL").LuminosityTag(total_luminosity_string);
   //    pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-  //        "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(NElectron_sig==1)&&(Electron_sig>0.5)&&"Electron_mvaFall17V2Iso_WP90"&&Electron_absEta>el_abseta_bins[ieta]
+  //        "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(nSignalElectron==1)&&(Electron_sig>0.5)&&"Electron_mvaFall17V2Iso_WP90"&&Electron_absEta>el_abseta_bins[ieta]
   //        &&Electron_absEta<el_abseta_bins[ieta+1],
   //        "HLT_Ele32_WPTight_Gsf_L1DoubleEG||HLT_Ele35_WPTight_Gsf",
   //        procs_met_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_isoel3235_eta"+std::to_string(ieta)).YTitle("Single Electron Triggers").LuminosityTag(total_luminosity_string);
@@ -5924,57 +5692,57 @@ int main(int argc, char *argv[]){
   //    .Tag("FixName:zghlt__debugcf0")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2),
+  //    "HLT_IsoMu27"&&(nSignalMuon==2),
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf1")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101),
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101),
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf2")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf3")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&Muon_hltIndex>=0.0&&Muon_hltPt>8,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference&&Muon_hltIndex>=0.0&&Muon_hltPt>8,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf3hipt")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&Muon_hltIndex>=0.0&&Muon_hltPt<8,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference&&Muon_hltIndex>=0.0&&Muon_hltPt<8,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf3lopt")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_hltIndex>=0.0&&Muon_hltPt>8,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_hltIndex>=0.0&&Muon_hltPt>8,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf4hipt")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_hltIndex>=0.0&&Muon_hltPt<8,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_hltIndex>=0.0&&Muon_hltPt<8,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf4lopt")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_OtherPassUpperLeg&&Muon_hltIndex>=0.0&&Muon_hltPt>8,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_OtherPassUpperLeg&&Muon_hltIndex>=0.0&&Muon_hltPt>8,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf5hipt")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_OtherPassUpperLeg&&Muon_hltIndex>=0.0&&Muon_hltPt<8,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_OtherPassUpperLeg&&Muon_hltIndex>=0.0&&Muon_hltPt<8,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf5lopt")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_OtherPassUpperLeg&&Muon_hltIndex>=0.0&&Muon_hltPt>8&&Muon_hltId>0.5,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_OtherPassUpperLeg&&Muon_hltIndex>=0.0&&Muon_hltPt>8&&Muon_hltId>0.5,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf6hipt")
   //    .LuminosityTag(total_luminosity_string);
   //pm.Push<Hist1D>(Axis(30, 0.0, 100.0, "Muon_pt", "Muon p_{T}", {}),
-  //    "HLT_IsoMu27"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_OtherPassUpperLeg&&Muon_hltIndex>=0.0&&Muon_hltPt<8&&Muon_hltId>0.5,
+  //    "HLT_IsoMu27"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&Muon_OtherPassReference&&Muon_sig&&Muon_OtherPassUpperLeg&&Muon_hltIndex>=0.0&&Muon_hltPt<8&&Muon_hltId>0.5,
   //    procs_onelep_data, plt_lin).Weight("1")
   //    .Tag("FixName:zghlt__debugcf6lopt")
   //    .LuminosityTag(total_luminosity_string);
@@ -5984,311 +5752,311 @@ int main(int argc, char *argv[]){
     //  TableRow("\\hline \\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
     //      (z_decay_pdgid==11),0,0,weight_noscale),
     //  TableRow("Offline leptons and photon in acceptance", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
     //  TableRow("MC L1 Trigger", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight_noscale),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
     //  TableRow("\\hline\n Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline \\hline\n Baseline Selection", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale),
     //  TableRow("MC L1 Trigger", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
     //  TableRow("\\hline\n Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline \\hline\n High Lead p_{T} MC L1 Trigger", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger&&highleadpt,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger&&highleadpt,0,0,weight_noscale),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
     //  TableRow("\\hline\n Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
 
     //  TableRow("\\hline \\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
     //      (z_decay_pdgid==13),0,0,weight_noscale),
     //  TableRow("Offline leptons and photon in acceptance", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
     //  TableRow("MC L1 Trigger", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight_noscale),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
     //  TableRow("\\hline\n Data Single Lepton Triggers ", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Lepton Triggers ", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Lepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Lepton Triggers ", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline \\hline\n Baseline Selection", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale),
     //  TableRow("MC L1 Trigger", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
     //  TableRow("\\hline\n Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline \\hline\n High lead p_{T} MC L1 Trigger", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
     //  TableRow("\\hline\n Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     //},signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
 
     //pm.Push<Table>("datamc_trig_eff"+options.year_string, vector<TableRow>{
     //  TableRow("\\hline \\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
     //      (z_decay_pdgid==11),0,0,weight_noscale),
     //  TableRow("Offline leptons and photon in acceptance", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
     //  TableRow("Baseline Selection", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
     //  TableRow("MC L1 Trigger", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
     //  TableRow("\\hline \n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton (incl noiso) Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger),0,0,weight_noscale),
     //  TableRow("MC Single (incl noiso) or Dilepton (incl noiso) Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger||hlt_single_el_noiso_trigger),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger||hlt_single_el_noiso_trigger),0,0,weight_noscale),
     //  TableRow("MC Single (incl noiso, presc.) or Dilepton (incl noiso) Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger||hlt_single_el_noiso_trigger||hlt_single_el_prescale_trigger),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger||hlt_single_el_noiso_trigger||hlt_single_el_prescale_trigger),0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline \n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline \n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline \n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline \n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale*eff_singleanddilep),
 
     //  TableRow("\\hline \\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
     //      (z_decay_pdgid==13),0,0,weight_noscale),
     //  TableRow("Offline leptons and photon in acceptance", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
     //  TableRow("Baseline Selection", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
     //  TableRow("MC L1 Trigger", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton or Mu+Ph Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton (incl noiso) Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger),0,0,weight_noscale),
     //  TableRow("MC Single (incl noiso) or Dilepton (incl noiso) Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger),0,0,weight_noscale),
     //  TableRow("MC Single (incl noiso) or Dilepton (incl noiso) or Mu+Ph Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger||hlt_mu_ph_trigger),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger||hlt_mu_ph_trigger),0,0,weight_noscale),
     //  TableRow("MC Single (incl noiso,presc.) or Dilepton (incl noiso) or Mu+Ph Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger||hlt_mu_ph_trigger||hlt_single_mu_prescale_trigger),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger||hlt_mu_ph_trigger||hlt_single_mu_prescale_trigger),0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&midleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highleadpt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&highpt&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     //  TableRow("\\hline\n MC Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger&&hlt_single_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger&&hlt_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger&&hlt_mu_trigger_plus,0,0,weight_noscale),
     //  TableRow("Data Single Lepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger,0,0,weight_noscale*eff_singlelep),
     //  TableRow("Data Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger,0,0,weight_noscale*eff_dilep),
     //  TableRow("Data Dilepton Triggers (HIG-19-014)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger,0,0,weight_noscale*eff_dilep_hig19014),
     //  TableRow("Data Single or Dilepton Triggers", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_mu_trigger,0,0,weight_noscale*eff_singleanddilep),
     //},signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
     
     //for (unsigned ieta = 0; ieta < el_abseta_bins.size()-1; ieta++) {
     //  //pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-    //  //    "HLT_Ele35_WPTight_Gsf"&&(NElectron_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+    //  //    "HLT_Ele35_WPTight_Gsf"&&(nSignalElectron==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
     //  //    &&Electron_OtherPassReference&&Electron_sig&&Electron_absEta>el_abseta_bins[ieta]
     //  //    &&Electron_absEta<el_abseta_bins[ieta+1]&&Electron_hltId>0.5,
     //  //    Electron_hltPt>12,
     //  //    procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_elhltpt12_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 12 GeV").LuminosityTag(total_luminosity_string);
     //  pm.Push<EfficiencyPlot>(Axis(el_pt_bins_ptcut, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-    //      "HLT_Ele35_WPTight_Gsf"&&(NElectron_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+    //      "HLT_Ele35_WPTight_Gsf"&&(nSignalElectron==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
     //      &&Electron_OtherPassReference&&Electron_sig&&Electron_absEta>el_abseta_bins[ieta]
     //      &&Electron_absEta<el_abseta_bins[ieta+1]&&Electron_hltId>-0.5,
     //      Electron_hltPt>23,
     //      procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_elhltpt23_eta"+std::to_string(ieta)).YTitle("HLT p_{T} > 23 GeV").LuminosityTag(total_luminosity_string);
     //  pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-    //      "HLT_Ele35_WPTight_Gsf"&&(NElectron_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)
+    //      "HLT_Ele35_WPTight_Gsf"&&(nSignalElectron==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)
     //      &&Electron_OtherPassReference&&Electron_OtherPassUpperLeg&&Electron_sig&&!Electron_isLeading
     //      &&Electron_absEta>el_abseta_bins[ieta]&&Electron_absEta<el_abseta_bins[ieta+1],
     //      hlt_el_trigger,
     //      procs_onelep_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_dieleleg12_eta"+std::to_string(ieta)).YTitle("Ele12_CaloIdL_TrackIdL_IsoVL").LuminosityTag(total_luminosity_string);
     //  pm.Push<EfficiencyPlot>(Axis(el_pt_bins, "Electron_pt", "Offline Electron p_{T} [GeV]", {}),
-    //      "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(NElectron_sig==1)&&(Electron_sig>0.5)&&"Electron_mvaFall17V2Iso_WP90"&&Electron_absEta>el_abseta_bins[ieta]
+    //      "HLT_PFMET120_PFMHT120_IDTight&&MET_pt>150"&&(nSignalElectron==1)&&(Electron_sig>0.5)&&"Electron_mvaFall17V2Iso_WP90"&&Electron_absEta>el_abseta_bins[ieta]
     //      &&Electron_absEta<el_abseta_bins[ieta+1],
     //      "HLT_Ele32_WPTight_Gsf_L1DoubleEG||HLT_Ele35_WPTight_Gsf",
     //      procs_met_data,true,plt_lin_logx).Weight("1").Tag("FixName:zghlt_dataeff_isoel3235_eta"+std::to_string(ieta)).YTitle("Single Electron Triggers").LuminosityTag(total_luminosity_string);
@@ -6296,43 +6064,43 @@ int main(int argc, char *argv[]){
     //for (unsigned ieta = 0; ieta < mu_abseta_bins.size()-1; ieta++) {
     //}
     //
-    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Lead_Electron_pt, "Lead e pT", {}),
-    //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger,
+    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Lead_SignalElectron_pt, "Lead e pT", {}),
+    //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger,
     //    signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
     //    .Tag("FixName:zghlt__debug_newsf_elead")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Lead_Electron_pt, "Lead e pT", {}),
-    //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Lead_SignalElectron_pt, "Lead e pT", {}),
+    //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
     //    signal_procs_noscale, plt_lin_over).Weight(weight*eff_dilep)
     //    .Tag("FixName:zghlt__debug_oldsf_elead")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Sublead_Electron_pt, "Sublead e pT", {}),
-    //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger,
+    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Sublead_SignalElectron_pt, "Sublead e pT", {}),
+    //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger,
     //    signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
     //    .Tag("FixName:zghlt__debug_newsf_esubl")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Sublead_Electron_pt, "Sublead e pT", {}),
-    //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Sublead_SignalElectron_pt, "Sublead e pT", {}),
+    //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
     //    signal_procs_noscale, plt_lin_over).Weight(weight*eff_dilep)
     //    .Tag("FixName:zghlt__debug_oldsf_esubl")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Lead_Muon_pt, "Lead #mu pT", {}),
-    //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger,
+    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Lead_SignalMuon_pt, "Lead #mu pT", {}),
+    //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger,
     //    signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
     //    .Tag("FixName:zghlt__debug_newsf_mulead")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Lead_Muon_pt, "Lead #mu pT", {}),
-    //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Lead_SignalMuon_pt, "Lead #mu pT", {}),
+    //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
     //    signal_procs_noscale, plt_lin_over).Weight(weight*eff_dilep)
     //    .Tag("FixName:zghlt__debug_oldsf_mulead")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Sublead_Muon_pt, "Sublead #mu pT", {}),
-    //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger,
+    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Sublead_SignalMuon_pt, "Sublead #mu pT", {}),
+    //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger,
     //    signal_procs_noscale, plt_lin_over).Weight(weight*ScaleFactor_Triggers)
     //    .Tag("FixName:zghlt__debug_newsf_musubl")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Sublead_Muon_pt, "Sublead #mu pT", {}),
-    //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,
+    //pm.Push<Hist1D>(Axis(25, 0.0, 140.0, Sublead_SignalMuon_pt, "Sublead #mu pT", {}),
+    //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,
     //    signal_procs_noscale, plt_lin_over).Weight(weight*eff_dilep)
     //    .Tag("FixName:zghlt__debug_oldsf_musubl")
     //    .LuminosityTag(total_luminosity_string);
@@ -6341,354 +6109,354 @@ int main(int argc, char *argv[]){
     //  TableRow("\\hline \\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
     //      (z_decay_pdgid==11),0,0,weight_noscale),
     //  TableRow("Offline leptons and photon in acceptance", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
     //  TableRow("Baseline Selection (No pT cut)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
     //  TableRow("MC L1 Trigger", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
     //  TableRow("MC HLT and not L1 Trigger", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger&&!l1_el_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger&&!l1_el_trigger,0,0,weight_noscale),
     //  TableRow("Baseline no pt (both barrel)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(Lead_Electron_abseta<0.8)&&(Sublead_Electron_abseta<0.8),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(Lead_Electron_abseta<0.8)&&(Sublead_Electron_abseta<0.8),0,0,weight_noscale),
     //  TableRow("Baseline no pt (both endcap)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(Lead_Electron_abseta>1.566)&&(Lead_Electron_abseta<2.55)&&(Sublead_Electron_abseta>1.566)&&(Sublead_Electron_abseta<2.55),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(Lead_Electron_abseta>1.566)&&(Lead_Electron_abseta<2.55)&&(Sublead_Electron_abseta>1.566)&&(Sublead_Electron_abseta<2.55),0,0,weight_noscale),
     //  TableRow("Baseline no pt (both barrel) (TSFs)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger&&(Lead_Electron_abseta<0.8)&&(Sublead_Electron_abseta<0.8),0,0,weight_noscale*ScaleFactor_Triggers),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger&&(Lead_Electron_abseta<0.8)&&(Sublead_Electron_abseta<0.8),0,0,weight_noscale*ScaleFactor_Triggers),
     //  TableRow("Baseline no pt (both endcap) (TSFs)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger&&(Lead_Electron_abseta>1.566)&&(Lead_Electron_abseta<2.55)&&(Sublead_Electron_abseta>1.566)&&(Sublead_Electron_abseta<2.55),0,0,weight_noscale*ScaleFactor_Triggers),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger&&(Lead_Electron_abseta>1.566)&&(Lead_Electron_abseta<2.55)&&(Sublead_Electron_abseta>1.566)&&(Sublead_Electron_abseta<2.55),0,0,weight_noscale*ScaleFactor_Triggers),
     //  TableRow("Baseline no pt (sublmupt > 25)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(Sublead_Electron_pt>25),0,0,weight_noscale),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(Sublead_SignalElectron_pt>25),0,0,weight_noscale),
     //  TableRow("Baseline no pt (sublmupt > 25) (TSFs)", 
-    //      (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger&&(Sublead_Electron_pt>25),0,0,weight_noscale*ScaleFactor_Triggers),
+    //      (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger&&(Sublead_SignalElectron_pt>25),0,0,weight_noscale*ScaleFactor_Triggers),
 
 
     //  TableRow("\\hline \\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
     //      (z_decay_pdgid==13),0,0,weight_noscale),
     //  TableRow("Offline leptons and photon in acceptance", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
     //  TableRow("Baseline Selection (No pT cut)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
     //  TableRow("MC L1 Trigger", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_mu_trigger,0,0,weight_noscale),
     //  TableRow("MC HLT and not L1 Trigger", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger&&!l1_mu_trigger,0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger&&!l1_mu_trigger,0,0,weight_noscale),
     //  TableRow("Baseline no pt (both barrel)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(Lead_Muon_abseta<0.9)&&(Sublead_Muon_abseta<0.9),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(Lead_Muon_abseta<0.9)&&(Sublead_Muon_abseta<0.9),0,0,weight_noscale),
     //  TableRow("Baseline no pt (both endcap)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(Lead_Muon_abseta>2.1)&&(Lead_Muon_abseta<2.4)&&(Sublead_Muon_abseta>2.1)&&(Sublead_Muon_abseta<2.4),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(Lead_Muon_abseta>2.1)&&(Lead_Muon_abseta<2.4)&&(Sublead_Muon_abseta>2.1)&&(Sublead_Muon_abseta<2.4),0,0,weight_noscale),
     //  TableRow("Baseline no pt (both barrel) (TSFs)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger&&(Lead_Muon_abseta<0.9)&&(Sublead_Muon_abseta<0.9),0,0,weight_noscale*ScaleFactor_Triggers),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger&&(Lead_Muon_abseta<0.9)&&(Sublead_Muon_abseta<0.9),0,0,weight_noscale*ScaleFactor_Triggers),
     //  TableRow("Baseline no pt (both endcap) (TSFs)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger&&(Lead_Muon_abseta>2.1)&&(Lead_Muon_abseta<2.4)&&(Sublead_Muon_abseta>2.1)&&(Sublead_Muon_abseta<2.4),0,0,weight_noscale*ScaleFactor_Triggers),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger&&(Lead_Muon_abseta>2.1)&&(Lead_Muon_abseta<2.4)&&(Sublead_Muon_abseta>2.1)&&(Sublead_Muon_abseta<2.4),0,0,weight_noscale*ScaleFactor_Triggers),
     //  TableRow("Baseline no pt (sublmupt > 25)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(Sublead_Muon_pt>25),0,0,weight_noscale),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(Sublead_SignalMuon_pt>25),0,0,weight_noscale),
     //  TableRow("Baseline no pt (sublmupt > 25) (TSFs)", 
-    //      (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger&&(Sublead_Muon_pt>25),0,0,weight_noscale*ScaleFactor_Triggers),
+    //      (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger&&(Sublead_SignalMuon_pt>25),0,0,weight_noscale*ScaleFactor_Triggers),
     //},signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
 
     pm.Push<Table>("datamc_trig_eff"+options.year_string, vector<TableRow>{
       TableRow("\\hline \\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
           (z_decay_pdgid==11),0,0,weight_noscale),
       TableRow("Offline leptons and photon in acceptance", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("Baseline Selection (No pT cut)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
       TableRow("MC L1 Trigger", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
       TableRow("\\hline MC Single Lepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_single_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_single_el_trigger,0,0,weight_noscale),
       TableRow("MC Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger_plus,0,0,weight_noscale),
       TableRow("\\hline Data Single Lepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_single_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_single_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers (Not SF)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep),
       TableRow("Data Dilepton Triggers (HIG-19-014)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep_hig19014),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("\\hline Baseline (pT cut)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale),
       TableRow("\\hline MC L1 Trigger (pT cut)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&l1_el_trigger,0,0,weight_noscale),
       TableRow("\\hline MC Single Lepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_single_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_single_el_trigger,0,0,weight_noscale),
       TableRow("MC Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_el_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_el_trigger_plus,0,0,weight_noscale),
       TableRow("\\hline Data L1 Trigger", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("\\hline Data Single Lepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_single_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_single_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers (HIG-19-014)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale*eff_dilep_hig19014),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
 
       TableRow("\\hline \\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13),0,0,weight_noscale),
       TableRow("Offline leptons and photon in acceptance", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("Baseline Selection (No pT cut)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
       TableRow("MC L1 Trigger (only 2l)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger),0,0,weight_noscale),
       TableRow("MC L1 Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),0,0,weight_noscale),
       TableRow("\\hline MC Single Lepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_single_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_single_mu_trigger,0,0,weight_noscale),
       TableRow("MC Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("\\hline Data Single Lepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_single_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_single_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers (Not SF)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep),
       TableRow("Data Dilepton Triggers (HIG-19-014)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep_hig19014),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("\\hline Baseline (pT cut)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale),
       TableRow("MC L1 Trigger)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&(l1_mu_trigger||l1_mu_trigger_singlemu),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&(l1_mu_trigger||l1_mu_trigger_singlemu),0,0,weight_noscale),
       TableRow("\\hline MC Single Lepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_single_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_single_mu_trigger,0,0,weight_noscale),
       TableRow("MC Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("\\hline Data L1 Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("\\hline Data Single Lepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_single_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_single_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers (HIG-19-014)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection,0,0,weight_noscale*eff_dilep_hig19014),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
 
     pm.Push<Table>("datamc_trig_eff_pt_"+options.year_string, vector<TableRow>{
       TableRow("\\hline \\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
           (z_decay_pdgid==11),0,0,weight_noscale),
       TableRow("Offline leptons and photon in acceptance", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("Baseline Selection (No pT cut)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
       TableRow("MC L1 Trigger", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,0,0,weight_noscale),
       TableRow("\\hline MC Single Lepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale),
       TableRow("MC Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers or Diphoton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_doubleph_trigger),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_doubleph_trigger),0,0,weight_noscale),
       TableRow("\\hline Data Single Lepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_single_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers (Not SF)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep),
       TableRow("Data Dilepton Triggers (HIG-19-014)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep_hig19014),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Single or Dilepton Triggers or Diphoton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_doubleph_trigger),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||hlt_doubleph_trigger),0,0,weight_noscale*ScaleFactor_Triggers),
 
       TableRow("MC Single or Dilepton Triggers or 2Ph30PV18PV_pixveto_m55 Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||"HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55"),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||"HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55"),0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers or 2Ph30_22_m90 Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),0,0,weight_noscale),
       TableRow("Data Single or Dilepton Triggers or 2Ph30PV18PV_pixveto_m55 Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||"HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||"HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55"),0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Single or Dilepton Triggers or 2Ph30_22_m90 Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger&&(hlt_el_trigger_plus||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("MC Single or Dilepton Triggers or 2Ph30_18_nopixveto_m55 Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_18_PVrealAND_R9Id_AND_IsoCaloId_AND_HE_R9Id_NoPixelVeto_Mass55"),0,0,weight_noscale),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_18_PVrealAND_R9Id_AND_IsoCaloId_AND_HE_R9Id_NoPixelVeto_Mass55"),0,0,weight_noscale),
       //TableRow("MC Single or Dilepton Triggers or 2Ph30_18_pixveto_m55 Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_18_PVrealAND_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55"),0,0,weight_noscale),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_18_PVrealAND_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55"),0,0,weight_noscale),
       //TableRow("MC Single or Dilepton Triggers or or 2Ph30_22_m90 or 2Ph30_22_m95 Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90||HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass95"),0,0,weight_noscale),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90||HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass95"),0,0,weight_noscale),
       //TableRow("Data Single or Dilepton Triggers or 2Ph30_18_nopixveto_m55 Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_18_PVrealAND_R9Id_AND_IsoCaloId_AND_HE_R9Id_NoPixelVeto_Mass55"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_18_PVrealAND_R9Id_AND_IsoCaloId_AND_HE_R9Id_NoPixelVeto_Mass55"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Data Single or Dilepton Triggers or 2Ph30_18_pixveto_m55 Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_18_PVrealAND_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_18_PVrealAND_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Data Single or Dilepton Triggers or 2Ph30_22_m95 or 2Ph30_22_m95 Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90||HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass95"),0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(hlt_el_trigger_plus||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90||HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass95"),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("\\hline Baseline (pT cut)", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale),
       //TableRow("\\hline MC L1 Trigger (pT cut)", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&l1_el_trigger,0,0,weight_noscale),
       //TableRow("\\hline MC Single Lepton Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_single_el_trigger,0,0,weight_noscale),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_single_el_trigger,0,0,weight_noscale),
       //TableRow("MC Dilepton Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_el_trigger,0,0,weight_noscale),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_el_trigger,0,0,weight_noscale),
       //TableRow("MC Single or Dilepton Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_el_trigger_plus,0,0,weight_noscale),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_el_trigger_plus,0,0,weight_noscale),
       //TableRow("\\hline Data L1 Trigger", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("\\hline Data Single Lepton Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_single_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_single_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Data Dilepton Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_el_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Data Dilepton Triggers (HIG-19-014)", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale*eff_dilep_hig19014),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale*eff_dilep_hig19014),
       //TableRow("Data Single or Dilepton Triggers", 
-      //    (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_el_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
 
       TableRow("\\hline \\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13),0,0,weight_noscale),
       TableRow("Offline leptons and photon in acceptance", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("Baseline Selection (No pT cut)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
       TableRow("MC L1 Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger),0,0,weight_noscale),
       TableRow("\\hline MC Single Lepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_single_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_single_mu_trigger,0,0,weight_noscale),
       TableRow("MC Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_mu_trigger,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_mu_trigger,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_mu_trigger_plus,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_mu_trigger_plus,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers or Muon+Photon Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,weight_noscale),
       TableRow("\\hline Data Single Lepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_single_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_single_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Dilepton Triggers (Not SF)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep),
       TableRow("Data Dilepton Triggers (HIG-19-014)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep_hig19014),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale*eff_dilep_hig19014),
       TableRow("Data Single or Dilepton Triggers", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
       TableRow("Data Single or Dilepton Triggers or Muon+Photon Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,weight_noscale*ScaleFactor_Triggers),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu||l1_mu_eg_trigger)&&(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("\\hline Baseline (pT cut)", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale),
       //TableRow("MC L1 Trigger)", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&(l1_mu_trigger||l1_mu_trigger_singlemu),0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&(l1_mu_trigger||l1_mu_trigger_singlemu),0,0,weight_noscale),
       //TableRow("\\hline MC Single Lepton Triggers", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_single_mu_trigger,0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_single_mu_trigger,0,0,weight_noscale),
       //TableRow("MC Dilepton Triggers", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_mu_trigger,0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_mu_trigger,0,0,weight_noscale),
       //TableRow("MC Single or Dilepton Triggers", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_mu_trigger_plus,0,0,weight_noscale),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_mu_trigger_plus,0,0,weight_noscale),
       //TableRow("\\hline Data L1 Trigger", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("\\hline Data Single Lepton Triggers", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_single_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_single_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Data Dilepton Triggers", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_mu_trigger,0,0,weight_noscale*ScaleFactor_Triggers),
       //TableRow("Data Dilepton Triggers (HIG-19-014)", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale*eff_dilep_hig19014),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut,0,0,weight_noscale*eff_dilep_hig19014),
       //TableRow("Data Single or Dilepton Triggers", 
-      //    (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
+      //    (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&trigger_dependent_ptcut&&hlt_mu_trigger_plus,0,0,weight_noscale*ScaleFactor_Triggers),
     },signal_procs_noscale,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
 
     pm.Push<Table>("datamc_trig_eff_2018", vector<TableRow>{
       TableRow("\\hline \\hline\n $Z\\rightarrow e^{+}e^{-}$ decays", 
           (z_decay_pdgid==11),0,0,weight_noscale),
       TableRow("Offline leptons and photon in acceptance", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("Baseline Selection (No pT cut)", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
       TableRow("MC L1 Trigger", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018,0,0,weight_noscale),
       TableRow("MC Single Lepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&hlt_singleel_trigger_2018,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&hlt_singleel_trigger_2018,0,0,weight_noscale),
       TableRow("MC Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&hlt_doubleel_trigger_2018,0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&hlt_doubleel_trigger_2018,0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&(hlt_singleel_trigger_2018||hlt_doubleel_trigger_2018),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&(hlt_singleel_trigger_2018||hlt_doubleel_trigger_2018),0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers or Diphoton Triggers", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&(hlt_singleel_trigger_2018||hlt_doubleel_trigger_2018||hlt_doubleph_trigger_2018),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&(hlt_singleel_trigger_2018||hlt_doubleel_trigger_2018||hlt_doubleph_trigger_2018),0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers or Low Mass Diphoton Trigger", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&(hlt_singleel_trigger_2018||hlt_doubleel_trigger_2018||"HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto"),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&(hlt_singleel_trigger_2018||hlt_doubleel_trigger_2018||"HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto"),0,0,weight_noscale),
       TableRow("MC Single or Dilepton Triggers or High Mass Diphoton Trigger", 
-          (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&(hlt_singleel_trigger_2018||hlt_doubleel_trigger_2018||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),0,0,weight_noscale),
+          (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_eg_trigger_2018&&(hlt_singleel_trigger_2018||hlt_doubleel_trigger_2018||"HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90"),0,0,weight_noscale),
 
       TableRow("\\hline \\hline\n $Z\\rightarrow \\mu^{+}\\mu^{-}$ decays", 
           (z_decay_pdgid==13),0,0,weight_noscale),
       TableRow("Offline leptons and photon in acceptance", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1),0,0,weight_noscale),
       TableRow("Baseline Selection (No pT cut)", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt,0,0,weight_noscale),
       TableRow("MC L1 Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018),0,0,weight_noscale),
       TableRow("MC Single Lepton Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018)&&hlt_singlemu_trigger_2018,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018)&&hlt_singlemu_trigger_2018,0,0,weight_noscale),
       TableRow("MC Double Lepton Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018)&&hlt_doublemu_trigger_2018,0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018)&&hlt_doublemu_trigger_2018,0,0,weight_noscale),
       TableRow("MC Single or Double Lepton Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018)&&(hlt_singlemu_trigger_2018||hlt_doublemu_trigger_2018),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018)&&(hlt_singlemu_trigger_2018||hlt_doublemu_trigger_2018),0,0,weight_noscale),
       TableRow("MC Single or Double Lepton Or Muon+Photon Trigger", 
-          (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018)&&(hlt_singlemu_trigger_2018||hlt_doublemu_trigger_2018||hlt_mu_ph_trigger),0,0,weight_noscale),
+          (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger_singlemu||l1_doublemu_trigger_2018||l1_mu_eg_trigger_2018)&&(hlt_singlemu_trigger_2018||hlt_doublemu_trigger_2018||hlt_mu_ph_trigger),0,0,weight_noscale),
     },signal_procs_2018,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
   }
 
   if (make_trigcomp_plots) {
-    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Lead_Electron_pt, "Lead Electron p_{T} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,
+    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Lead_SignalElectron_pt, "Lead Electron p_{T} [GeV]", {}),
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,
         hlt_el_trigger,
         signal_procs_noscale,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_leade_2e").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Lead_Electron_pt, "Lead Electron p_{T} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,
+    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Lead_SignalElectron_pt, "Lead Electron p_{T} [GeV]", {}),
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,
         hlt_el_trigger_plus,
         signal_procs_noscale_green,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_leade_2eor1e").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Sublead_Electron_pt, "Sublead Electron p_{T} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,
+    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Sublead_SignalElectron_pt, "Sublead Electron p_{T} [GeV]", {}),
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,
         hlt_el_trigger,
         signal_procs_noscale,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_suble_2e").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Sublead_Electron_pt, "Sublead Electron p_{T} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,
+    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Sublead_SignalElectron_pt, "Sublead Electron p_{T} [GeV]", {}),
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,
         hlt_el_trigger_plus,
         signal_procs_noscale_green,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_suble_2eor1e").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Lead_Muon_pt, "Lead Muon p_{T} [GeV]", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
+    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Lead_SignalMuon_pt, "Lead Muon p_{T} [GeV]", {}),
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
         hlt_mu_trigger,
         signal_procs_noscale,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_leadmu_2m").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Lead_Muon_pt, "Lead Muon p_{T} [GeV]", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
+    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Lead_SignalMuon_pt, "Lead Muon p_{T} [GeV]", {}),
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
         hlt_mu_trigger_plus,
         signal_procs_noscale_green,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_leadmu_2mor1m").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Sublead_Muon_pt, "Sublead Muon p_{T} [GeV]", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
+    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Sublead_SignalMuon_pt, "Sublead Muon p_{T} [GeV]", {}),
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
         hlt_mu_trigger,
         signal_procs_noscale,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_sublmu_2m").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Sublead_Muon_pt, "Sublead Muon p_{T} [GeV]", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
+    pm.Push<EfficiencyPlot>(Axis(25, 0.0, 100.0, Sublead_SignalMuon_pt, "Sublead Muon p_{T} [GeV]", {}),
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
         hlt_mu_trigger_plus,
         signal_procs_noscale_green,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_sublmu_2mor1m").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(15, 110.0, 140.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,
+    pm.Push<EfficiencyPlot>(Axis(15, 110.0, 140.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,
         hlt_el_trigger,
         signal_procs_noscale,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_mllg_2e").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(15, 110.0, 140.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-        (z_decay_pdgid==11)&&(NElectron_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&l1_el_trigger,
+    pm.Push<EfficiencyPlot>(Axis(15, 110.0, 140.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+        (z_decay_pdgid==11)&&(nSignalElectron>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&l1_el_trigger,
         hlt_el_trigger_plus,
         signal_procs_noscale_green,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_mllg_2eor1e").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(15, 110.0, 140.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
+    pm.Push<EfficiencyPlot>(Axis(15, 110.0, 140.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
         hlt_mu_trigger,
         signal_procs_noscale,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_mllg_2m").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
-    pm.Push<EfficiencyPlot>(Axis(15, 110.0, 140.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-        (z_decay_pdgid==13)&&(NMuon_sig>=2)&&(NPhoton_sig>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
+    pm.Push<EfficiencyPlot>(Axis(15, 110.0, 140.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+        (z_decay_pdgid==13)&&(nSignalMuon>=2)&&(nSignalPhoton>=1)&&baseline_selection_nopt&&(l1_mu_trigger||l1_mu_trigger_singlemu),
         hlt_mu_trigger_plus,
         signal_procs_noscale_green,true,plt_lin).Weight(weight_noscale*ScaleFactor_Triggers).Tag("FixName:zghlt_trigcomp_mllg_2mor1m").YTitle("Trigger Efficiency").YAxisMax(1.4).LuminosityTag(total_luminosity_string);
   }
@@ -6696,13 +6464,13 @@ int main(int argc, char *argv[]){
   if (make_mu17ref) {
     pm.Push<Table>("mu17_releff"+options.year_string, vector<TableRow>{
       TableRow("Data (arbitrary lumi) events with Z and passing Mu17", 
-          "HLT_Mu17"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101),0,0,"1"),
+          "HLT_Mu17"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101),0,0,"1"),
       TableRow("Pass Single Muon Trigger", 
-          "HLT_Mu17"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&hlt_single_mu_trigger,0,0,"1"),
+          "HLT_Mu17"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&hlt_single_mu_trigger,0,0,"1"),
       TableRow("Pass Dimuon Trigger", 
-          "HLT_Mu17"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&hlt_mu_trigger,0,0,"1"),
+          "HLT_Mu17"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&hlt_mu_trigger,0,0,"1"),
       TableRow("Pass Single or Dimuon Trigger", 
-          "HLT_Mu17"&&(NMuon_sig==2)&&(ZCand_mass>81&&ZCand_mass<101)&&(hlt_mu_trigger||hlt_single_mu_trigger),0,0,"1"),
+          "HLT_Mu17"&&(nSignalMuon==2)&&(ZCandidate_mass>81&&ZCandidate_mass<101)&&(hlt_mu_trigger||hlt_single_mu_trigger),0,0,"1"),
     },procs_onelep_data,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
   }
 
@@ -6737,106 +6505,115 @@ int main(int argc, char *argv[]){
     //
     //pm.Push<Table>("dy_data_sf_table_"+options.year_string, vector<TableRow>{
     //  TableRow("DY selection", 
-    //      (NElectron_sig==2)&&dy_selection,0,0,"1"),
+    //      (nSignalElectron==2)&&dy_selection,0,0,"1"),
     //  TableRow("HLT 2e Trigger", 
-    //      (NElectron_sig==2)&&dy_selection&&hlt_el_trigger,0,0,"1"),
+    //      (nSignalElectron==2)&&dy_selection&&hlt_el_trigger,0,0,"1"),
     //  TableRow("HLT 1e Trigger", 
-    //      (NElectron_sig==2)&&dy_selection&&hlt_single_el_trigger,0,0,"1"),
+    //      (nSignalElectron==2)&&dy_selection&&hlt_single_el_trigger,0,0,"1"),
     //  TableRow("HLT 2e OR 1e Trigger", 
-    //      (NElectron_sig==2)&&dy_selection&&hlt_el_trigger_plus,0,0,"1"),
+    //      (nSignalElectron==2)&&dy_selection&&hlt_el_trigger_plus,0,0,"1"),
     //  TableRow("HLT 2e OR 1e OR 1e prescaled Trigger", 
-    //      (NElectron_sig==2)&&dy_selection&&(hlt_el_trigger_plus||hlt_single_el_prescale_trigger),0,0,"1"),
+    //      (nSignalElectron==2)&&dy_selection&&(hlt_el_trigger_plus||hlt_single_el_prescale_trigger),0,0,"1"),
     //  TableRow("HLT 2e (incl non-iso) OR 1e Trigger", 
-    //      (NElectron_sig==2)&&dy_selection&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger),0,0,"1"),
+    //      (nSignalElectron==2)&&dy_selection&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger),0,0,"1"),
     //  TableRow("HLT 2e (incl non-iso) OR 1e (incl non-iso) Trigger", 
-    //      (NElectron_sig==2)&&dy_selection&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger||hlt_single_el_noiso_trigger),0,0,"1"),
+    //      (nSignalElectron==2)&&dy_selection&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger||hlt_single_el_noiso_trigger),0,0,"1"),
     //  TableRow("HLT 2e (incl non-iso) OR 1e (incl non-iso) OR 1e prescaled Trigger", 
-    //      (NElectron_sig==2)&&dy_selection&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger||hlt_single_el_noiso_trigger||hlt_single_el_prescale_trigger),0,0,"1"),
+    //      (nSignalElectron==2)&&dy_selection&&(hlt_el_trigger_plus||hlt_double_el_noiso_trigger||hlt_single_el_noiso_trigger||hlt_single_el_prescale_trigger),0,0,"1"),
 
     //  TableRow("DY selection", 
-    //      (NMuon_sig==2)&&dy_selection,0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection,0,0,"1"),
     //  TableRow("HLT 2mu Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&hlt_mu_trigger,0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&hlt_mu_trigger,0,0,"1"),
     //  TableRow("HLT 1mu Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&hlt_single_mu_trigger,0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&hlt_single_mu_trigger,0,0,"1"),
     //  TableRow("HLT 2mu OR 1mu Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&hlt_mu_trigger_plus,0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&hlt_mu_trigger_plus,0,0,"1"),
     //  TableRow("HLT 2mu OR 1mu OR mu+ph Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_mu_ph_trigger),0,0,"1"),
     //  TableRow("HLT 2mu OR 1mu OR 1mu prescaled Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_single_mu_prescale_trigger),0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_single_mu_prescale_trigger),0,0,"1"),
     //  TableRow("HLT 2mu (incl non-iso) OR 1mu Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger),0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger),0,0,"1"),
     //  TableRow("HLT 2mu (incl non-iso) OR 1mu (incl non-iso) Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger),0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger),0,0,"1"),
     //  TableRow("HLT 2mu (incl non-iso) OR 1mu (incl non-iso) OR mu+ph Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger||hlt_mu_ph_trigger),0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger||hlt_mu_ph_trigger),0,0,"1"),
     //  TableRow("HLT 2mu (incl non-iso) OR 1mu (incl non-iso) OR mu+ph OR 1mu prescaled Trigger", 
-    //      (NMuon_sig==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger||hlt_mu_ph_trigger||hlt_single_mu_prescale_trigger),0,0,"1"),
+    //      (nSignalMuon==2)&&dy_selection&&(hlt_mu_trigger_plus||hlt_double_mu_noiso_trigger||hlt_single_mu_noiso_trigger||hlt_mu_ph_trigger||hlt_single_mu_prescale_trigger),0,0,"1"),
     //},procs_run2017d,false,true,false,false,false,true).LuminosityTag(total_luminosity_string).Precision(2);
   }
 
-  if (plot_diphoton_sidebands) {
-    pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&hlt_doubleel_trigger_2018&&blind_sr,
-        procs_sideband_2018, plt_lin_unblind).Weight(weight)
-        .Tag("FixName:zghlt_diph__mllg_baseline_doubleel")
-        .LuminosityTag("59.7");
-    pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018)&&blind_sr,
-        procs_sideband_2018, plt_lin_unblind).Weight(weight)
-        .Tag("FixName:zghlt_diph__mllg_baseline_doubleel_or_singleel")
-        .LuminosityTag("59.7");
-    pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018||hlt_doubleph_trigger_2018)&&blind_sr,
-        procs_sideband_2018, plt_lin_unblind).Weight(weight)
-        .Tag("FixName:zghlt_diph__mllg_baseline_doubleel_or_singleel_ordoubleph")
-        .LuminosityTag("59.7");
-    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-    //    NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&hlt_doublemu_trigger_2018&&blind_sr,
+  if (plot_data_sidebands) {
+    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+    //    pass_hemveto&&nSignalElectron>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_SignalElectron_pt>15&&hlt_doubleel_trigger_2018&&blind_sr,
+    //    procs_sideband_2018, plt_lin_unblind).Weight(weight)
+    //    .Tag("FixName:zghlt_diph__mllg_baseline_doubleel")
+    //    .LuminosityTag("59.7");
+    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+    //    pass_hemveto&&nSignalElectron>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_SignalElectron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018)&&blind_sr,
+    //    procs_sideband_2018, plt_lin_unblind).Weight(weight)
+    //    .Tag("FixName:zghlt_diph__mllg_baseline_doubleel_or_singleel")
+    //    .LuminosityTag("59.7");
+    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+    //    pass_hemveto&&nSignalElectron>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_SignalElectron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018||hlt_doubleph_trigger_2018)&&blind_sr,
+    //    procs_sideband_2018, plt_lin_unblind).Weight(weight)
+    //    .Tag("FixName:zghlt_diph__mllg_baseline_doubleel_or_singleel_ordoubleph")
+    //    .LuminosityTag("59.7");
+    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+    //    nSignalMuon>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Sublead_SignalMuon_pt>10&&hlt_doublemu_trigger_2018&&blind_sr,
     //    procs_sideband_2018, plt_lin).Weight(weight)
     //    .Tag("FixName:zghlt_diph__mllg_baseline_doublemu")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-    //    NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger)&&blind_sr,
+    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+    //    nSignalMuon>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Sublead_SignalMuon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger)&&blind_sr,
     //    procs_sideband_2018, plt_lin).Weight(weight)
     //    .Tag("FixName:zghlt_diph__mllg_baseline_doublemu_or_singlemu")
     //    .LuminosityTag(total_luminosity_string);
-    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCand_mass, "m_{ll#gamma} [GeV]", {}),
-    //    NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger||hlt_mu_ph_trigger)&&blind_sr,
+    //pm.Push<Hist1D>(Axis(30, 100.0, 160.0, HiggsCandidate_mass, "m_{ll#gamma} [GeV]", {}),
+    //    nSignalMuon>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Sublead_SignalMuon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger||hlt_mu_ph_trigger)&&blind_sr,
     //    procs_sideband_2018, plt_lin).Weight(weight)
     //    .Tag("FixName:zghlt_diph__mllg_baseline_doublemu_or_singlemu_ormuph")
     //    .LuminosityTag(total_luminosity_string);
+
+    NamedFunc zg_baseline_noleppt = NamedFunc( nSignalLepton>=2 && nSignalPhoton>=1 &&
+        ((Lead_SignalPhoton_pt/HiggsCandidate_mass)>=15.0/110.0) &&
+        ((HiggsCandidate_mass+ZCandidate_mass)>185.0) &&
+        (Sublead_SignalElectron_pt > 15 || Sublead_SignalMuon_pt > 10) &&
+        pass_hemveto).Name("baseline_noleppt");
+    NamedFunc near_mass_window = (HiggsCandidate_mass>110&&HiggsCandidate_mass<140);
+
     pm.Push<Table>("zghlt_diph__eff", vector<TableRow>{
-      TableRow("Electron baseline (no pt) with 2e trigger", 
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&hlt_doubleel_trigger_2018&&blind_sr,0,0,weight),
-      TableRow("Electron baseline (no pt) with 2e or 1e trigger", 
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018)&&blind_sr,0,0,weight),
-      TableRow("Electron baseline (no pt) with 2e or 1e or 2ph trigger", 
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018||hlt_doubleph_trigger_2018)&&blind_sr,0,0,weight),
+      //TableRow("Electron baseline (no pt) with 2e trigger", 
+      //  pass_hemveto&&nSignalElectron>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_SignalElectron_pt>15&&hlt_doubleel_trigger_2018&&blind_sr,0,0,weight),
+      //TableRow("Electron baseline (no pt) with 2e or 1e trigger", 
+      //  pass_hemveto&&nSignalElectron>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_SignalElectron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018)&&blind_sr,0,0,weight),
+      //TableRow("Electron baseline (no pt) with 2e or 1e or 2ph trigger", 
+      //  pass_hemveto&&nSignalElectron>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_SignalElectron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018||hlt_doubleph_trigger_2018)&&blind_sr,0,0,weight),
       //TableRow("Muon baseline (no pt) with 2mu trigger", 
-      //  NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&hlt_doublemu_trigger_2018&&blind_sr,0,0,weight),
+      //  nSignalMuon>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Sublead_SignalMuon_pt>10&&hlt_doublemu_trigger_2018&&blind_sr,0,0,weight),
       //TableRow("Muon baseline (no pt) with 2mu or 1mu trigger", 
-      //  NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger)&&blind_sr,0,0,weight),
+      //  nSignalMuon>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Sublead_SignalMuon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger)&&blind_sr,0,0,weight),
       //TableRow("Muon baseline (no pt) with 2mu or 1mu or mu+ph trigger", 
-      //  NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger||hlt_mu_ph_trigger)&&blind_sr,0,0,weight),
+      //  nSignalMuon>=2&&nSignalPhoton>=1&&baseline_selection_nopt&&Sublead_SignalMuon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger||hlt_mu_ph_trigger)&&blind_sr,0,0,weight),
+      
       TableRow("Electron baseline (no pt) with 2e trigger (110-140)", 
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&hlt_doubleel_trigger_2018&&blind_sr&&HiggsCand_mass>110&&HiggsCand_mass<140,0,0,weight),
+          zg_baseline_noleppt&&nSignalElectron>=2&&near_mass_window&&HLT_pass_dilepton,0,0,"1"),
       TableRow("Electron baseline (no pt) with 2e or 1e trigger (110-140)", 
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018)&&blind_sr&&HiggsCand_mass>110&&HiggsCand_mass<140,0,0,weight),
+          zg_baseline_noleppt&&nSignalElectron>=2&&near_mass_window&&(HLT_pass_dilepton||HLT_pass_singlelepton),0,0,"1"),
       TableRow("Electron baseline (no pt) with 2e or 1e or 2ph trigger (110-140)", 
-        pass_hemveto&&NElectron_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Lead_Photon_mvaID>0.5&&Sublead_Electron_pt>15&&(hlt_doubleel_trigger_2018||hlt_singleel_trigger_2018||hlt_doubleph_trigger_2018)&&blind_sr&&HiggsCand_mass>110&&HiggsCand_mass<140,0,0,weight),
-      //TableRow("Muon baseline (no pt) with 2mu trigger (110-140)", 
-      //  NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&hlt_doublemu_trigger_2018&&blind_sr&&HiggsCand_mass>110&&HiggsCand_mass<140,0,0,weight),
-      //TableRow("Muon baseline (no pt) with 2mu or 1mu trigger (110-140)", 
-      //  NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger)&&blind_sr&&HiggsCand_mass>110&&HiggsCand_mass<140,0,0,weight),
-      //TableRow("Muon baseline (no pt) with 2mu or 1mu or mu+ph trigger (110-140)", 
-      //  NMuon_sig>=2&&NPhoton_sig>=1&&baseline_selection_nopt&&Sublead_Muon_pt>10&&(hlt_doublemu_trigger_2018||hlt_single_mu_trigger||hlt_mu_ph_trigger)&&blind_sr&&HiggsCand_mass>110&&HiggsCand_mass<140,0,0,weight),
-    },procs_sideband_2018,false,true,false,false,false,true).LuminosityTag("59.7").Precision(3);
+          zg_baseline_noleppt&&nSignalElectron>=2&&near_mass_window&&(HLT_pass_dilepton||HLT_pass_singlelepton||HLT_pass_diphoton),0,0,"1"),
+      TableRow("Muon baseline (no pt) with 2mu trigger (110-140)", 
+          zg_baseline_noleppt&&nSignalMuon>=2&&near_mass_window&&HLT_pass_dilepton,0,0,"1"),
+      TableRow("Muon baseline (no pt) with 2mu or 1mu trigger (110-140)", 
+          zg_baseline_noleppt&&nSignalMuon>=2&&near_mass_window&&(HLT_pass_dilepton||HLT_pass_singlelepton),0,0,"1"),
+      TableRow("Muon baseline (no pt) with 2mu or 1mu or mu+ph trigger (110-140)", 
+          zg_baseline_noleppt&&nSignalMuon>=2&&near_mass_window&&(HLT_pass_dilepton||HLT_pass_singlelepton||HLT_pass_muonphoton),0,0,"1")
+    },procs_data_sideband,false,true,false,false,false,true).LuminosityTag("138").Precision(3);
   }
   
   pm.multithreaded_ = !options.single_thread;
-  pm.min_print_ = true;
+  pm.min_print_ = false; //debugging time baby
   pm.MakePlots(1.);
 
   //------------------------------------------------------------------------------------

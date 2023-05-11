@@ -263,9 +263,34 @@ namespace ZgUtilities {
 
   SampleLoader ZgSampleLoader() {
     SampleLoader zg_sample_loader;
-    zg_sample_loader.LoadNamedFunc("trigger_and_stitch",ZgFunctions::trigger_and_stitch);
+    zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton",ZgFunctions::HLT_pass_dilepton);
+    zg_sample_loader.LoadNamedFunc("stitch",ZgFunctions::stitch);
+    zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton&&stitch",ZgFunctions::HLT_pass_dilepton&&ZgFunctions::stitch);
     zg_sample_loader.LoadPalette("txt/colors_zgamma.txt","default");
     return zg_sample_loader;
+  }
+
+  //0 is untagged, 1 is loose, 2 is medium, 3 is tight
+  int get_btag_wp_deepjet(int year, float discriminator_value) {
+    if (abs(year)==2016) {
+      if (discriminator_value > 0.7221) return 3;
+      else if (discriminator_value > 0.3093) return 2;
+      else if (discriminator_value > 0.0614) return 1;
+      return 0;
+    }
+    else if (abs(year)==2017) {
+      if (discriminator_value > 0.7489) return 3;
+      else if (discriminator_value > 0.3033) return 2;
+      else if (discriminator_value > 0.0521) return 1;
+      return 0;
+    }
+    else if (abs(year)==2018) {
+      if (discriminator_value > 0.7264) return 3;
+      else if (discriminator_value > 0.2770) return 2;
+      else if (discriminator_value > 0.0494) return 1;
+      return 0;
+    }
+    return 0;
   }
 }
 

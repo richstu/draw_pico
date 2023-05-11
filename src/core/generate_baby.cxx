@@ -428,11 +428,11 @@ bool IsComment(const string &line){
 */
 int GetArrayLength(const std::string var_name){
   const string var_type = var_name.substr(0,var_name.find_first_of('_'));
-  if      (var_type == "Electron") return 40;
-  else if (var_type == "Muon") return 40;
+  if      (var_type == "Electron") return 80;
+  else if (var_type == "Muon") return 80;
   else if (var_type == "Tau") return 30;
-  else if (var_type == "IsoTrack") return 30;
-  else if (var_type == "Photon") return 200;
+  else if (var_type == "IsoTrack") return 50;
+  else if (var_type == "Photon") return 300;
   else if (var_type == "Jet") return 200;
   else if (var_type == "SoftActivityJet") return 30;
   else if (var_type == "FatJet") return 30;

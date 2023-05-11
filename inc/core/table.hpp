@@ -63,6 +63,8 @@ public:
   Table & Tag(const std::string &tag) {tag_ = tag;return *this;}
   Table & LuminosityTag(const std::string &tag) {luminosity_tag_ = tag;return *this;}
   Table & Precision(const int &precision) {precision_ = precision;return *this;}
+
+  void SetLuminosityTag(const std::string &tag);
   
   std::string tag_;
   std::string luminosity_tag_;//!<Filename tag to identify plot

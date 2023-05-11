@@ -51,18 +51,52 @@ namespace ZgFunctions {
     return 59.67377;
   });
 
+  //Run 3 weight-up
+  const NamedFunc w_run3("w_run3", [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleType()<0) return 1.; //data
+    return 2.472;
+  });
+
   //common NamedFuncs for run 2 baseline selection
-  NamedFunc zg_baseline_nolep = "(ll_m[0]>50) && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ((llphoton_m[0]+ll_m[0])>=185) && (photon_drmin[0]>0.4)";
+  NamedFunc zg_baseline_nolep = "nlep>=2 && nphoton>=1 && (ll_m[0]>50) && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ((llphoton_m[0]+ll_m[0])>=185) && (photon_drmin[0]>0.4)";
   NamedFunc zg_el_cuts = "(ll_lepid[0]==11) && (el_pt[ll_i1[0]]>25) && (el_pt[ll_i2[0]]>15)";
   NamedFunc zg_mu_cuts = "(ll_lepid[0]==13) && (mu_pt[ll_i1[0]]>20) && (mu_pt[ll_i2[0]]>10)";
-  const NamedFunc zg_baseline_el =  NamedFunc(zg_el_cuts && zg_baseline_nolep).Name("electron_baseline");
-  const NamedFunc zg_baseline_mu =  NamedFunc(zg_mu_cuts && zg_baseline_nolep).Name("muon_baseline");
+  const NamedFunc zg_baseline_el = NamedFunc(zg_el_cuts && zg_baseline_nolep).Name("electron_baseline");
+  const NamedFunc zg_baseline_mu = NamedFunc(zg_mu_cuts && zg_baseline_nolep).Name("muon_baseline");
   const NamedFunc zg_baseline = NamedFunc((zg_el_cuts || zg_mu_cuts) && zg_baseline_nolep).Name("baseline");
 
-  //master stitch variable, currently only has DY/ZG stitch
+  //master stitch variable
   const NamedFunc stitch("stitch",[](const Baby &b) -> NamedFunc::ScalarType{
+    //remove ZGToLLG from DYJets
     if(b.type() >= 6000 && b.type() < 7000)
       return b.stitch_dy();
+    //remove DYJets from ZGToLLG
+    if (b.type() >= 17000 && b.type() < 18000)
+      return !b.stitch_dy();
+    //remove ttG from TTJets
+    if (b.type() >= 1000 && b.type() < 2000)
+      //return b.stitch_photon(); currently bugged since photon doesn't exempt itself
+      if (b.photon_pflavor()->size()>0)
+        if (b.photon_pflavor()->at(0)==1)
+          return 0;
+    //remove WWG from WW
+    if (b.type() >= 14000 && b.type() < 15000)
+      return b.stitch_dy();
+      //if (b.photon_pflavor()->size()>0)
+      //  if (b.photon_pflavor()->at(0)==1)
+      //    return 0;
+    //remove WZG from WZ - poor man's stitch
+    if (b.type() >= 15000 && b.type() < 16000)
+      return b.stitch_dy();
+      //if (b.photon_pflavor()->size()>0)
+      //  if (b.photon_pflavor()->at(0)==1)
+      //    return 0;
+    //don't use ZZG because only leptonic decays
+    //remove ZZG from ZZ - poor man's stitch
+    //if (b.type() >= 16000 && b.type() < 17000)
+    //  if (b.photon_pflavor()->size()>0)
+    //    if (b.photon_pflavor()->at(0)==1)
+    //      return 0;
     return 1.0;
   });
 
@@ -87,8 +121,9 @@ namespace ZgFunctions {
       return b.mu_eta()->at(b.ll_i2()->at(0));
   });
 
-  //and of trigger and stitch
-  const NamedFunc trigger_and_stitch = stitch&&(HLT_pass_dilepton||HLT_pass_singlelepton);
+  //pT/m of Higgs candidate
+  const NamedFunc llphoton_rel_pt = NamedFunc("llphoton_pt[0]/llphoton_m[0]").Name("llphoton_rel_pt");
+
 }
 
 

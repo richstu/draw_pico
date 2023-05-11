@@ -72,6 +72,8 @@ public:
   EfficiencyPlot & YTitle(const std::string &ytitle);
   EfficiencyPlot & YAxisMax(const double ymax);
 
+  void SetLuminosityTag(const std::string &tag);
+
   Axis xaxis_;//!<Specification of content: plotted variable, binning, etc.
   NamedFunc cut_;//!<Event selection
   NamedFunc numerator_cut_;//!<Event selection

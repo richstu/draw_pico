@@ -29,6 +29,8 @@ public:
   void MakePlots(double luminosity,
                  const std::string &subdir = "");
 
+  PlotMaker & SetLuminosityTag(const std::string &lumi_tag);
+
   const std::unique_ptr<Figure> & GetFigure(std::string tag) const;
   const std::vector<std::unique_ptr<Figure> > & Figures() const;
   template<typename FigureType>

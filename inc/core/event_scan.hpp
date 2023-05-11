@@ -54,6 +54,7 @@ class EventScan final : public Figure{
 
  unsigned Precision() const;
  EventScan & Precision(unsigned precision);
+ void SetLuminosityTag(const std::string &tag);
 
  std::string name_;//!<Name of scan for saving to file
  NamedFunc cut_;//!<Cut restricting printed events/objects

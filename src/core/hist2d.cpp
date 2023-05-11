@@ -475,6 +475,10 @@ Hist2D & Hist2D::LuminosityTag(const string &tag){
   return *this;
 }
 
+void Hist2D::SetLuminosityTag(const string &tag) {
+  this->LuminosityTag(tag);
+}
+
 void Hist2D::AddEntry(TLegend &l, const SingleHist2D &h, const TGraph &g) const{
   string name = h.process_->name_;
   ostringstream oss;

@@ -47,7 +47,7 @@ SampleLoader::DataSample::DataSample(const string &name):
 SampleLoader::SampleLoader():
   macros_(map<string, set<string>>()),
   overwrite_macro_keys_(set<string>()),
-  samples_(map<string, DataSample>()),
+  samples_(vector<DataSample>()),
   palette_(Palette()),
   loaded_namedfuncs_(map<string,shared_ptr<NamedFunc>>()),
   verbose_(false){
@@ -168,8 +168,8 @@ SampleLoader & SampleLoader::ParseFile(const string &file_name,
       end = line.find("]");
       if(start<end && start != string::npos && end != string::npos){
         current_sample = line.substr(start+1, end-start-1);
-        if (samples_.count(current_sample) == 0) {
-          samples_.insert(make_pair(current_sample, DataSample(current_sample)));
+        if (!SampleExists(current_sample)) {
+          samples_.push_back(DataSample(current_sample));
         }
       } else if (current_sample != "") {
         size_t pos = line.find("=");
@@ -188,15 +188,12 @@ SampleLoader & SampleLoader::ParseFile(const string &file_name,
   */
 vector<shared_ptr<Process>> SampleLoader::GetSamples() {
   vector<shared_ptr<Process>> processes;
-  //map is surprisingly ordered in reverse from how samples were added
-  for (auto sample_iter = samples_.rbegin(); sample_iter != samples_.rend(); sample_iter++) {
-  //for (pair<string, DataSample> sample : samples_) {
-    DataSample* this_sample = &sample_iter->second;
+  for (DataSample this_sample : samples_) {
     //currently only picos supported; easy enough to add more Baby children, though
-    if (this_sample->ntuple_type_ == "Baby_pico") {
-      processes.push_back(Process::MakeShared<Baby_pico>(this_sample->name_,
-          this_sample->type_, this_sample->color_, this_sample->files_, 
-          this_sample->selection_));
+    if (this_sample.ntuple_type_ == "Baby_pico") {
+      processes.push_back(Process::MakeShared<Baby_pico>(this_sample.name_,
+          this_sample.type_, this_sample.color_, this_sample.files_, 
+          this_sample.selection_));
     }
   }
   return processes;
@@ -260,23 +257,24 @@ set<string> SampleLoader::ExpandMacros(const string & str_to_expand) {
 SampleLoader & SampleLoader::SetProperty(const string &sample_name,
                                const string &property,
                                const string &value){
-  if (samples_.count(sample_name) == 0) {
-    samples_.insert(make_pair(sample_name, DataSample(sample_name)));
+  if (!SampleExists(sample_name)) {
+    samples_.push_back(DataSample(sample_name));
     cout << "WARNING: implicitly creating new sample to set property" << endl;
   }
+  unsigned int sample_index = SampleIndex(sample_name);
   if(property == "ProcessType"){
-    samples_[sample_name].type_ = static_cast<Process::Type>(stoi(value));
+    samples_[sample_index].type_ = static_cast<Process::Type>(stoi(value));
   }else if(property == "PaletteColor"){
-    samples_[sample_name].color_ = palette_(value);
+    samples_[sample_index].color_ = palette_(value);
   }else if(property == "Color"){
-    samples_[sample_name].color_ = stoi(value);
+    samples_[sample_index].color_ = stoi(value);
   }else if(property == "Files"){
-    samples_[sample_name].files_ = ExpandMacros(value);
+    samples_[sample_index].files_ = ExpandMacros(value);
   }else if(property == "Selection"){
     if (loaded_namedfuncs_.count(value) != 0) {
-      samples_[sample_name].selection_ = *loaded_namedfuncs_[value];
+      samples_[sample_index].selection_ = *loaded_namedfuncs_[value];
     } else {
-      samples_[sample_name].selection_ = value;
+      samples_[sample_index].selection_ = value;
     }
   }else{
     DBG("Did not understand property name "<<property);
@@ -284,3 +282,29 @@ SampleLoader & SampleLoader::SetProperty(const string &sample_name,
   return *this;
 }
 
+/*!\brief Returns true if there already exists a sample with sample_name
+
+    \param[in] sample_name name of sample to check
+  */
+bool SampleLoader::SampleExists(const string sample_name) {
+  for (DataSample sample : samples_) {
+    if (sample.name_ == sample_name)
+      return true;
+  }
+  return false;
+}
+
+
+/*!\brief Returns index of sample if there already exists a sample with
+          sample_name and 999 otherwise
+
+    \param[in] sample_name name of sample to check
+  */
+unsigned int SampleLoader::SampleIndex(const string sample_name) {
+  for (unsigned int isample = 0; isample<samples_.size(); isample++) {
+    if (samples_[isample].name_ == sample_name) {
+      return isample;
+    }
+  }
+  return 999;
+}

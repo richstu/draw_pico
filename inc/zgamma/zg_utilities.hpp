@@ -36,5 +36,6 @@ namespace ZgUtilities {
   double pdrmax(const Baby &b);
 
   SampleLoader ZgSampleLoader();
+  int get_btag_wp_deepjet(int year, float discriminator_value);
 }
 #endif

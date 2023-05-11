@@ -71,6 +71,17 @@ void PlotMaker::MakePlots(double luminosity,
   }
 }
 
+/*!\brief Sets luminosity tag for all plots
+
+  \param[in] lumi_tag string to display for luminosity
+*/
+PlotMaker & PlotMaker::SetLuminosityTag(const string &lumi_tag) {
+  for(auto &figure: figures_){
+    figure->SetLuminosityTag(lumi_tag);
+  }
+  return *this;
+}
+
 const std::unique_ptr<Figure> & PlotMaker::GetFigure(std::string tag) const {
   for (unsigned figure_idx = 0; figure_idx < figures_.size(); figure_idx++) {
     std::string figure_tag = figures_[figure_idx]->GetTag();

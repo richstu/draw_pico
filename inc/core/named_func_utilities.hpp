@@ -30,6 +30,12 @@ namespace NamedFuncUtilities {
 
   //get the second highest value of a vector
   double reduce_sublead(std::vector<double> data);
+
+  //return value of second array (data[1]) corresponding to maximum of first array (data[0])
+  double reduce_maxfirst(std::vector<std::vector<double>> data);
+
+  //return value of second array (data[1]) corresponding to second highest value of first array (data[0])
+  double reduce_subleadfirst(std::vector<std::vector<double>> data);
 }
 
 #endif
