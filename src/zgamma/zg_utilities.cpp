@@ -266,6 +266,8 @@ namespace ZgUtilities {
     zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton",ZgFunctions::HLT_pass_dilepton);
     zg_sample_loader.LoadNamedFunc("stitch",ZgFunctions::stitch);
     zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton&&stitch",ZgFunctions::HLT_pass_dilepton&&ZgFunctions::stitch);
+    zg_sample_loader.LoadNamedFunc("(HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch",
+        (ZgFunctions::HLT_pass_dilepton||ZgFunctions::HLT_pass_singlelepton)&&ZgFunctions::stitch);
     zg_sample_loader.LoadPalette("txt/colors_zgamma.txt","default");
     return zg_sample_loader;
   }

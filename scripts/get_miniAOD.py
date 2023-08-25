@@ -19,8 +19,8 @@ def find_nanoaod_file(nanoaod_folder, run, event, log_file):
     #print(nanoaod_filename)
     #print(tree_nanoaod.GetEntries("run=="+str(run)+"&&event=="+str(event)))
     if (tree_nanoaod.GetEntries("run=="+str(run)+"&&event=="+str(event)) != 0):
-      print("  "+nanoaod_filename)
-      log_file.write("  "+nanoaod_filename+"\n")
+      print("  Found: "+nanoaod_filename)
+      log_file.write("  Found: "+nanoaod_filename+"\n")
       found_nanoaod.append(nanoaod_filename)
   return found_nanoaod
 
@@ -102,20 +102,31 @@ def get_miniaod(run, event, dataset, nanoaod_folder, pico_folder, pico_prefix, o
   log_file.write("[Info] Finding parent miniAOD files"+'\n')
   nanoaod_ucsbname = found_nanoaod
   nanoaod_ucsbname_split = nanoaod_ucsbname.split("/")[-1].split("__")
-  nanoaod_dasname = "/store/mc/"+nanoaod_ucsbname_split[1]+"/"+nanoaod_ucsbname_split[0]+"/NANOAODSIM/"+nanoaod_ucsbname_split[2]+"/"+nanoaod_ucsbname_split[3]+"/"+nanoaod_ucsbname_split[4]
+  #modified for data
+  nanoaod_dasname = "/store/data/"+nanoaod_ucsbname_split[1]+"/"+nanoaod_ucsbname_split[0]+"/NANOAOD/"+nanoaod_ucsbname_split[2]+"/"+nanoaod_ucsbname_split[3]+"/"+nanoaod_ucsbname_split[4]
+  if not ('Run' in nanoaod_ucsbname_split[1]):
+    nanoaod_dasname = "/store/mc/"+nanoaod_ucsbname_split[1]+"/"+nanoaod_ucsbname_split[0]+"/NANOAODSIM/"+nanoaod_ucsbname_split[2]+"/"+nanoaod_ucsbname_split[3]+"/"+nanoaod_ucsbname_split[4]
   #print(nanoaod_dasname)
   command = 'dasgoclient -query="parent file='+nanoaod_dasname+'"'
+  print('Running: '+command)
   miniaod_dasnames = subprocess.check_output(command, shell=True).split()
   print("[Info] Finding miniAOD with lumi")
   log_file.write("[Info] Finding miniAOD with lumi"+'\n')
   # Find miniAOD with lumi
   found_miniaods = []
   for miniaod_dasname in miniaod_dasnames:
+    #don't know if this can be done in MC, but it must be done in data to avoid wrong runs(?): skip if wrong run
+    #run_mini_string = str(run)[0:3]+'/'+str(run)[3:6]
+    #if not (run_mini_string in miniaod_dasname):
+    #  continue
     command = 'dasgoclient -query="lumi file='+miniaod_dasname+'" -json'
+    print('Running: '+command)
     result = subprocess.check_output(command, shell=True)
     result_dict = json.loads(result)
-    lumis = result_dict[0]['lumi'][0]['number']
-    if lumi in lumis:
+    #store listo of tuples [(lumiblock,run),(lumiblock,run),...]
+    lumis = [(result_dict[i]['lumi'][0]['number'],result_dict[i]['lumi'][0]['run_number']) for i in range(len(result_dict))]
+    print(lumis)
+    if (lumi,run) in lumis:
       print("  "+miniaod_dasname)
       log_file.write("  "+miniaod_dasname+'\n')
       found_miniaods.append(miniaod_dasname)
@@ -132,23 +143,29 @@ def get_miniaod(run, event, dataset, nanoaod_folder, pico_folder, pico_prefix, o
     return False
 
   print('')
-  #found_miniaods = ["/store/mc/RunIISummer16MiniAODv3/TTJets_DiLept_genMET-150_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_94X_mcRun2_asymptotic_v3-v2/80000/7C362B40-6BF0-E811-938D-AC1F6B0DE228.root"]
-  output_filename = dataset.replace("*","")+"_run"+str(run)+"_lumi"+str(lumi)+"_event"+str(event)+".root"
-  print("[Info] Running below commands to get event")
-  log_file.write("[Info] Running below commands to get event"+'\n')
-  edm_command = "edmCopyPickMerge inputFiles="+found_miniaods[0]+" eventsToProcess="+str(run)+":"+str(event)+" outputFile="+output_filename
-  #print("  "+edm_command)
-  print('')
-  #print('  ssh uaf-8;voms-proxy-init -voms cms -valid 168:0')
-  print('  ssh uaf-8 "source setCMSEnv &&'+edm_command+'" && scp uaf-8:'+output_filename+" "+output_filename+" && ssh uaf-8 rm "+output_filename)
-  log_file.write('  ssh uaf-8 "source setCMSEnv &&'+edm_command+'" && scp uaf-8:'+output_filename+" "+output_filename+" && ssh uaf-8 rm "+output_filename+'\n')
-  os.system('ssh uaf-8 "source setCMSEnv &&'+edm_command+'" && scp uaf-8:'+output_filename+" "+output_folder+" && ssh uaf-8 rm "+output_filename)
-  print('')
-  print("[Info] Running below commands to print decay tree")
-  log_file.write("[Info] Running below commands to print decay tree"+'\n')
-  print('  cmsRun scripts/cmssw_treedraw.py inputFiles=file:'+output_folder+"/"+output_filename+'>'+output_folder+'/decay_tree_'+output_filename.replace('.root','')+'.txt')
-  log_file.write('  cmsRun scripts/cmssw_treedraw.py inputFiles=file:'+output_folder+"/"+output_filename+'>'+output_folder+'/decay_tree_'+output_filename.replace('.root','')+'.txt'+'\n')
-  os.system('cmsRun scripts/cmssw_treedraw.py inputFiles=file:'+output_folder+"/"+output_filename+'>'+output_folder+'/decay_tree_'+output_filename.replace('.root','')+'.txt')
+
+  #get miniAOD -mo
+  command = 'xrdcp root://cms-xrd-global.cern.ch//'+found_miniaods[0]+' '+output_folder+'/'
+  print('running '+command)
+  os.system(command)
+  
+  #don't know what any of this is, but commenting it out -mo
+  ##found_miniaods = ["/store/mc/RunIISummer16MiniAODv3/TTJets_DiLept_genMET-150_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_94X_mcRun2_asymptotic_v3-v2/80000/7C362B40-6BF0-E811-938D-AC1F6B0DE228.root"]
+  #output_filename = dataset.replace("*","")+"_run"+str(run)+"_lumi"+str(lumi)+"_event"+str(event)+".root"
+  #print("[Info] Running below commands to get event")
+  #log_file.write("[Info] Running below commands to get event"+'\n')
+  #edm_command = "edmCopyPickMerge inputFiles="+found_miniaods[0]+" eventsToProcess="+str(run)+":"+str(event)+" outputFile="+output_filename
+  #print('')
+  ##print('  ssh uaf-8;voms-proxy-init -voms cms -valid 168:0')
+  #print('  ssh uaf-8 "source setCMSEnv &&'+edm_command+'" && scp uaf-8:'+output_filename+" "+output_filename+" && ssh uaf-8 rm "+output_filename)
+  #log_file.write('  ssh uaf-8 "source setCMSEnv &&'+edm_command+'" && scp uaf-8:'+output_filename+" "+output_filename+" && ssh uaf-8 rm "+output_filename+'\n')
+  #os.system('ssh uaf-8 "source setCMSEnv &&'+edm_command+'" && scp uaf-8:'+output_filename+" "+output_folder+" && ssh uaf-8 rm "+output_filename)
+  #print('')
+  #print("[Info] Running below commands to print decay tree")
+  #log_file.write("[Info] Running below commands to print decay tree"+'\n')
+  #print('  cmsRun scripts/cmssw_treedraw.py inputFiles=file:'+output_folder+"/"+output_filename+'>'+output_folder+'/decay_tree_'+output_filename.replace('.root','')+'.txt')
+  #log_file.write('  cmsRun scripts/cmssw_treedraw.py inputFiles=file:'+output_folder+"/"+output_filename+'>'+output_folder+'/decay_tree_'+output_filename.replace('.root','')+'.txt'+'\n')
+  #os.system('cmsRun scripts/cmssw_treedraw.py inputFiles=file:'+output_folder+"/"+output_filename+'>'+output_folder+'/decay_tree_'+output_filename.replace('.root','')+'.txt')
   return True
 
 
@@ -167,8 +184,8 @@ Use either -r and -e or -el.
   parser.add_argument('dataset', help='Datset name the event is in.')
   parser.add_argument('-e', '--run_event', help='Run and event number. Should written like "1:2,1:4,1:10", where first number is run')
   parser.add_argument('-el', '--eventlist', help='An alternative method to specify run and event number using a file. The file content should be like below.\n run event\n 1 2\n 1 4\n1 10')
-  parser.add_argument('-n', '--nanoaod_folder', default='/net/cms29/cms29r0/pico/NanoAODv5/nano/2016/mc', help='Folder that has nanoaod files. Used to identify the lumiblock number')
-  parser.add_argument('-p', '--pico_folder', default='/net/cms29/cms29r0/pico/NanoAODv5/higgsino_eldorado/2016/mc/skim_met150', help="Use 'none' if searching only with nanoaod")
+  parser.add_argument('-n', '--nanoaod_folder', default='/net/cms17/cms17r0/pico/NanoAODv9/nano/2018/data/', help='Folder that has nanoaod files. Used to identify the lumiblock number')
+  parser.add_argument('-p', '--pico_folder', default='/net/cms25/cms25r0/pico/NanoAODv7/higgsino_klamath_v3/2018/data/skim_met150/', help="Use 'none' if searching only with nanoaod")
   parser.add_argument('-pp', '--pico_prefix', default='pico_met150_', help='The prefix that is applied to the pico files. Used to find the dataset name.')
   parser.add_argument('-o', '--output_folder', default='./miniaod', help='Folder that will containt the output miniAOD.')
   args = parser.parse_args()

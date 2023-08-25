@@ -225,12 +225,14 @@ std::vector<float> photon_eta
 std::vector<float> photon_phi
 std::vector<float> photon_reliso
 std::vector<float> photon_r9
+std::vector<float> photon_sieie
 std::vector<float> photon_hoe
 std::vector<float> photon_pterr
 std::vector<float> photon_drmin
 std::vector<float> photon_idmva
 std::vector<int>   photon_pflavor
 std::vector<bool>  photon_id
+std::vector<bool>  photon_id80
 std::vector<bool>  photon_elveto
 std::vector<bool>  photon_sig
 

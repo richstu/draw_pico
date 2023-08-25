@@ -630,6 +630,18 @@ int main() {
 
   const NamedFunc tighter_baseline = NamedFunc(zg_baseline&&"photon_idmva[0]>0.5&&ll_m[0]>80&&ll_m[0]<100").Name("new_baseline");
 
+  //fix weight for Zgamma sample
+  const NamedFunc w_ewkzgamma("w_ewkzgamma",[](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.FirstFileName().find("ZGamma2JToGamma2L2J_EWK") != std::string::npos) {
+      float xs = 0.1145*1000.0; //fb
+      float year_nevts = 230000.0; //2016
+      if (abs(b.SampleType())==2016) year_nevts = 500000.0;
+      if (abs(b.SampleType())==2017) year_nevts = 498000.0;
+      return xs/year_nevts;
+    }
+    return b.w_lumi();
+  });
+
   //NamedFuncs
   
   //NamedFunc mc_higgs_pt("mc_higgs_pt",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -1017,6 +1029,7 @@ int main() {
   bool plot_vh_hadronic = false;
   bool plot_vbf = false;
   bool plot_yield_tables = true;
+  bool plot_mllgs = false;
 
   MVAWrapper tthlep_bdt_reader("tthlep_bdt");
   NamedFunc tthlep_bdt_score = 1.0;
@@ -1026,6 +1039,8 @@ int main() {
   NamedFunc vhlep_bdt_score = 1.0;
   MVAWrapper vhmet_bdt_reader("vhmet_bdt");
   NamedFunc vhmet_bdt_score = 1.0;
+  MVAWrapper kin_bdt_reader("kinematic_bdt");
+  NamedFunc kin_bdt_score = 1.0;
   if (plot_tth_leptonic) {
     tthlep_bdt_reader.SetVariable("photon_mva","photon_idmva[0]");
     tthlep_bdt_reader.SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
@@ -1090,6 +1105,21 @@ int main() {
     vhmet_bdt_reader.SetVariable("nlep_f","nlep");
     vhmet_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_vhmet_bdt_BDT.weights.xml");
     vhmet_bdt_score = vhmet_bdt_reader.GetDiscriminant();
+  }
+  if (plot_mllgs) {
+    kin_bdt_reader.SetVariable("photon_mva","photon_idmva[0]");
+    kin_bdt_reader.SetVariable("min_dR","photon_drmin[0]");
+    kin_bdt_reader.SetVariable("max_dR",photon_drmax);
+    kin_bdt_reader.SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
+    kin_bdt_reader.SetVariable("cosTheta","llphoton_cosTheta[0]");
+    kin_bdt_reader.SetVariable("costheta","llphoton_costheta[0]");
+    kin_bdt_reader.SetVariable("phi","llphoton_psi[0]");
+    kin_bdt_reader.SetVariable("photon_res","photon_pterr[0]/photon_pt[0]");
+    kin_bdt_reader.SetVariable("photon_rapidity","photon_eta[0]");
+    kin_bdt_reader.SetVariable("l1_rapidity",lead_lepton_eta);
+    kin_bdt_reader.SetVariable("l2_rapidity",sublead_lepton_eta);
+    kin_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_kinbdt_masscut_idmvacut_run2_BDT.weights.xml");
+    kin_bdt_score = kin_bdt_reader.GetDiscriminant();
   }
   
   //------------------------------------------------------------------------------------
@@ -1468,29 +1498,105 @@ int main() {
     pm.Push<Table>("mc_table", vector<TableRow>{
       TableRow("ttH leptonic selection weighted", 
           tighter_baseline&&"nlep>=3&&nbdfl>=1&&njet>=2"&&((("ht>=200||njet>=4"||llphoton_rel_pt>1.0)&&min_lep_id>=2.0&&max_lep_miniso<0.15&&min_lep_pt>12.0)||("nlep>=4&&ht>120"&&max_lep_miniso<0.2))&&"llphoton_m[0]>100&&llphoton_m[0]<150",
-          0,0,"w_lumi"*w_years),
+          0,0,w_ewkzgamma*w_years),
       TableRow("ttH leptonic selection unweighted", 
           tighter_baseline&&"nlep>=3&&nbdfl>=1&&njet>=2"&&((("ht>=200||njet>=4"||llphoton_rel_pt>1.0)&&min_lep_id>=2.0&&max_lep_miniso<0.15&&min_lep_pt>12.0)||("nlep>=4&&ht>120"&&max_lep_miniso<0.2))&&"llphoton_m[0]>100&&llphoton_m[0]<150",
           0,0,"1"),
       TableRow("ttH hadronic selection weighted", 
           tighter_baseline&&"nlep==2&&nbdfm>=1&&njet>=5&&photon_drmin[0]<1.2&&met<120"&&"llphoton_m[0]>100&&llphoton_m[0]<150", 
-          0,0,"w_lumi"*w_years),
+          0,0,w_ewkzgamma*w_years),
       TableRow("ttH hadronic selection unweighted", 
           tighter_baseline&&"nlep==2&&nbdfm>=1&&njet>=5&&photon_drmin[0]<1.2&&met<120"&&"llphoton_m[0]>100&&llphoton_m[0]<150", 
           0,0,"1"),
       TableRow("VH leptonic selection weighted", 
           tighter_baseline&&"nlep>=3&&nbdfl==0&&photon_drmin[0]<1.5"&&min_lep_pt>12.0&&min_lep_id>=2.0&&max_lep_miniso<0.2&&("met>30"||assoc_lep_mt>50)&&"llphoton_m[0]>100&&llphoton_m[0]<150", 
-          0,0,"w_lumi"*w_years),
+          0,0,w_ewkzgamma*w_years),
       TableRow("VH leptonic selection unweighted", 
           tighter_baseline&&"nlep>=3&&nbdfl==0&&photon_drmin[0]<1.5"&&min_lep_pt>12.0&&min_lep_id>=2.0&&max_lep_miniso<0.2&&("met>30"||assoc_lep_mt>50)&&"llphoton_m[0]>100&&llphoton_m[0]<150", 
           0,0,"1"),
       TableRow("VH MET selection weighted", 
           tighter_baseline&&"nlep==2&&nbdfm==0&&met>95&&photon_idmva[0]>0.55&&photon_drmin[0]<1.5"&&llphoton_rel_pt>0.7&&dphi_h_met>1.5&&"llphoton_m[0]>100&&llphoton_m[0]<150",
-          0,0,"w_lumi"*w_years),
+          0,0,w_ewkzgamma*w_years),
       TableRow("VH MET selection unweighted", 
           tighter_baseline&&"nlep==2&&nbdfm==0&&met>95&&photon_idmva[0]>0.55&&photon_drmin[0]<1.5"&&llphoton_rel_pt>0.7&&dphi_h_met>1.5&&"llphoton_m[0]>100&&llphoton_m[0]<150",
           0,0,"1"),
+      TableRow("Simple VBF selection weighted", 
+          tighter_baseline&&"nlep==2&&nbdfm==0&&met<95&&dijet_m>750&&llphoton_m[0]>100&&llphoton_m[0]<150",
+          0,0,w_ewkzgamma*w_years),
+      TableRow("Simple VBF selection unweighted", 
+          tighter_baseline&&"nlep==2&&nbdfm==0&&met<95&&dijet_m>750&&llphoton_m[0]>100&&llphoton_m[0]<150",
+          0,0,"1"),
+      TableRow("Simple ggF selection weighted", 
+          tighter_baseline&&"nlep==2&&nbdfm==0&&met<95&&dijet_m<750&&llphoton_m[0]>100&&llphoton_m[0]<150",
+          0,0,w_ewkzgamma*w_years),
+      TableRow("Simple ggF selection unweighted", 
+          tighter_baseline&&"nlep==2&&nbdfm==0&&met<95&&dijet_m<750&&llphoton_m[0]>100&&llphoton_m[0]<150",
+          0,0,"1"),
+      TableRow("\\hline Baseline selection", 
+          tighter_baseline,
+          0,0,w_ewkzgamma*w_years),
+      TableRow("Baseline selection unweighted", 
+          tighter_baseline,
+          0,0,"1"),
     },procs_split,false,true,false,false,false,true).Precision(3);
+  }
+
+  if (plot_mllgs) {
+    pm.multithreaded_ = false;
+    //tth leptonic
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep>=3&&nbdfl>=1&&njet>=2"&&((("ht>=200||njet>=4"||llphoton_rel_pt>1.0)&&min_lep_id>=2.0&&max_lep_miniso<0.15&&min_lep_pt>12.0)||("nlep>=4&&ht>120"&&max_lep_miniso<0.2)), 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    //tth hadronic
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm>=1&&njet>=5&&photon_drmin[0]<1.2&&met<120", 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    //vh 4l
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==4&&nbdfl==0"&&min_lep_pt>12.0&&min_lep_id>=2.0&&max_lep_miniso<0.2, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    //vh 3l
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==3&&nbdfl==0&&photon_drmin[0]<1.5"&&min_lep_pt>12.0&&min_lep_id>=2.0&&max_lep_miniso<0.2&&("met>30"||assoc_lep_mt>50), 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    //vh met
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm==0&&met>95&&photon_idmva[0]>0.55&&photon_drmin[0]<1.5"&&llphoton_rel_pt>0.7&&dphi_h_met>1.5, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    //vh/bbh 2b
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&njet<=4&&nbdfl>=2&&nbdfm>=1&&met<95", 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    //vbf categories
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm==0&&nbdfl<2&&met<95&&dijet_m>=750"
+        &&kin_bdt_score<0.16, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm==0&&nbdfl<2&&met<95&&dijet_m>=750"
+        &&kin_bdt_score>0.16&&kin_bdt_score<0.42, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm==0&&nbdfl<2&&met<95&&dijet_m>=750"
+        &&kin_bdt_score>0.42, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    //ggf categories
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm==0&&nbdfl<2&&met<95&&dijet_m<750"
+        &&kin_bdt_score<-0.12, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm==0&&nbdfl<2&&met<95&&dijet_m<750"
+        &&kin_bdt_score>-0.12&&kin_bdt_score<0.1, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm==0&&nbdfl<2&&met<95&&dijet_m<750"
+        &&kin_bdt_score>0.1&&kin_bdt_score<0.36, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(15,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"nlep==2&&nbdfm==0&&nbdfl<2&&met<95&&dijet_m<750"
+        &&kin_bdt_score>0.36, 
+        procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
   }
 
   pm.min_print_ = true;

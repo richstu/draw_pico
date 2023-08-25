@@ -69,9 +69,31 @@ int main(){
   kin_bdt_reader.SetVariable("l1_rapidity",lead_lepton_eta);
   kin_bdt_reader.SetVariable("l2_rapidity",sublead_lepton_eta);
   //kin_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_kinbdt_masscut_idmvacut_run2_BDT.weights.xml");
-  kin_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_kinbdt_masscut_idmvacut_run2_BDT.weights.xml");
+  kin_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_kinbdt_masscut_run2_BDT.weights.xml");
   //kin_bdt_reader.BookMVA("/homes/abarzdukas/ZGamma/MVA_Training/IDMVA_Training/test/dataset/weights/TMVAClassification_TightIDMVA_mll_lDR_mreW_BDTG.weights.xml");
   NamedFunc bdt_score = kin_bdt_reader.GetDiscriminant();
+
+  MVAWrapper ph_bdt_reader("photon_bdt");
+  ph_bdt_reader.SetVariable("photon_ptransverse","photon_pt[0]");
+  ph_bdt_reader.SetVariable("photon_rapidity","photon_eta[0]");
+  ph_bdt_reader.SetVariable("ph_irel","photon_reliso[0]");
+  ph_bdt_reader.SetVariable("ph_r9","photon_r9[0]");
+  ph_bdt_reader.SetVariable("ph_sieie","photon_sieie[0]");
+  ph_bdt_reader.SetVariable("ph_hoe","photon_hoe[0]");
+  ph_bdt_reader.SetVariable("photon_mva","photon_idmva[0]");
+  ph_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phtree_ph_BDT.weights.xml");
+  NamedFunc ph_bdt_score = ph_bdt_reader.GetDiscriminant();
+
+  MVAWrapper ph_kin_bdt_reader("photon_kinematic_bdt");
+  ph_kin_bdt_reader.SetVariable("photon_newmva",ph_bdt_score);
+  ph_kin_bdt_reader.SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
+  ph_kin_bdt_reader.SetVariable("min_dR","photon_drmin[0]");
+  ph_kin_bdt_reader.SetVariable("max_dR",photon_drmax);
+  ph_kin_bdt_reader.SetVariable("cosTheta","llphoton_cosTheta[0]");
+  ph_kin_bdt_reader.SetVariable("costheta","llphoton_costheta[0]");
+  ph_kin_bdt_reader.SetVariable("phi","llphoton_psi[0]");
+  ph_kin_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phtree_bdt_comb_BDT.weights.xml");
+  NamedFunc phkin_bdt_score = ph_kin_bdt_reader.GetDiscriminant();
 
   //------------------------------------------------------------------------------------
   //                                    initialization
@@ -125,37 +147,40 @@ int main(){
   //                                   plots and tables
   //------------------------------------------------------------------------------------
   
-  std::string version_num_str = "9";
-  int nbins = 1;
+  std::string version_num_str = "10";
+  int nbins = 4;
   
   PlotMaker pm;
 
   //BDT discriminant
-  pm.Push<Hist1D>(Axis(120, -1.1, 1.1, bdt_score, "BDT Discriminant", {}),
-        zg_baseline&&"photon_idmva[0]>0.5",
-        procs, ops_shapes).Weight(weight).Tag("FixName:zgdatacard_bdt_ver"+version_num_str);
-  pm.Push<Hist2D>(Axis(20, 100.0, 160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-        Axis(120, -1.1, 1.1, bdt_score, "BDT Discriminant", {}),
-        zg_baseline&&"photon_idmva[0]>0.5",
-        procs_bak, ops_2d).Weight(weight).Tag("FixName:zgdatacard_bdt_mll_corr_ver"+version_num_str);
+  //pm.Push<Hist1D>(Axis(120, -1.1, 1.1, bdt_score, "BDT Discriminant", {}),
+  //      zg_baseline&&"photon_idmva[0]>0.5",
+  //      procs, ops_shapes).Weight(weight).Tag("FixName:zgdatacard_bdt_ver"+version_num_str);
+  //pm.Push<Hist2D>(Axis(20, 100.0, 160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
+  //      Axis(120, -1.1, 1.1, bdt_score, "BDT Discriminant", {}),
+  //      zg_baseline&&"photon_idmva[0]>0.5",
+  //      procs_bak, ops_2d).Weight(weight).Tag("FixName:zgdatacard_bdt_mll_corr_ver"+version_num_str);
   //histograms for datacard
+  //pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
+  //      NamedFunc(zg_baseline&&"photon_idmva[0]>0.5").Name("modified_baseline"),
+  //      //zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score<-0.12,
+  //      procs_nodata, ops_nobottom).Weight(weight).Tag("FixName:zgdatacardhist_thesis_ver"+version_num_str);
+  //pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
+  //      zg_baseline&&"photon_idmva[0]>0.5",
+  //      //zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score<-0.12,
+  //      procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin0_ver"+version_num_str);
   pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-        NamedFunc(zg_baseline&&"photon_idmva[0]>0.5").Name("modified_baseline"),
-        //zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score<-0.12,
-        procs_nodata, ops_nobottom).Weight(weight).Tag("FixName:zgdatacardhist_thesis_ver"+version_num_str);
-  pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-        zg_baseline&&"photon_idmva[0]>0.5",
-        //zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score<-0.12,
+        zg_baseline&&bdt_score<0.02,
         procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin0_ver"+version_num_str);
-  //pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-  //      zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score>-0.12&&bdt_score<0.1,
-  //      procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin1_ver"+version_num_str);
-  //pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-  //      zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score>0.1&&bdt_score<0.36,
-  //      procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin2_ver"+version_num_str);
-  //pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-  //      zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score>0.36,
-  //      procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin3_ver"+version_num_str);
+  pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
+        zg_baseline&&ggf_only&&bdt_score>0.02&&bdt_score<0.28,
+        procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin1_ver"+version_num_str);
+  pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
+        zg_baseline&&ggf_only&&bdt_score>0.28&&bdt_score<0.52,
+        procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin2_ver"+version_num_str);
+  pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
+        zg_baseline&&ggf_only&&bdt_score>0.52,
+        procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin3_ver"+version_num_str);
   
   pm.multithreaded_ = false; //BDTs only handle single threads
   pm.min_print_ = true;
@@ -189,6 +214,7 @@ int main(){
   }
   out_file->Write();
 
+  std::cout << "Writing datacard out" << std::endl;
   ofstream datacard_file;
   datacard_file.open(("test_datacard_ver"+version_num_str+".txt").c_str(),ios::out);
   datacard_file << "max  1  number of categories\n";
