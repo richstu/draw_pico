@@ -48,6 +48,7 @@
 #include "RooHistPdf.h"
 #include "RooRealVar.h"
 #include "RooWorkspace.h"
+#include "RooCategory.h"
 #include "TFile.h"
 #include "TH1.h"
 
@@ -305,13 +306,25 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
       else {
         unsigned iproc_eff = iproc-datacard_process_.size();
         std::string proc_name = param_process_name_[iproc_eff];
-        std::string pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan];
-        RooRealVar norm((pdf_name+"_norm").c_str(),"",data_norm[ichan],
-            0,3.0*data_norm[ichan]);
-        RooWorkspace ws(("WS_"+proc_name+"_"+channel_name_[ichan]).c_str());
-        ws.import(*param_process_[iproc_eff][ichan]);
-        ws.import(norm);
-        ws.Write();
+        if (!param_process_profile_dec[iproc_eff]){
+          std::string pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan];
+          RooRealVar norm((pdf_name+"_norm").c_str(),"",data_norm[ichan],
+              0,3.0*data_norm[ichan]);
+          RooWorkspace ws(("WS_"+proc_name+"_"+channel_name_[ichan]).c_str());
+          ws.import(*param_process_[iproc_eff][ichan]);
+          ws.import(norm);
+          ws.Write();
+        }
+        else{
+          std::string profile_name = "profile_"+proc_name+"_"+channel_name_[ichan];
+          RooRealVar norm((profile_name+"_norm").c_str(),"",data_norm[ichan],
+              0,3.0*data_norm[ichan]);
+          RooWorkspace ws(("WS_"+proc_name+"_"+channel_name_[ichan]).c_str());
+          ws.import(param_profile_process_[iproc_eff][ichan]);
+          ws.import(param_profile_ind_process_[iproc_eff][ichan]);
+          ws.import(norm);
+          ws.Write();
+        }
       }
     }
   }
@@ -341,12 +354,22 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
       }
       else {
         unsigned iproc_eff = iproc-datacard_process_.size();
-        datacard_file << "shapes " << std::left << std::setw(19)
+        if (!param_process_profile_dec[iproc_eff]){
+            datacard_file << "shapes " << std::left << std::setw(19)
             << param_process_name_[iproc_eff] << std::left << std::setw(19) 
             << channel_name_[ichan] << name_+".root " 
             << "WS_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
             << ":pdf_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
             << "\n";
+        }
+        else {
+          datacard_file << "shapes " << std::left << std::setw(19)
+          << param_process_name_[iproc_eff] << std::left << std::setw(19) 
+          << channel_name_[ichan] << name_+".root " 
+          << "WS_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
+          << ":profile_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
+          << "\n";
+        }
       }
     }
   }
@@ -449,8 +472,9 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
           float ratio = datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral()/
               datacard_process_[iproc]->raw_histogram_sys_[ichan][isyst].Integral();
           if (ratio < 1) ratio = 1.0/ratio;
-          datacard_file << std::left << std::setw(19) << ratio;
-          //TODO make a way to make 1.0 systematics just be -
+
+          else if (ratio == 1.) datacard_file << std::left << std::setw(19) << "-";//TODO make a way to make 1.0 systematics just be -
+          else datacard_file << std::left << std::setw(19) << ratio;
         }
         else {
           datacard_file << std::left << std::setw(19) << "-";
@@ -460,6 +484,20 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
     datacard_file << "\n";
   }
   //no params yets
+
+  //Discrete profile indices
+  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+      if (iproc >= datacard_process_.size()) {
+        unsigned iproc_eff = iproc-datacard_process_.size();
+        if (param_process_profile_dec[iproc_eff]) {
+          datacard_file << std::left << std::setw(19) << "pdfindex_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
+          << "\n";
+        }
+      }
+    }
+  }
+
   datacard_file.close();
   std::cout << "open datacards/"+subdir_mod+name_+".txt" << std::endl;
 }
@@ -469,16 +507,47 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   \param[in] pdf    PDF for process
 */
 Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<RooAbsPdf*> &pdf) {
-  if (pdf.size() != n_channels_) 
-    throw std::invalid_argument(("Insufficient PDFs for parametric process "+name).c_str());
-  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    if (pdf[ichan]->GetName() != "pdf_"+name+"_"+channel_name_[ichan]) {
+  bool discrete_Profile = false;
+  std::vector<RooMultiPdf> cha_profiles;
+  std::vector<RooCategory> cha_profile_ind;
+  std::vector<RooAbsPdf*> dummy_pdf;
+  if (pdf.size() < n_channels_) {
+    throw std::invalid_argument(("Insufficient PDFs for parametric process "+name).c_str());}
+  for (unsigned ichan = 0; ichan < n_channels_; ichan++){
+    int num_pdf = 0;
+    for (unsigned ipdf = 0; ipdf < pdf.size(); ipdf++){
+      if (pdf[ichan]->GetName() != "pdf_"+name+"_"+channel_name_[ichan]) {
       throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
     }
+      if (pdf[ipdf]->GetName() == "pdf_"+name+"_"+channel_name_[ichan]) num_pdf++;
+    }
+    if (ichan > 0 && !discrete_Profile && num_pdf > 1){
+      throw std::invalid_argument("For process "+name+", some channels use discrete profile, some not! Please be consistent!");
+    }
+    
+    if (num_pdf == 1) discrete_Profile = false;
+    else if (num_pdf > 1) {
+      discrete_Profile = true;
+      RooCategory pdfindex(("pdfindex_" + name + channel_name_[ichan]).c_str(), ("pdfindex_" + name + channel_name_[ichan]).c_str());
+      auto models = RooArgList();
+      for (unsigned ipdf = 0; ipdf < pdf.size(); ipdf++){
+        if (pdf[ipdf]->GetName() == "pdf_"+name+"_"+channel_name_[ichan]) models.add(pdf[ipdf]);
+      }
+      RooMultiPdf profile(("profile_" + name + channel_name_[ichan]).c_str(), ("profile_" + name + channel_name_[ichan]).c_str(), pdfindex, models);
+      cha_profiles.push_back(profile);
+      cha_profile_ind.push_back(pdfindex);
+    }
   }
+
   n_processes_++;
   param_process_name_.push_back(name);
-  param_process_.push_back(pdf);
+  param_profile_process_.push_back(cha_profiles);
+  param_profile_ind_process_.push_back(cha_profile_ind);
+  param_process_profile_dec.push_back(discrete_profile);
+
+  if (!discrete_profile)  param_process_.push_back(pdf);
+  else param_process_.push_back(dummy_pdf);
+
   return *this;
 }
 

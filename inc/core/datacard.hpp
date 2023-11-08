@@ -113,7 +113,11 @@ public:
   std::vector<std::vector<NamedFunc>> systematic_weight_;
   std::vector<std::unique_ptr<DatacardProcess>> datacard_process_;
   std::vector<std::string> param_process_name_;
+  std::vector<bool> param_process_profile_dec;
   std::vector<std::vector<RooAbsPdf*>> param_process_;
+  std::vector<std::vector<RooMultiPdf>> param_profile_process_;
+  std::vector<std::vector<RooCategory>> param_profile_ind_process_;
+
 
 private:
 
