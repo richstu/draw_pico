@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "RooAbsPdf.h"
+#include "RooMultiPdf.h"
 #include "TH1.h"
 
 #include "core/axis.hpp"

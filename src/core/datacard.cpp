@@ -51,6 +51,7 @@
 #include "RooCategory.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "RooMultiPdf.h"
 
 #include "core/axis.hpp"
 #include "core/baby.hpp"
