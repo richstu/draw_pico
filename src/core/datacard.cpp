@@ -308,7 +308,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
         unsigned iproc_eff = iproc-datacard_process_.size();
         std::string proc_name = param_process_name_[iproc_eff];
         if (!param_process_profile_dec[iproc_eff]){
-          std::string pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan];
+          std::string pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan] + "_" + param_func_name_[iproc_eff][ichan];
           RooRealVar norm((pdf_name+"_norm").c_str(),"",data_norm[ichan],
               0,3.0*data_norm[ichan]);
           RooWorkspace ws(("WS_"+proc_name+"_"+channel_name_[ichan]).c_str());
@@ -360,7 +360,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
             << param_process_name_[iproc_eff] << std::left << std::setw(19) 
             << channel_name_[ichan] << name_+".root " 
             << "WS_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
-            << ":pdf_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
+            << ":pdf_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan]+"_"+param_func_name_[iproc_eff][ichan]
             << "\n";
         }
         else {
@@ -511,28 +511,35 @@ Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<Ro
   bool discrete_Profile = false;
   std::vector<RooMultiPdf> cha_profiles;
   std::vector<RooCategory> cha_profile_ind;
+  std::vector<std::string> cha_func_name;
   std::vector<RooAbsPdf*> dummy_pdf;
   if (pdf.size() < n_channels_) {
     throw std::invalid_argument(("Insufficient PDFs for parametric process "+name).c_str());}
   for (unsigned ichan = 0; ichan < n_channels_; ichan++){
     int num_pdf = 0;
     for (unsigned ipdf = 0; ipdf < pdf.size(); ipdf++){
-      if (pdf[ichan]->GetName() != "pdf_"+name+"_"+channel_name_[ichan]) {
-      throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
-    }
-      if (pdf[ipdf]->GetName() == "pdf_"+name+"_"+channel_name_[ichan]) num_pdf++;
+      std::string pdf_name = pdf[ipdf]->GetName();
+      std::string func_name = pdf_name.substr(pdf_name.size()-4, 4);
+      pdf_name[pdf_name.size() - 5] = '\0';
+
+      if (pdf_name == "pdf_"+name+"_"+channel_name_[ichan]) num_pdf++;
+      if (num_pdf == 0)
+        throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
     }
     if (ichan > 0 && !discrete_Profile && num_pdf > 1){
       throw std::invalid_argument("For process "+name+", some channels use discrete profile, some not! Please be consistent!");
     }
     
-    if (num_pdf == 1) discrete_Profile = false;
+    if (num_pdf == 1) {
+      discrete_Profile = false;
+      cha_func_name.push_back(func_name);
+    }
     else if (num_pdf > 1) {
       discrete_Profile = true;
       RooCategory pdfindex(("pdfindex_" + name + channel_name_[ichan]).c_str(), ("pdfindex_" + name + channel_name_[ichan]).c_str());
       auto models = RooArgList();
       for (unsigned ipdf = 0; ipdf < pdf.size(); ipdf++){
-        if (pdf[ipdf]->GetName() == "pdf_"+name+"_"+channel_name_[ichan]) models.add(pdf[ipdf]);
+        if (pdf_name == "pdf_"+name+"_"+channel_name_[ichan]) models.add(pdf[ipdf]);
       }
       RooMultiPdf profile(("profile_" + name + channel_name_[ichan]).c_str(), ("profile_" + name + channel_name_[ichan]).c_str(), pdfindex, models);
       cha_profiles.push_back(profile);
@@ -541,9 +548,11 @@ Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<Ro
   }
 
   n_processes_++;
+
   param_process_name_.push_back(name);
   param_profile_process_.push_back(cha_profiles);
   param_profile_ind_process_.push_back(cha_profile_ind);
+  param_func_name_.push_back(cha_func_name);
   param_process_profile_dec.push_back(discrete_profile);
 
   if (!discrete_profile)  param_process_.push_back(pdf);
