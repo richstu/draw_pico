@@ -36,12 +36,14 @@
 #include "core/plot_opt.hpp"
 #include "core/process.hpp"
 #include "core/table.hpp"
+#include "core/table_row.hpp"
 #include "core/utilities.hpp"
 #include "zgamma/apply_zg_trigeffs.hpp"
 #include "zgamma/zg_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
 
 using NamedFuncUtilities::FilterNamedFunc;
+using NamedFuncUtilities::MapNamedFunc;
 using NamedFuncUtilities::MultiReduceNamedFunc;
 using NamedFuncUtilities::ReduceNamedFunc;
 using NamedFuncUtilities::reduce_max;
@@ -59,15 +61,26 @@ using std::shared_ptr;
 using std::string;
 using std::vector;
 using ZgFunctions::w_years;
+using ZgFunctions::mc_mommom;
+using ZgFunctions::mc_isFirstCopy;
+using ZgFunctions::lead_el_pt;
+using ZgFunctions::sublead_el_pt;
+using ZgFunctions::lead_mu_pt;
+using ZgFunctions::sublead_mu_pt;
+
+double map_abs(double x) {
+  if (x>0) return x;
+  return -1.0*x;
+}
 
 int main(){
   //------------------------------------------------------------------------------------
   //                                   NamedFuncs
   //------------------------------------------------------------------------------------
   
-  NamedFunc w_sigx20("w_sigx20",[](const Baby &b) -> NamedFunc::ScalarType{
+  NamedFunc w_sigx50("w_sigx50",[](const Baby &b) -> NamedFunc::ScalarType{
     if(b.type() >= 200000 && b.type() <= 205000)
-      return 20.0;
+      return 50.0;
     return 1.0;
   });
 
@@ -82,16 +95,44 @@ int main(){
     return b.w_lumi();
   });
 
-  const NamedFunc mc_mu_pt = FilterNamedFunc("mc_pt","mc_id==13||mc_id==-13");
-  const NamedFunc mc_el_pt = FilterNamedFunc("mc_pt","mc_id==11||mc_id==-11");
-  const NamedFunc mc_photon_pt = FilterNamedFunc("mc_pt","mc_id==22");
-  const NamedFunc mc_mu_eta = FilterNamedFunc("mc_eta","mc_id==13||mc_id==-13");
-  const NamedFunc mc_el_eta = FilterNamedFunc("mc_eta","mc_id==11||mc_id==-11");
-  const NamedFunc mc_photon_eta = FilterNamedFunc("mc_eta","mc_id==22");
+  const NamedFunc year("year", [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString()=="2016APV"||
+        b.SampleTypeString()=="-2016APV")
+      return 2016;
+    else if (b.SampleTypeString()=="2016"||
+        b.SampleTypeString()=="-2016")
+      return 2016.5;
+    else if (b.SampleTypeString()=="2017"||
+        b.SampleTypeString()=="-2017")
+      return 2017;
+    else if (b.SampleTypeString()=="2018"||
+        b.SampleTypeString()=="-2018")
+      return 2018;
+    else if (b.SampleTypeString()=="2022"||
+        b.SampleTypeString()=="-2022")
+      return 2022;
+    else if (b.SampleTypeString()=="2022EE"||
+        b.SampleTypeString()=="-2022EE")
+      return 2022.5;
+    else if (b.SampleTypeString()=="2023"||
+        b.SampleTypeString()=="-2023")
+      return 2023;
+    //else if (b.SampleTypeString()=="2023BPix"||
+    //    b.SampleTypeString()=="-2023BPix")
+      return 2023.5;
+  });
 
-  const NamedFunc nmc_mu = ReduceNamedFunc("mc_id==13||mc_id==-13", reduce_sum).Name("nmc_mu");
-  const NamedFunc nmc_el = ReduceNamedFunc("mc_id==11||mc_id==-11", reduce_sum).Name("nmc_el");
-  const NamedFunc nmc_photon = ReduceNamedFunc("mc_id==22", reduce_sum).Name("nmc_photon");
+  const NamedFunc mc_mu_pt = FilterNamedFunc("mc_pt","(mc_id==13||mc_id==-13)"&&mc_isFirstCopy);
+  const NamedFunc mc_el_pt = FilterNamedFunc("mc_pt","(mc_id==11||mc_id==-11)"&&mc_isFirstCopy);
+  const NamedFunc mc_photon_pt = FilterNamedFunc("mc_pt","mc_id==22"&&mc_isFirstCopy);
+  const NamedFunc mc_mu_eta = FilterNamedFunc("mc_eta","(mc_id==13||mc_id==-13)"&&mc_isFirstCopy);
+  const NamedFunc mc_el_eta = FilterNamedFunc("mc_eta","(mc_id==11||mc_id==-11)"&&mc_isFirstCopy);
+  const NamedFunc mc_photon_eta = FilterNamedFunc("mc_eta","mc_id==22"&&mc_isFirstCopy);
+
+  const NamedFunc nmc_mu = ReduceNamedFunc("(mc_id==13||mc_id==-13)"&&mc_isFirstCopy, reduce_sum).Name("nmc_mu");
+  const NamedFunc nmc_el = ReduceNamedFunc("(mc_id==11||mc_id==-11)"&&mc_isFirstCopy, reduce_sum).Name("nmc_el");
+  const NamedFunc nmc_lep = nmc_mu+nmc_el;
+  const NamedFunc nmc_photon = ReduceNamedFunc("mc_id==22"&&mc_isFirstCopy, reduce_sum).Name("nmc_photon");
 
   const NamedFunc mc_lead_mu_pt = ReduceNamedFunc(mc_mu_pt, reduce_max)
       .Name("mc_lead_mu_pt");
@@ -114,6 +155,22 @@ int main(){
       {mc_el_pt, mc_el_eta}, reduce_subleadfirst).Name("mc_sublead_el_eta");
   const NamedFunc mc_lead_photon_eta = MultiReduceNamedFunc(
       {mc_photon_pt, mc_photon_eta}, reduce_maxfirst).Name("mc_lead_photon_eta");
+
+  const NamedFunc has_z_to_mumu = ReduceNamedFunc("(mc_id==13||mc_id==-13)&&mc_mom==23"&&mc_mommom==25,
+      reduce_max).Name("has_z_to_mumu");
+  const NamedFunc has_z_to_ee = ReduceNamedFunc("(mc_id==11||mc_id==-11)&&mc_mom==23"&&mc_mommom==25,
+      reduce_max).Name("has_z_to_ee");
+
+  const NamedFunc nmc_mu_acc = ReduceNamedFunc(
+      "(mc_id==13||mc_id==-13&&mc_pt>5&&mc_eta>-2.4&&mc_eta<2.4)"&&mc_isFirstCopy, 
+      reduce_sum).Name("nmc_mu_acc");
+  const NamedFunc nmc_el_acc = ReduceNamedFunc(
+      "(mc_id==11||mc_id==-11&&mc_pt>7&&mc_eta>-2.5&&mc_eta<2.5)"&&mc_isFirstCopy, 
+      reduce_sum).Name("nmc_el_acc");
+  const NamedFunc nmc_lep_acc = nmc_mu_acc+nmc_el_acc;
+  const NamedFunc nmc_photon_acc = ReduceNamedFunc(
+      "(mc_id==22&&mc_pt>15&&mc_eta>-2.5&&mc_eta<2.5)"&&mc_isFirstCopy, 
+      reduce_sum).Name("nmc_photon_acc");
 
   //measure of quality of 2 muons
   //X = no id, L = loose, M = medium, T = tight
@@ -173,14 +230,7 @@ int main(){
     return photon_id;
   });
 
-  const NamedFunc lead_mu_pt = ReduceNamedFunc(FilterNamedFunc("mu_pt","mu_sig"),
-      reduce_max).Name("lead_mu_pt");
-  const NamedFunc sublead_mu_pt = ReduceNamedFunc(FilterNamedFunc("mu_pt","mu_sig"),
-      reduce_sublead).Name("sublead_mu_pt");
-  const NamedFunc lead_el_pt = ReduceNamedFunc(FilterNamedFunc("el_pt","el_sig"),
-      reduce_max).Name("lead_el_pt");
-  const NamedFunc sublead_el_pt = ReduceNamedFunc(FilterNamedFunc("el_pt","el_sig"),
-      reduce_sublead).Name("sublead_el_pt");
+  NamedFunc zg_baseline_nolep = NamedFunc("nlep>=2 && nphoton>=1 && (ll_m[0]>50) && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ((llphoton_m[0]+ll_m[0])>=185) && (photon_drmin[0]>0.4)").Name("baseline_no_leptonptcut");
 
   const NamedFunc ptloose_photon_sig = NamedFunc("photon_elveto&&photon_drmin>0.4"&&photon_idvl)
       .Name("ptloose_photon_sig");
@@ -214,17 +264,49 @@ int main(){
   const NamedFunc lead_photon_drmin = MultiReduceNamedFunc({drloose_photon_pt,drloose_photon_drmin},reduce_maxfirst)
       .Name("lead_photon_drmin");
 
+  const NamedFunc sig_mu_pt = FilterNamedFunc("mu_pt","mu_sig").Name("sig_mu_pt");
+  const NamedFunc sig_mu_absdz = MapNamedFunc(FilterNamedFunc("mu_dz","mu_sig"),
+      map_abs).Name("sig_mu_absdz");
+  const NamedFunc sig_mu_absdxy = MapNamedFunc(FilterNamedFunc("mu_dxy","mu_sig"),
+      map_abs).Name("sig_mu_absdxy");
+  const NamedFunc lead_mu_absdz = MultiReduceNamedFunc({sig_mu_pt,sig_mu_absdz},
+      reduce_maxfirst).Name("lead_mu_absdz");
+  const NamedFunc sublead_mu_absdz = MultiReduceNamedFunc({sig_mu_pt,sig_mu_absdz},
+      reduce_subleadfirst).Name("sublead_mu_absdz");
+  const NamedFunc lead_mu_absdxy = MultiReduceNamedFunc({sig_mu_pt,sig_mu_absdxy},
+      reduce_maxfirst).Name("lead_mu_absdxy");
+  const NamedFunc sublead_mu_absdxy = MultiReduceNamedFunc({sig_mu_pt,sig_mu_absdxy},
+      reduce_subleadfirst).Name("sublead_mu_absdxy");
+  const NamedFunc sig_el_pt = FilterNamedFunc("el_pt","el_sig").Name("sig_el_pt");
+  const NamedFunc sig_el_absdz = MapNamedFunc(FilterNamedFunc("el_dz","el_sig"),
+      map_abs).Name("sig_el_absdz");
+  const NamedFunc sig_el_absdxy = MapNamedFunc(FilterNamedFunc("el_dxy","el_sig"),
+      map_abs).Name("sig_el_absdxy");
+  const NamedFunc lead_el_absdz = MultiReduceNamedFunc({sig_el_pt,sig_el_absdz},
+      reduce_maxfirst).Name("lead_el_absdz");
+  const NamedFunc sublead_el_absdz = MultiReduceNamedFunc({sig_el_pt,sig_el_absdz},
+      reduce_subleadfirst).Name("sublead_el_absdz");
+  const NamedFunc lead_el_absdxy = MultiReduceNamedFunc({sig_el_pt,sig_el_absdxy},
+      reduce_maxfirst).Name("lead_el_absdxy");
+  const NamedFunc sublead_el_absdxy = MultiReduceNamedFunc({sig_el_pt,sig_el_absdxy},
+      reduce_subleadfirst).Name("sublead_el_absdxy");
+
+  const NamedFunc nmu_med = ReduceNamedFunc("mu_sig&&mu_mediumid",reduce_sum).Name("nmu_med");
+  const NamedFunc nel_med = ReduceNamedFunc("el_sig&&el_id90",reduce_sum).Name("nel_med");
+  const NamedFunc nlep_med = nmu_med+nel_med;
+
   //------------------------------------------------------------------------------------
   //                                    initialization
   //------------------------------------------------------------------------------------
 
   gErrorIgnoreLevel = 6000;
   Palette colors("txt/colors.txt","default");
-  Process::Type back =  Process::Type::background;
+  //Process::Type back =  Process::Type::background;
   Process::Type sig =  Process::Type::signal;
 
-  string prod_folder("/net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v2/");
-  std::set<int> years = {2016,2017,2018};
+  string prod_folder("/net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v3/");
+  //std::set<int> years = {2016,2017,2018};
+  std::set<std::string> years = {"2016APV","2016","2017","2018"};
   std::string lumi_string = "138";
   //std::set<int> years = {2016};
   //std::string lumi_string = "36";
@@ -232,32 +314,53 @@ int main(){
   bool multiply_sig = true;
   std::string sig_name = "gg#rightarrow H#rightarrow Z#gamma";
   NamedFunc weight = NamedFunc(w_ewkzgamma*w_years).Name("weight");
+  NamedFunc weight_noscale = NamedFunc(w_ewkzgamma*w_years).Name("weight");
+  NamedFunc w_earlyrun3 = NamedFunc(199.9/137.6);
   if (multiply_sig) {
-    sig_name = "gg#rightarrow H#rightarrow Z#gamma (x20)";
-    weight = w_ewkzgamma*w_sigx20*w_years;
-    weight.Name("weight_sigx20");
+    sig_name = "gg#rightarrow H#rightarrow Z#gamma (x50)";
+    weight = w_ewkzgamma*w_sigx50*w_years;
+    weight.Name("weight_sigx50");
   }
   Palette mc_colors("txt/colors_zgamma.txt","default");
 
   std::cout << "Loading samples:\n";
-  auto proc_smzg      = Process::MakeShared<Baby_pico>("Z+#gamma", back, mc_colors("zgtollg"),
-                           attach_folder(prod_folder,years,"mc/unskimmed",{"*ZGToLLG*"}), "1");
-  auto proc_dy        = Process::MakeShared<Baby_pico>("Z+Fake Photon", back, mc_colors("dyjets"),
-                           attach_folder(prod_folder,years,"mc/unskimmed",{"*DYJets*"}), "stitch_dy");
-  auto proc_tt        = Process::MakeShared<Baby_pico>("tt", back, mc_colors("tt"),
-                           attach_folder(prod_folder,years,"mc/unskimmed",{"*TTTo2L2Nu*"}), "1");
-  auto proc_tt1l      = Process::MakeShared<Baby_pico>("Fake lepton", back, mc_colors("fakelep"),
-                           attach_folder(prod_folder,years,"mc/unskimmed",{"*TTG*"}), 
-                           "(ntruel+ntrumu)==1");
+  //auto proc_smzg      = Process::MakeShared<Baby_pico>("Z+#gamma", back, mc_colors("zgtollg"),
+  //                         attach_folder(prod_folder,years,"mc/unskimmed",{"*ZGToLLG*"}), "1");
+  //auto proc_dy        = Process::MakeShared<Baby_pico>("Z+Fake Photon", back, mc_colors("dyjets"),
+  //                         attach_folder(prod_folder,years,"mc/unskimmed",{"*DYJets*"}), "stitch_dy");
+  //auto proc_tt        = Process::MakeShared<Baby_pico>("tt", back, mc_colors("tt"),
+  //                         attach_folder(prod_folder,years,"mc/unskimmed",{"*TTTo2L2Nu*"}), "1");
+  //auto proc_tt1l      = Process::MakeShared<Baby_pico>("Fake lepton", back, mc_colors("fakelep"),
+  //                         attach_folder(prod_folder,years,"mc/unskimmed",{"*TTG*"}), 
+  //                         "(ntruel+ntrumu)==1");
+  ////auto proc_hzg       = Process::MakeShared<Baby_pico>(sig_name, sig, kRed,
+  ////                         attach_folder(prod_folder,years,"mc/unskimmed",
+  ////                         {"*HToZG*M-125*","*HToZG_M125*"}), "1");
   //auto proc_hzg       = Process::MakeShared<Baby_pico>(sig_name, sig, kRed,
   //                         attach_folder(prod_folder,years,"mc/unskimmed",
-  //                         {"*HToZG*M-125*","*HToZG_M125*"}), "1");
-  auto proc_hzg       = Process::MakeShared<Baby_pico>(sig_name, sig, kRed,
-                           attach_folder(prod_folder,years,"mc/unskimmed",
-                           {"*GluGluHToZG*M-125*"}), "1");
-  vector<shared_ptr<Process>> procs = {proc_dy, proc_tt, proc_smzg, proc_tt1l, proc_hzg};
+  //                         {"*GluGluHToZG*M-125*"}), "1");
+  //vector<shared_ptr<Process>> procs = {proc_dy, proc_tt, proc_smzg, proc_tt1l, proc_hzg};
+  vector<shared_ptr<Process>> procs = {};
 
-  vector<shared_ptr<Process>> procs_all = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMoreTrigs");
+  //vector<shared_ptr<Process>> procs_all = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMoreTrigs");
+  vector<shared_ptr<Process>> procs_all = {};
+
+  auto proc_gghzg = Process::MakeShared<Baby_pico>("gg#rightarrow H#rightarrow Z#gamma", sig, kRed,
+                        attach_folder(prod_folder,years,"mc/unskimmed",
+                        {"*GluGluHToZG*M-125*"}), "1");
+  auto proc_qqhzg = Process::MakeShared<Baby_pico>("VBF H#rightarrow Z#gamma", sig, kGreen,
+                        attach_folder(prod_folder,years,"mc/unskimmed",
+                        {"*VBFHToZG*M-125*"}), "1");
+  auto proc_whzg  = Process::MakeShared<Baby_pico>("WH#rightarrow Z#gamma", sig, kBlue,
+                        attach_folder(prod_folder,years,"mc/unskimmed",
+                        {"*WplusH_HToZG*M-125*","*WminusH_HToZG*M-125*"}), "1");
+  auto proc_zhzg  = Process::MakeShared<Baby_pico>("ZH#righarrow Z#gamma", sig, kBlue,
+                        attach_folder(prod_folder,years,"mc/unskimmed",
+                        {"*ZH_HToZG*M-125*"}), "1");
+  auto proc_tthzg = Process::MakeShared<Baby_pico>("ttH#rightarrow Z#gamma", sig, kBlue,
+                        attach_folder(prod_folder,years,"mc/unskimmed",
+                        {"*ttHToZG_M125*"}), "1");
+  vector<shared_ptr<Process>> procs_signal = {proc_gghzg, proc_qqhzg, proc_whzg, proc_zhzg, proc_tthzg};
 
   PlotOpt lin_lumi("txt/plot_styles.txt","CMSPaper");
   lin_lumi.Title(TitleType::info)
@@ -274,7 +377,8 @@ int main(){
              .YAxis(YAxisType::linear)
              .Stack(StackType::shapes)
              .LegendColumns(3);
-  std::vector<PlotOpt> ops = {lin_lumi, shapes_norm};
+  vector<PlotOpt> ops = {lin_lumi, shapes_norm};
+  vector<PlotOpt> ops_linlumi = {PlotOpt("txt/plot_styles.txt","LinLumi"),PlotOpt("txt/plot_styles.txt","Shapes")}; 
 
   //std::string lumi_string = "41.5";
 
@@ -395,7 +499,160 @@ int main(){
   //ops should include shapes
 
   //new stuff
-  bool plot_truth = true;
+  bool plot_truth = false;
+  bool plot_objects = false;
+  bool plot_signal_acceptance = true;
+
+  if (plot_signal_acceptance) {
+
+    pm.Push<Table>("zgacc_objects", vector<TableRow>{
+      TableRow("No Selection, $Z\\to\\mu\\mu$", 
+          has_z_to_mumu,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Objects in acceptance", 
+          has_z_to_mumu&&nmc_mu_acc>=2&&nmc_photon_acc>=1,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Leptons reco'd", 
+          has_z_to_mumu&&nmc_mu_acc>=2&&nmc_photon_acc>=1&&"nmu>=2",0,0,weight_noscale*w_earlyrun3),
+      TableRow("Objects reco'd", 
+          has_z_to_mumu&&nmc_mu_acc>=2&&nmc_photon_acc>=1&&"nmu>=2&&nphoton>=1",0,0,weight_noscale*w_earlyrun3),
+      TableRow("Trigger", 
+          has_z_to_mumu&&nmc_mu_acc>=2&&nmc_photon_acc>=1&&"nmu>=2&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton),
+          0,0,weight_noscale*w_earlyrun3),
+      TableRow("1 lepton medium ID", 
+          has_z_to_mumu&&nmc_mu_acc>=2&&nmc_photon_acc>=1&&"nmu>=2&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton)&&nmu_med>=1,
+          0,0,weight_noscale*w_earlyrun3),
+      TableRow("Lead lepton pt>20", 
+          has_z_to_mumu&&nmc_mu_acc>=2&&nmc_photon_acc>=1&&"nmu>=2&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton)&&lead_mu_pt>=20,
+          0,0,weight_noscale*w_earlyrun3),
+      TableRow("Sublead lepton pt>10", 
+          has_z_to_mumu&&nmc_mu_acc>=2&&nmc_photon_acc>=1&&"nmu>=2&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton)&&sublead_mu_pt>=10,
+          0,0,weight_noscale*w_earlyrun3),
+      TableRow("\\hline No Selection, $Z\\to ee$", 
+          has_z_to_ee,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Objects in acceptance", 
+          has_z_to_ee&&nmc_el_acc>=2&&nmc_photon_acc>=1,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Leptons reco'd", 
+          has_z_to_ee&&nmc_el_acc>=2&&nmc_photon_acc>=1&&"nel>=2",0,0,weight_noscale*w_earlyrun3),
+      TableRow("Objects reco'd", 
+          has_z_to_ee&&nmc_el_acc>=2&&nmc_photon_acc>=1&&"nel>=2&&nphoton>=1",0,0,weight_noscale*w_earlyrun3),
+      TableRow("Trigger", 
+          has_z_to_ee&&nmc_el_acc>=2&&nmc_photon_acc>=1&&"nel>=2&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton),
+          0,0,weight_noscale*w_earlyrun3),
+      TableRow("1 lepton medium ID", 
+          has_z_to_ee&&nmc_el_acc>=2&&nmc_photon_acc>=1&&"nel>=2&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton)&&nel_med>=1,
+          0,0,weight_noscale*w_earlyrun3),
+      TableRow("Lead lepton pt>20", 
+          has_z_to_ee&&nmc_el_acc>=2&&nmc_photon_acc>=1&&"nel>=2&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton)&&lead_el_pt>=20,
+          0,0,weight_noscale*w_earlyrun3),
+      TableRow("Sublead lepton pt>10", 
+          has_z_to_ee&&nmc_el_acc>=2&&nmc_photon_acc>=1&&"nel>=2&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton)&&sublead_el_pt>=10,
+          0,0,weight_noscale*w_earlyrun3),
+      TableRow("\\hline $Z\\to\\mu\\mu$ and three leptons", 
+          has_z_to_mumu&&nmc_lep>=3,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Obects in acceptance", 
+          has_z_to_mumu&&nmc_lep>=3&&nmc_lep_acc>=3&&nmc_photon_acc>=1,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Obects reco'd", 
+          has_z_to_mumu&&nmc_lep>=3&&nmc_lep_acc>=3&&nmc_photon_acc>=1&&"nlep>=3&&nphoton>=1",0,0,weight_noscale*w_earlyrun3),
+      TableRow("Trigger", 
+          has_z_to_mumu&&nmc_lep>=3&&nmc_lep_acc>=3&&nmc_photon_acc>=1&&"nlep>=3&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton),0,0,weight_noscale*w_earlyrun3),
+      TableRow("\\hline $Z\\to ee$ and three leptons", 
+          has_z_to_ee&&nmc_lep>=3,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Obects in acceptance", 
+          has_z_to_ee&&nmc_lep>=3&&nmc_lep_acc>=3&&nmc_photon_acc>=1,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Obects reco'd", 
+          has_z_to_ee&&nmc_lep>=3&&nmc_lep_acc>=3&&nmc_photon_acc>=1&&"nlep>=3&&nphoton>=1",0,0,weight_noscale*w_earlyrun3),
+      TableRow("Trigger", 
+          has_z_to_ee&&nmc_lep>=3&&nmc_lep_acc>=3&&nmc_photon_acc>=1&&"nlep>=3&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton),0,0,weight_noscale*w_earlyrun3),
+      TableRow("\\hline $Z\\to\\mu\\mu$ and four leptons", 
+          has_z_to_mumu&&nmc_lep>=4,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Obects in acceptance", 
+          has_z_to_mumu&&nmc_lep>=4&&nmc_lep_acc>=4&&nmc_photon_acc>=1,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Obects reco'd", 
+          has_z_to_mumu&&nmc_lep>=4&&nmc_lep_acc>=4&&nmc_photon_acc>=1&&"nlep>=4&&nphoton>=1",0,0,weight_noscale*w_earlyrun3),
+      TableRow("Trigger", 
+          has_z_to_mumu&&nmc_lep>=4&&nmc_lep_acc>=4&&nmc_photon_acc>=1&&"nlep>=4&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton),0,0,weight_noscale*w_earlyrun3),
+      TableRow("\\hline $Z\\to ee$ and four leptons", 
+          has_z_to_ee&&nmc_lep>=4,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Obects in acceptance", 
+          has_z_to_ee&&nmc_lep>=4&&nmc_lep_acc>=4&&nmc_photon_acc>=1,0,0,weight_noscale*w_earlyrun3),
+      TableRow("Obects reco'd", 
+          has_z_to_ee&&nmc_lep>=4&&nmc_lep_acc>=4&&nmc_photon_acc>=1&&"nlep>=4&&nphoton>=1",0,0,weight_noscale*w_earlyrun3),
+      TableRow("Trigger", 
+          has_z_to_ee&&nmc_lep>=4&&nmc_lep_acc>=4&&nmc_photon_acc>=1&&"nlep>=4&&nphoton>=1"
+          &&(ZgFunctions::HLT_pass_singlelepton||ZgFunctions::HLT_pass_dilepton),0,0,weight_noscale*w_earlyrun3),
+    },procs_signal,false,true,false,false,false,true).LuminosityTag(lumi_string).Precision(2);
+  }
+
+  if (plot_objects) {
+    pm.Push<Hist1D>(Axis(30, 0.0, 100.0, lead_mu_pt, "Lead muon p_{T} [GeV]", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==13",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(30, 0.0, 100.0, sublead_mu_pt, "Sublead muon p_{T} [GeV]", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==13",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(30, 0.0, 100.0, lead_el_pt, "Lead electron p_{T} [GeV]", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==11",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(30, 0.0, 100.0, sublead_el_pt, "Sublead electron p_{T} [GeV]", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==11",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(60, 0.0, 0.5, lead_mu_absdz, "Lead muon |d_{z}|", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==13",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(60, 0.0, 0.5, sublead_mu_absdz, "Sublead muon |d_{z}|", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==13",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(60, 0.0, 0.5, lead_mu_absdxy, "Lead muon |d_{xy}|", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==13",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(60, 0.0, 0.5, sublead_mu_absdxy, "Sublead muon |d_{xy}|", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==13",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(60, 0.0, 0.5, lead_el_absdz, "Lead electron |d_{z}|", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==11",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(60, 0.0, 0.5, sublead_el_absdz, "Sublead electron |d_{z}|", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==11",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(60, 0.0, 0.5, lead_el_absdxy, "Lead electron |d_{xy}|", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==11",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Hist1D>(Axis(60, 0.0, 0.5, sublead_el_absdxy, "Sublead electron |d_{xy}|", {}),
+        zg_baseline_nolep&&"ll_lepid[0]==11",
+        procs_all, ops_linlumi).Weight(weight).Tag("zgacc")
+        .LuminosityTag(lumi_string);
+    pm.Push<Table>("zgacc_objects", vector<TableRow>{
+      TableRow("Baseline and Z->ee", 
+          zg_baseline_nolep&&"ll_lepid[0]==11",0,0,weight_noscale),
+      TableRow("Electron pt > (25,15) or (35/30,any)", 
+          zg_baseline_nolep&&"ll_lepid[0]==11"&&((lead_el_pt>25&&sublead_el_pt>15)||(lead_el_pt>35||(lead_el_pt>30&&year<2017))),0,0,weight_noscale),
+      TableRow("Baseline and Z->\\mu\\mu", 
+          zg_baseline_nolep&&"ll_lepid[0]==13",0,0,weight_noscale),
+      TableRow("Muon pt > (20,10) or (25,any)", 
+          zg_baseline_nolep&&"ll_lepid[0]==13"&&((lead_mu_pt>20&&sublead_mu_pt>10)||(lead_mu_pt>25)),0,0,weight_noscale),
+    },procs_all,false,true,false,false,false,true).LuminosityTag(lumi_string).Precision(2);
+  }
 
   if (plot_truth) {
     pm.Push<Hist1D>(Axis(30, 0.0, 100.0, mc_lead_mu_pt, "Generator lead muon p_{T} [GeV]", {}),

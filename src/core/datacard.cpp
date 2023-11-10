@@ -44,7 +44,9 @@
 #include <sys/stat.h>
 
 #include "RooAbsPdf.h"
+#include "RooArgSet.h"
 #include "RooDataHist.h"
+#include "RooDataSet.h"
 #include "RooHistPdf.h"
 #include "RooRealVar.h"
 #include "RooWorkspace.h"
@@ -131,7 +133,8 @@ Datacard::Systematic::Systematic(const std::string &name,
 Datacard::DatacardProcess::DatacardProcess(const Figure &figure,
     const std::shared_ptr<Process> &process,
     const Axis &axis) :
-    FigureComponent(figure, process) {
+    FigureComponent(figure, process),
+    weight_(RooRealVar("weight","",-50.0,50.0)) {
   if (process_->type_ == Process::Type::data) {
     is_data_ = true;
     process_->name_ = "data_obs";
@@ -139,12 +142,18 @@ Datacard::DatacardProcess::DatacardProcess(const Figure &figure,
   else {
     is_data_ = false;
   }
+  replace_with_param_ = false;
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  float axis_min = axis.Bins().at(0);
+  float axis_max = axis.Bins().at(axis.Bins().size()-1);
   for (unsigned ichan = 0; ichan < datacard->n_channels_; ichan++) {
-    float axis_min = axis.Bins().at(0);
-    float axis_max = axis.Bins().at(axis.Bins().size()-1);
+    var_.push_back(RooRealVar(
+        (axis.var_.Name()+"_"+datacard->channel_name_[ichan]).c_str(),"",
+        axis.Bins().at(0),axis.Bins().at(axis.Bins().size()-1)));
     raw_histogram_nom_.push_back(TH1D("","",axis.Nbins(),&axis.Bins().at(0)));
     raw_histogram_sys_.push_back(std::vector<TH1D>());
+    if (is_data_)
+      raw_dataset_nom_.push_back(RooDataSet("","",RooArgSet(var_[ichan],weight_),RooFit::WeightVar(weight_)));
 
     //for now, only do normalization systematics
     for (unsigned isyst = 0; isyst < datacard->n_systematics_; isyst++) {
@@ -155,12 +164,15 @@ Datacard::DatacardProcess::DatacardProcess(const Figure &figure,
 
 void Datacard::DatacardProcess::RecordEvent(const Baby &baby) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
-  //left here
   float nominal_weight = datacard->nominal_weight_.GetScalar(baby);
   for (unsigned ichan = 0; ichan < datacard->n_channels_; ichan++) {
     if (datacard->channel_selection_[ichan].GetScalar(baby)) {
-      raw_histogram_nom_[ichan].Fill(datacard->variable_.GetScalar(baby),
-                              nominal_weight);
+      float nominal_value = datacard->variable_.GetScalar(baby);
+      raw_histogram_nom_[ichan].Fill(nominal_value, nominal_weight);
+      if (is_data_) {
+        var_[ichan].setVal(nominal_value);
+        raw_dataset_nom_[ichan].add(RooArgSet(var_[ichan]),nominal_weight);
+      }
     }
     for (unsigned isyst = 0; isyst < datacard->n_systematics_; isyst++) {
       if (datacard->systematic_selection_[ichan][isyst].GetScalar(baby)) {
@@ -202,7 +214,8 @@ Datacard::Datacard(const std::string &name,
     systematic_name_(),
     systematic_selection_(),
     systematic_weight_(),
-    datacard_process_(){
+    datacard_process_(),
+    save_data_as_hist_(false) {
 
   if (!weight.IsScalar()) {
     throw std::invalid_argument(("Weight NamedFunc "+weight.Name()
@@ -284,21 +297,45 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
         std::string proc_name = datacard_process_[iproc]->process_->name_;
         std::string pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan];
         RooWorkspace ws(("WS_"+proc_name+"_"+channel_name_[ichan]).c_str());
-        RooRealVar variable(variable_.Name().c_str(),"",lower_edge,upper_edge);
-        ws.import(variable);
         if (datacard_process_[iproc]->process_->type_ == Process::Type::data)  {
           proc_name = "data_obs";
+          pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan];
           data_norm.push_back(
               datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral());
-          RooDataHist data_obs(pdf_name.c_str(),"",RooArgList(variable),
-              &datacard_process_[iproc]->raw_histogram_nom_[ichan]);
-          ws.import(data_obs);
+          if (save_data_as_hist_) {
+            RooRealVar variable((variable_.Name()+channel_name_[ichan]).c_str(),
+                "",lower_edge,upper_edge);
+            RooDataHist data_obs(pdf_name.c_str(),"",RooArgList(variable),
+                &datacard_process_[iproc]->raw_histogram_nom_[ichan]);
+            std::cout << "importing data_hist" << std::endl;
+            ws.import(data_obs);
+          }
+          else {
+            datacard_process_[iproc]->raw_dataset_nom_[ichan].SetName(
+                pdf_name.c_str());
+            std::cout << "importing dataset" << std::endl;
+            //ws.import(datacard_process_[iproc]->weight_);
+            ws.import(datacard_process_[iproc]->raw_dataset_nom_[ichan]);
+          }
         }
         else {
-          RooDataHist hist((pdf_name+"_hist").c_str(),"",RooArgList(variable),
-              &datacard_process_[iproc]->raw_histogram_nom_[ichan]);
-          RooHistPdf pdf(pdf_name.c_str(),"",RooArgList(variable),hist);
-          ws.import(pdf);
+          if (datacard_process_[iproc]->replace_with_param_) {
+            std::cout << "importing replaced pdf" << std::endl;
+            ws.import(*(datacard_process_[iproc]->param_pdf_[ichan]));
+          }
+          else {
+            RooRealVar variable((variable_.Name()+channel_name_[ichan]).c_str(),
+                "",lower_edge,upper_edge);
+            RooDataHist hist((pdf_name+"_hist").c_str(),"",RooArgList(variable),
+                &datacard_process_[iproc]->raw_histogram_nom_[ichan]);
+            RooHistPdf pdf(pdf_name.c_str(),"",RooArgList(variable),hist);
+            //float nom_yield = datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral();
+            //RooRealVar norm((pdf_name+"_norm").c_str(),"",nom_yield,
+            //    0,100.0*nom_yield);
+            //ws.import(norm);
+            std::cout << "importing hist pdf" << std::endl;
+            ws.import(pdf);
+          }
         }
         ws.Write();
       }
@@ -309,6 +346,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
         RooRealVar norm((pdf_name+"_norm").c_str(),"",data_norm[ichan],
             0,3.0*data_norm[ichan]);
         RooWorkspace ws(("WS_"+proc_name+"_"+channel_name_[ichan]).c_str());
+        std::cout << "importing parametric pdf" << std::endl;
         ws.import(*param_process_[iproc_eff][ichan]);
         ws.import(norm);
         ws.Write();
@@ -413,9 +451,16 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
           background_number += 1;
         }
       }
-      else { //currently parametric processes can only be background
+      else { 
+        //unsigned iproc_eff = iproc-datacard_process_.size();
+        //if (param_process_type_[iproc_eff]==Process::Type::signal) {
+        //  datacard_file << std::left << std::setw(19) << signal_number;
+        //  signal_number -= 1;
+        //}
+        //else {
         datacard_file << std::left << std::setw(19) << background_number;
         background_number += 1;
+        //}
       }
     }
   }
@@ -468,17 +513,57 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   \param[in] name   Name of process
   \param[in] pdf    PDF for process
 */
-Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<RooAbsPdf*> &pdf) {
+Datacard& Datacard::AddParametricProcess(const std::string &name, 
+                                         std::vector<RooAbsPdf*> &pdf) {
   if (pdf.size() != n_channels_) 
-    throw std::invalid_argument(("Insufficient PDFs for parametric process "+name).c_str());
+    throw std::invalid_argument(("Wrong number of PDFs for parametric process "+name).c_str());
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
     if (pdf[ichan]->GetName() != "pdf_"+name+"_"+channel_name_[ichan]) {
       throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
     }
   }
+
   n_processes_++;
   param_process_name_.push_back(name);
+  //param_process_type_.push_back(type);
   param_process_.push_back(pdf);
+  return *this;
+}
+
+/*! \brief Replaces an existing process with a parametric shape, while still 
+           retaining its normalization
+  \param[in] name   Name of process
+  \param[in] pdf    PDF for process
+*/
+Datacard& Datacard::MakeProcessParametric(const std::string &name, 
+                                          std::vector<RooAbsPdf*> &pdf) {
+  if (pdf.size() != n_channels_) 
+    throw std::invalid_argument(("Wrong PDFs for parametric process "+name).c_str());
+  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+    if (pdf[ichan]->GetName() != "pdf_"+name+"_"+channel_name_[ichan]) {
+      throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
+    }
+  }
+
+  bool found_proc = false;
+  for (std::unique_ptr<DatacardProcess> &datacard_process : datacard_process_) {
+    if (datacard_process->process_->name_ == name) {
+      datacard_process->replace_with_param_ = true;
+      datacard_process->param_pdf_ = pdf;
+      found_proc = true;
+    }
+  }
+  if (!found_proc)
+    throw std::invalid_argument(("No process with name "+name).c_str());
+
+  return *this;
+}
+
+/*! \brief Sets whether to save data as RooDataSet or RooDataHist
+  \param[in] save_data_as_hist whether to save data as RooDataHist
+*/
+Datacard& Datacard::SaveDataAsHist(bool save_data_as_hist) {
+  save_data_as_hist_ = save_data_as_hist;
   return *this;
 }
 

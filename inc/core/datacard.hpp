@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "RooAbsPdf.h"
+#include "RooDataSet.h"
+#include "RooRealVar.h"
 #include "TH1.h"
 
 #include "core/axis.hpp"
@@ -65,7 +67,12 @@ public:
     std::vector<TH1D> raw_histogram_nom_; 
     //1 histogram per channel per systematic
     std::vector<std::vector<TH1D>> raw_histogram_sys_; 
+    std::vector<RooDataSet> raw_dataset_nom_;
+    std::vector<RooRealVar> var_;
+    RooRealVar weight_;
     bool is_data_;
+    bool replace_with_param_;
+    std::vector<RooAbsPdf*> param_pdf_;
 
   private:
     DatacardProcess() = delete;
@@ -86,7 +93,10 @@ public:
            const NamedFunc &weight,
            const Axis &axis);
   Datacard& AddParametricProcess(const std::string &name, 
-                                 std::vector<RooAbsPdf*> &pdf); //this will likely not suffice for more complicated procedures like discrete profiling
+                                 std::vector<RooAbsPdf*> &pdf);
+  Datacard& MakeProcessParametric(const std::string &name, 
+                                  std::vector<RooAbsPdf*> &pdf);
+  Datacard& SaveDataAsHist(bool save_data_as_hist = true);
   Datacard(Datacard &&) = default;
   Datacard& operator=(Datacard &&) = default;
   ~Datacard() = default;
@@ -113,7 +123,9 @@ public:
   std::vector<std::vector<NamedFunc>> systematic_weight_;
   std::vector<std::unique_ptr<DatacardProcess>> datacard_process_;
   std::vector<std::string> param_process_name_;
+  //std::vector<Process::Type> param_process_type_;
   std::vector<std::vector<RooAbsPdf*>> param_process_;
+  bool save_data_as_hist_;
 
 private:
 

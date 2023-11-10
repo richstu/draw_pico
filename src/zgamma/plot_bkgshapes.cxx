@@ -54,6 +54,9 @@
 #include "core/table.hpp"
 #include "core/utilities.hpp"
 
+#include "zgamma/zg_functions.hpp"
+#include "zgamma/zg_utilities.hpp"
+
 using namespace std;
 using namespace PlotOptTypes;
 
@@ -572,6 +575,33 @@ int main(int argc, char *argv[]){
     return 0;
   });
 
+  //1 iff photon is within deltar 0.4 of jet with pt>15 GeV
+  //pico version
+  const NamedFunc photon_isjet("photon_isjet",[Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.photon_pflavor()->at(0)==1 || b.photon_pflavor()->at(0)==11) return 0;
+    double ph_eta = b.photon_eta()->at(0);
+    double ph_phi = b.photon_phi()->at(0);
+    for (unsigned imc = 0; imc < b.mc_pt()->size(); imc++) {
+      if ((abs(b.mc_id()->at(imc))>=1 && abs(b.mc_id()->at(imc))<=5) || b.mc_id()->at(imc)==21 ) {
+        if (b.mc_pt()->at(imc)>15) {
+          double this_deltar = deltaR(b.mc_eta()->at(imc), b.mc_phi()->at(imc), ph_eta, ph_phi);
+          if (this_deltar < 0.4) {
+            return 1;
+          }
+        }
+      }
+    }
+    return 0;
+  });
+
+  //true if the higgs candidate has a photon and an electron that are the same
+  const NamedFunc overlapping_phel("overlapping_phel",[Photon_sig](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.ll_lepid()->at(0)!=11) return 0;
+    if (b.photon_elidx()->at(0)==b.ll_i1()->at(0) || 
+        b.photon_elidx()->at(0)==b.ll_i2()->at(0)) return 1;
+    return 0;
+  });
+
   //------------------------------------------------------------------------------------
   //                                    initialization
   //------------------------------------------------------------------------------------
@@ -762,6 +792,42 @@ int main(int argc, char *argv[]){
       base_folder_ul+"mc/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8__RunIISummer20UL17NanoAODv2__106X_mc2017_realistic_v8-v1__260000__1*",
       base_folder_ul+"mc/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8__RunIISummer20UL17NanoAODv2__106X_mc2017_realistic_v8-v1__260000__2*",
       base_folder_ul+"mc/ZGToLLG_01J_5f_TuneCP5*"},stitch_dy&&!Photon_truthMatch&&!Photon_isJet));
+
+  std::string prod_folder("/net/cms11/cms11r0/pico/NanoAODv9/htozgamma_kingscanyon_v0p5/");
+  std::set<std::string> years = {"2018"};
+  NamedFunc trig_and_stitch = (ZgFunctions::HLT_pass_dilepton||ZgFunctions::HLT_pass_singlelepton)
+                              &&"use_event";
+  Palette mc_colors("txt/colors_zgamma.txt","default");
+  auto proc_zg =   Process::MakeShared<Baby_pico>("ZGToLLG", Process::Type::background, 
+                   mc_colors("zgtollg"), attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+                   {"*ZGToLLG_01J_5f_Tune*"}), 
+                   trig_and_stitch);
+  auto proc_dyph = Process::MakeShared<Baby_pico>("DYJets (real photon)", Process::Type::background, 
+                   kYellow-9, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+                   {"*DYJets*amcatnlo*"}), 
+                   trig_and_stitch&&"photon_pflavor[0]==1");
+  auto proc_dyel = Process::MakeShared<Baby_pico>("DYJets (photon is electron)", 
+                   Process::Type::background, 
+                   kViolet-1, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+                   {"*DYJets*amcatnlo*"}), 
+                   trig_and_stitch&&"photon_pflavor[0]==11");
+  auto proc_dyjt = Process::MakeShared<Baby_pico>("DYJets (photon is jet)", 
+                   Process::Type::background, 
+                   mc_colors("dyjets"), attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+                   {"*DYJets*amcatnlo*"}), 
+                   trig_and_stitch&&photon_isjet);
+  auto proc_dyot = Process::MakeShared<Baby_pico>("DYJets (other fake photon)", 
+                   Process::Type::background, 
+                   kGreen+2, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+                   {"*DYJets*amcatnlo*"}), 
+                   trig_and_stitch&&"photon_pflavor[0]==0"&&!photon_isjet);
+  auto proc_hzg  = Process::MakeShared<Baby_pico>("H#rightarrow Z#gamma", 
+                   Process::Type::signal, 
+                   kRed, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+                   {"*GluGluHToZG*M-125*"}), 
+                   trig_and_stitch);
+  std::vector<std::shared_ptr<Process>> procs_dysplit = {proc_dyel, proc_dyph, proc_dyjt, 
+                                                         proc_dyot, proc_zg, proc_hzg};
 
   //------------------------------------------------------------------------------------
   //                      named funcs to be moved to a common location
@@ -1643,6 +1709,8 @@ int main(int argc, char *argv[]){
   NamedFunc lead_lep_ptcut = (GenLepton_pdgId==11&&GenLepton_maxpt>25)||(GenLepton_pdgId==13&&GenLepton_maxpt>20);
   lead_lep_ptcut.Name("Lead lepton p_{T} cut");
 
+  const NamedFunc tighter_baseline = NamedFunc(ZgFunctions::zg_baseline&&"photon_id80[0]&&ll_m[0]>80&&ll_m[0]<100").Name("new_baseline");
+
   //------------------------------------------------------------------------------------
   //                                     make plots and pie charts
   //------------------------------------------------------------------------------------
@@ -1650,8 +1718,9 @@ int main(int argc, char *argv[]){
   PlotMaker pm;
 
   bool plot_stitchcheck = false;
-  bool plot_ptbins = true;
+  bool plot_ptbins = false;
   bool plot_cutflow = false;
+  bool plot_dysplit = true;
 
   if (plot_stitchcheck) {
     pm.Push<Hist1D>(Axis(40, 80, 160, GenHiggsCand_mass, "Truth m_{ll#gamma} [GeV]", {}), 
@@ -1847,9 +1916,25 @@ int main(int argc, char *argv[]){
     }
   }
 
+  if (plot_dysplit) {
+    pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline, procs_dysplit, plt_lin)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&"photon_elidx!=-1", procs_dysplit, plt_lin)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&overlapping_phel, procs_dysplit, plt_lin)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&!overlapping_phel, procs_dysplit, plt_lin)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+  }
+
   pm.multithreaded_ = !options.single_thread;
   pm.min_print_ = true;
-  pm.MakePlots(340.0);
+  //pm.MakePlots(340.0);
+  pm.MakePlots(1.0);
 
   time(&endtime); 
   cout<<endl<<"Took "<<difftime(endtime, begtime)<<" seconds"<<endl<<endl;

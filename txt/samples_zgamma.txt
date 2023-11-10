@@ -1,4 +1,5 @@
 #add PRODUCTION_NAME /net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v3/
+#add PRODUCTION_KINGSCANYON /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_kingscanyon_v0/
 #add YEARS 2016APV
 #add YEARS 2016
 #add YEARS 2017
@@ -7,9 +8,10 @@
 #add SKIM_LLG mc/skim_llg
 #add DATA_SKIM_LLG data/skim_llg
 #add FILENAMES_QQZG *ZGToLLG_01J_5f_Tune*.root
-#add FILENAMES_DY *DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM*.root
+#add FILENAMES_DY *DYJetsToLL*amcatnlo*.root
 #add FILENAMES_ALL *.root
 #add FILENAMES_WJETS *WJetsToLNu_Tune*.root
+#add FILENAMES_WG *WGToLNuG*.root
 #add FILENAMES_EWKZJETS *EWKZ2Jets*.root
 #add FILENAMES_EWKZG *ZGamma2JToGamma2L2J_EWK*.root
 #add FILENAMES_TTGAMMA *TGJets*.root
@@ -27,7 +29,7 @@
 #add FILENAMES_MULTIBOSON *WZG*.root
 #add FILENAMES_OTHERHIGGS *GluGluH*.root
 #add FILENAMES_BAK_ALL *ZGToLLG_01J_5f_Tune*.root
-#add FILENAMES_BAK_ALL *DYJets*.root
+#add FILENAMES_BAK_ALL *DYJetsToLL*amcatnlo*.root
 #add FILENAMES_BAK_ALL *TTTo2L2Nu*.root
 #add FILENAMES_HZG_ALL *HToZG*M-125*.root
 #add FILENAMES_HZG_ALL *ttHToZG_M125*.root
@@ -37,8 +39,8 @@
 #add FILENAMES_HZG_VH *ZH_HToZG*M-125*.root
 #add FILENAMES_HZG_VBF *VBFHToZG_ZToLL_M-125*.root
 #add FILENAMES_HZG_GGF *GluGluHToZG*M-125*.root
-#add FILENAMES_MC_ALL *ZGToLLG*.root
-#add FILENAMES_MC_ALL *DYJets*.root
+#add FILENAMES_MC_ALL *ZGToLLG_01J_5f_Tune*.root
+#add FILENAMES_MC_ALL *DYJetsToLL*amcatnlo*.root
 #add FILENAMES_MC_ALL *TTTo2L2Nu*.root
 #add FILENAMES_MC_ALL *HToZG*M-125*.root
 #add FILENAMES_MC_ALL *ttHToZG_M125*.root
@@ -121,6 +123,11 @@
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_MULTIBOSON
     Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [W#gamma]
+    ProcessType = 1
+    PaletteColor = fakelep
+    Files = $PRODUCTION_KINGSCANYON/$YEARS/$SKIM_LLG/$FILENAMES_WG
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
@@ -196,127 +203,127 @@
     ProcessType = 1
     PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
-    Selection= HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [W+Jets]
     ProcessType = 1
     PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_WJETS
-    Selection= HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [Z+#gamma]
     ProcessType = 1
     PaletteColor = zgtollg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [t#bar{t}]
     ProcessType = 1
     PaletteColor = tt
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTBAR
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [t#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_TGJets*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [t#bar{t}#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*TTGJets*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [VBS Z]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZJETS
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [VBS Z#gamma]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZG
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [t#bar{t}W]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttWJets_Tune*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [t#bar{t}Z]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttZJets*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [WW]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_WW_Tune*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [WZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_WZ_Tune*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [ZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_ZZ_Tune*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [WW#gamma]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWG*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [WZ#gamma]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WZG*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [WWW]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWW_4F_Tune*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [WWZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWZ_4F_Tune*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [WZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WZZ*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [ZZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZZZ*.root
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [gg#rightarrow H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*GluGluHToZG*M-125*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG*M-125*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [W^{+} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WplusH_HToZG*M-125*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [W^{-} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WminusH_HToZG*M-125*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [Z H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZH_HToZG*M-125*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
   [t#bar{t}H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttHToZG_M125*.root
-    Selection = HLT_pass_dilepton
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
 
 [[ttHtoZG]]
   [ttH#rightarrow Z#gamma]
