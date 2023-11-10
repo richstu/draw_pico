@@ -540,13 +540,48 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   \param[in] name   Name of process
   \param[in] pdf    PDF for process
 */
-Datacard& Datacard::AddParametricProcess(const std::string &name, 
-                                         std::vector<RooAbsPdf*> &pdf) {
-  if (pdf.size() != n_channels_) 
-    throw std::invalid_argument(("Wrong number of PDFs for parametric process "+name).c_str());
-  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    if (pdf[ichan]->GetName() != "pdf_"+name+"_"+channel_name_[ichan]) {
-      throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
+Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<RooAbsPdf*> &pdf) {
+  bool discrete_profile = false;
+  std::vector<RooMultiPdf> cha_profiles;
+  std::vector<RooCategory> cha_profile_ind;
+  std::vector<std::string> cha_func_name;
+  std::vector<RooAbsPdf*> dummy_pdf;
+  if (pdf.size() < n_channels_) {
+    throw std::invalid_argument(("Insufficient PDFs for parametric process "+name).c_str());}
+  for (unsigned ichan = 0; ichan < n_channels_; ichan++){
+    int num_pdf = 0;
+    std::string func_name;
+    std::string pdf_name;
+    for (unsigned ipdf = 0; ipdf < pdf.size(); ipdf++){
+      pdf_name = pdf[ipdf]->GetName();
+      std::string cache_func_name = pdf_name.substr(pdf_name.size()-4, 4);
+      pdf_name[pdf_name.size() - 5] = '\0';
+
+      if (pdf_name == "pdf_"+name+"_"+channel_name_[ichan]) {
+        num_pdf++;
+        func_name = cache_func_name;
+      }
+    }
+    cha_name_func.push_back(func_name);
+    if (ichan > 0 && !discrete_profile && num_pdf > 1){
+      throw std::invalid_argument("For process "+name+", some channels use discrete profile, some not! Please be consistent!");
+    }
+    if (num_pdf == 0)
+        throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
+    else if (num_pdf == 1)
+      discrete_profile = false;
+    else if (num_pdf > 1) {
+      discrete_profile = true;
+      RooCategory pdfindex(("pdfindex_" + name + channel_name_[ichan]).c_str(), ("pdfindex_" + name + channel_name_[ichan]).c_str());
+      auto models = RooArgList();
+      for (unsigned ipdf = 0; ipdf < pdf.size(); ipdf++){
+        pdf_name = pdf[ipdf]->GetName();
+        pdf_name[pdf_name.size() - 5] = '\0';
+        if (pdf_name == "pdf_"+name+"_"+channel_name_[ichan]) models.add(*(pdf[ipdf]));
+      }
+      RooMultiPdf profile(("profile_" + name + channel_name_[ichan]).c_str(), ("profile_" + name + channel_name_[ichan]).c_str(), pdfindex, models);
+      cha_profiles.push_back(profile);
+      cha_profile_ind.push_back(pdfindex);
     }
   }
 
