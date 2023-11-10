@@ -9,6 +9,7 @@ bool stitch_htmet
 bool stitch_photon
 bool stitch_dy
 bool old_stitch_dy
+bool use_event
 
 ####################   Global   ###################
 int npv
@@ -383,6 +384,13 @@ float w_prefire
 float eff_trig
 
 ################  Triggers copy straight from Nano, same names   ##################
+
+# Trigger summary branches
+#------------------------------
+bool trig_single_el
+bool trig_double_el
+bool trig_single_mu
+bool trig_double_mu
 
 # Muon triggers
 #------------------------------

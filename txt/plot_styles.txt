@@ -301,7 +301,6 @@
   OverflowType = 0
   BottomType = 0
   UseCMYK = 0
-  LegendColumns = 1
   FileExtensions = pdf
 
 [LinLumi]

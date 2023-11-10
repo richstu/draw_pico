@@ -1,7 +1,15 @@
+#include <vector>
+
 #include "core/baby.hpp"
 #include "core/named_func.hpp"
+#include "core/named_func_utilities.hpp"
 #include "zgamma/zg_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
+
+using NamedFuncUtilities::ReduceNamedFunc;
+using NamedFuncUtilities::FilterNamedFunc;
+using NamedFuncUtilities::reduce_max;
+using NamedFuncUtilities::reduce_sublead;
 
 namespace ZgFunctions {
 
@@ -79,10 +87,26 @@ namespace ZgFunctions {
     return 2.472;
   });
 
+  //leading muon pt
+  const NamedFunc lead_mu_pt = ReduceNamedFunc(FilterNamedFunc("mu_pt","mu_sig"),
+      reduce_max).Name("lead_mu_pt");
+
+  //subleading muon pt
+  const NamedFunc sublead_mu_pt = ReduceNamedFunc(FilterNamedFunc("mu_pt","mu_sig"),
+      reduce_sublead).Name("sublead_mu_pt");
+
+  //leading electron pt
+  const NamedFunc lead_el_pt = ReduceNamedFunc(FilterNamedFunc("el_pt","el_sig"),
+      reduce_max).Name("lead_el_pt");
+
+  //subleading electron pt
+  const NamedFunc sublead_el_pt = ReduceNamedFunc(FilterNamedFunc("el_pt","el_sig"),
+      reduce_sublead).Name("sublead_el_pt");
+
   //common NamedFuncs for run 2 baseline selection
   NamedFunc zg_baseline_nolep = "nlep>=2 && nphoton>=1 && (ll_m[0]>50) && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ((llphoton_m[0]+ll_m[0])>=185) && (photon_drmin[0]>0.4)";
-  NamedFunc zg_el_cuts = "(ll_lepid[0]==11) && (el_pt[ll_i1[0]]>25) && (el_pt[ll_i2[0]]>15)";
-  NamedFunc zg_mu_cuts = "(ll_lepid[0]==13) && (mu_pt[ll_i1[0]]>20) && (mu_pt[ll_i2[0]]>10)";
+  NamedFunc zg_el_cuts = lead_el_pt>25&&sublead_el_pt>15;
+  NamedFunc zg_mu_cuts = lead_mu_pt>20&&sublead_mu_pt>10;
   const NamedFunc zg_baseline_el = NamedFunc(zg_el_cuts && zg_baseline_nolep).Name("electron_baseline");
   const NamedFunc zg_baseline_mu = NamedFunc(zg_mu_cuts && zg_baseline_nolep).Name("muon_baseline");
   const NamedFunc zg_baseline = NamedFunc((zg_el_cuts || zg_mu_cuts) && zg_baseline_nolep).Name("baseline");
@@ -127,6 +151,11 @@ namespace ZgFunctions {
       return ZgUtilities::pdrmax(b);
   });
 
+  //relative pt uncertainty of lead photon
+  const NamedFunc photon_relpterr("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
+      return b.photon_pterr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
+  });
+
   //lead lepton eta (=lep_eta[0], but this isn't saved in slims =( )
   //only works for 2 lepton events
   const NamedFunc lead_lepton_eta("lead_lepton_eta",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -145,6 +174,49 @@ namespace ZgFunctions {
 
   //pT/m of Higgs candidate
   const NamedFunc llphoton_rel_pt = NamedFunc("llphoton_pt[0]/llphoton_m[0]").Name("llphoton_rel_pt");
+
+  //vector of whether GenParticles are the first copy
+  const NamedFunc mc_isFirstCopy("mc_isFirstCopy",[](const Baby &b) -> NamedFunc::VectorType{
+    std::vector<double> isFirstCopy;
+    for (unsigned imc = 0; imc < b.mc_pt()->size(); imc++) {
+      if ((b.mc_statusflag()->at(imc) & 0x1000) != 0)
+        isFirstCopy.push_back(1.0);
+      else
+        isFirstCopy.push_back(0.0);
+    }
+    return isFirstCopy;
+  });
+
+  //vector mother PDGID of mother of GenParticle
+  const NamedFunc mc_mommom("mc_mommom",[](const Baby &b) -> NamedFunc::VectorType{
+    std::vector<double> mommom;
+    for (unsigned imc = 0; imc < b.mc_pt()->size(); imc++) {
+      int prev_idx = static_cast<int>(imc);
+      int next_idx = b.mc_momidx()->at(imc);
+      char level = 0;
+      bool found_mommom = false;
+      while (!found_mommom) {
+        if (next_idx == -1) {
+          mommom.push_back(-1);
+          found_mommom = true;
+        }
+        else if (b.mc_id()->at(next_idx)==b.mc_id()->at(prev_idx)) {
+          prev_idx = next_idx;
+          next_idx = b.mc_momidx()->at(next_idx);
+        }
+        else if (level==0) {
+          prev_idx = next_idx;
+          next_idx = b.mc_momidx()->at(next_idx);
+          level++;
+        }
+        else { //level = 1
+          mommom.push_back(static_cast<double>(b.mc_id()->at(next_idx)));
+          found_mommom = true;
+        }
+      }
+    } //loop over mc particles
+    return mommom;
+  });
 
 }
 
