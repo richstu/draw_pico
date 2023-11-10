@@ -37,7 +37,7 @@ using ZgFunctions::stitch;
 using ZgFunctions::w_years;
 using SelectionList = Datacard::SelectionList;
 using Systematic = Datacard::Systematic;
-const Process::Type data = Process::Type::data;
+//const Process::Type data = Process::Type::data;
 const Process::Type signal = Process::Type::signal;
 const Process::Type background = Process::Type::background;
 
@@ -51,7 +51,7 @@ int main() {
   set<string> years = {"2016APV","2016","2017","2018"};
   NamedFunc trig_and_stitch = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch;
   shared_ptr<Process> proc_pseudodata = Process::MakeShared<Baby_pico>(
-      "data_obs", data, kBlack, attach_folder(prod_folder,years,
+      "data_obs", Process::Type::data, kBlack, attach_folder(prod_folder,years,
       "mc/merged_zgmc_llg",{"*DYJets*","*ZGToLLG*Tune*","*HToZG*M-125*"}),
       trig_and_stitch);
   shared_ptr<Process> proc_background = Process::MakeShared<Baby_pico>(
