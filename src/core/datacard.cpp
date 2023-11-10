@@ -562,7 +562,7 @@ Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<Ro
         func_name = cache_func_name;
       }
     }
-    cha_name_func.push_back(func_name);
+    cha_func_name.push_back(func_name);
     if (ichan > 0 && !discrete_profile && num_pdf > 1){
       throw std::invalid_argument("For process "+name+", some channels use discrete profile, some not! Please be consistent!");
     }
