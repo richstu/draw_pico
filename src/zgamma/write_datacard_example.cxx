@@ -11,7 +11,7 @@
 #include "RooArgList.h"
 #include "RooCategory.h"
 #include "RooGenericPdf.h"
-#include "RooMultiPdf.h"
+#include "core/RooMultiPdf.hpp"
 #include "RooRealVar.h"
 #include "TError.h"
 #include "TColor.h"
