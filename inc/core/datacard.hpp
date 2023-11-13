@@ -125,7 +125,9 @@ public:
   std::vector<std::string> param_process_name_;
   //std::vector<Process::Type> param_process_type_;
   std::vector<std::vector<RooAbsPdf*>> param_process_;
-  bool save_data_as_hist_;
+  std::vector<std::vector<std::vector<RooAbsPdf*>>> param_profile_process_;
+  //  std::vector<std::vector<RooCategory*>> param_profile_ind_process_;
+
 
 private:
 
