@@ -9,6 +9,7 @@ bool stitch_htmet
 bool stitch_photon
 bool stitch_dy
 bool old_stitch_dy
+bool use_event
 
 ####################   Global   ###################
 int npv
@@ -72,6 +73,11 @@ std::vector<int>   llphoton_ill
 std::vector<float> llphoton_dijet_dphi
 std::vector<float> llphoton_dijet_balance
 std::vector<float> llphoton_pTt2
+
+bool trig_single_el
+bool trig_double_el
+bool trig_single_mu
+bool trig_double_mu
 
 ###################   gammagamma   ##################
 int nphotonphoton
