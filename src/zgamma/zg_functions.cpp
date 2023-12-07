@@ -104,15 +104,34 @@ namespace ZgFunctions {
       reduce_sublead).Name("sublead_el_pt");
 
   //common NamedFuncs for run 2 baseline selection
-  NamedFunc zg_baseline_nolep = "nlep>=2 && nphoton>=1 && (ll_m[0]>50) && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ((llphoton_m[0]+ll_m[0])>=185) && (photon_drmin[0]>0.4)";
+  NamedFunc zg_baseline_nolep = "nlep>=2 && nphoton>=1 && (ll_m[0]>50) && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ((llphoton_m[0]+ll_m[0])>=185)";
   NamedFunc zg_el_cuts = lead_el_pt>25&&sublead_el_pt>15;
   NamedFunc zg_mu_cuts = lead_mu_pt>20&&sublead_mu_pt>10;
   const NamedFunc zg_baseline_el = NamedFunc(zg_el_cuts && zg_baseline_nolep).Name("electron_baseline");
   const NamedFunc zg_baseline_mu = NamedFunc(zg_mu_cuts && zg_baseline_nolep).Name("muon_baseline");
   const NamedFunc zg_baseline = NamedFunc((zg_el_cuts || zg_mu_cuts) && zg_baseline_nolep).Name("baseline");
 
-  //master stitch variable
+  //master stitch variable, updated for KingsCanyon_v0, later to be updated for v1
   const NamedFunc stitch("stitch",[](const Baby &b) -> NamedFunc::ScalarType{
+    //remove ZGToLLG from DYJets
+    if(b.type() >= 6000 && b.type() < 7000)
+      return b.use_event();
+    //remove DYJets from ZGToLLG
+    if (b.type() >= 17000 && b.type() < 18000)
+      return b.use_event();
+    //remove ttG from TTJets - poor man for now
+    if (b.type() >= 1000 && b.type() < 2000)
+      //return b.stitch_photon(); currently bugged since photon doesn't exempt itself
+      if (b.photon_pflavor()->size()>0)
+        if (b.photon_pflavor()->at(0)==1)
+          return 0;
+    //various bugs in VVG samples, so don't worry about those
+    //no WJets or EWKZ-ZG2J here either
+    return 1.0;
+  });
+
+  //master stitch variable for deathvalley_v3
+  const NamedFunc stitch_deathvalley("stitch_deathvalley",[](const Baby &b) -> NamedFunc::ScalarType{
     //remove ZGToLLG from DYJets
     if(b.type() >= 6000 && b.type() < 7000)
       return b.stitch_dy();
@@ -126,17 +145,17 @@ namespace ZgFunctions {
         if (b.photon_pflavor()->at(0)==1)
           return 0;
     //remove WWG from WW
-    if (b.type() >= 14000 && b.type() < 15000)
-      return b.stitch_dy();
-      //if (b.photon_pflavor()->size()>0)
-      //  if (b.photon_pflavor()->at(0)==1)
-      //    return 0;
+    //if (b.type() >= 14000 && b.type() < 15000)
+    //  return b.stitch_dy();
+    //  //if (b.photon_pflavor()->size()>0)
+    //  //  if (b.photon_pflavor()->at(0)==1)
+    //  //    return 0;
     //remove WZG from WZ - poor man's stitch
-    if (b.type() >= 15000 && b.type() < 16000)
-      return b.stitch_dy();
-      //if (b.photon_pflavor()->size()>0)
-      //  if (b.photon_pflavor()->at(0)==1)
-      //    return 0;
+    //if (b.type() >= 15000 && b.type() < 16000)
+    //  return b.stitch_dy();
+    //  //if (b.photon_pflavor()->size()>0)
+    //  //  if (b.photon_pflavor()->at(0)==1)
+    //  //    return 0;
     //don't use ZZG because only leptonic decays
     //remove ZZG from ZZ - poor man's stitch
     //if (b.type() >= 16000 && b.type() < 17000)
@@ -151,9 +170,14 @@ namespace ZgFunctions {
       return ZgUtilities::pdrmax(b);
   });
 
+  ////relative pt uncertainty of lead photon
+  //const NamedFunc photon_relpterr("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
+  //    return b.photon_pterr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
+  //});
+
   //relative pt uncertainty of lead photon
   const NamedFunc photon_relpterr("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
-      return b.photon_pterr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
+      return b.photon_energyErr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
   });
 
   //lead lepton eta (=lep_eta[0], but this isn't saved in slims =( )

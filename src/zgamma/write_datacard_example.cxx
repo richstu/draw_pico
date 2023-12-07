@@ -32,7 +32,7 @@ using std::string;
 using std::vector;
 using ZgFunctions::HLT_pass_dilepton;
 using ZgFunctions::HLT_pass_singlelepton;
-using ZgFunctions::stitch;
+using ZgFunctions::stitch_deathvalley;
 using ZgFunctions::w_years;
 using SelectionList = Datacard::SelectionList;
 using Systematic = Datacard::Systematic;
@@ -48,7 +48,7 @@ int main() {
   //Define processes
   string prod_folder("/net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v3/");
   set<string> years = {"2018"};
-  NamedFunc trig_and_stitch = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch;
+  NamedFunc trig_and_stitch = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch_deathvalley;
   shared_ptr<Process> proc_pseudodata = Process::MakeShared<Baby_pico>(
       "data_obs", Process::Type::data, kBlack, attach_folder(prod_folder,years,
       "mc/merged_zgmc_llg",{"*DYJets*","*ZGToLLG*Tune*","*HToZG*M-125*"}),
@@ -107,10 +107,76 @@ int main() {
   RooGaussian gau_pdf_mu("pdf_background_cat_mu_GAU1","gau1_mu_pdf", rrv_mllg, mean2, sigma2);
 
   vector<RooAbsPdf*> background_pdfs;
-  background_pdfs.push_back(&exp_pdf_el);
-  background_pdfs.push_back(&exp_pdf_mu);
-  background_pdfs.push_back(&gau_pdf_el);
-  background_pdfs.push_back(&gau_pdf_mu);
+  vector<RooAbsPdf*> signal_pdfs;
+  vector<RooRealVar*> vars;
+  //RooRealVar rrv_mllg("mllg","mllg cat",100.0,160.0);
+  //for (string category : {"cat_el","cat_mu"}) {
+  //  vars.push_back(RooRealVar(("mllg_"+category).c_str(),"mllg cat",100.0,160.0));
+  //  vars.push_back(RooRealVar(("c0_"+category).c_str(),"exponential coefficient",0.0,10.0));
+  //  vars.push_back(RooRealVar(("c1_"+category).c_str(),"sigmoid offset",100.0,115.0));
+  //  vars.push_back(RooRealVar(("c2_"+category).c_str(),"sigmoid width",0.05,20.0));
+  //  unsigned len_vars = vars.size();
+  //  background_pdfs.push_back(new RooGenericPdf(("pdf_background_"+category).c_str(),"exp_pdf",
+  //      "exp(-1.0*@1*(@0-114.0)/36.0)/(1.0+exp(-1.0*@2*(@0-@3)))",
+  //      RooArgSet(vars[len_vars-4],vars[len_vars-3],vars[len_vars-2],vars[len_vars-1])));
+  //  signal_pdfs.push_back(new RooGenericPdf(("pdf_htozg_"+category).c_str(),"",
+  //      "50.0*TMath::Gaus(@0,125.0,1.5)",
+  //      //RooArgSet(vars[len_vars-4])));
+  //      RooArgSet(rrv_mllg)));
+  //  //TODO fix leaking memory by switching to shared_ptr or similar
+  //}
+  
+  for (string category : {"cat_el", "cat_mu"}) {
+    //RooRealVar rrv_mllg("mllg_cat_el","mllg cat",100.0,160.0);
+    //RooRealVar c0("c0_cat_el","exponential coefficient",0.0,10.0);
+    //RooRealVar c1("c1_cat_el","sigmoid offset",100.0,115.0);
+    //RooRealVar c2("c2_cat_el","sigmoid width",0.05,20.0);
+    //vars.push_back(new RooRealVar(("MH").c_str(),"Higgs mass",120.0,130.0));
+    vars.push_back(new RooRealVar(("mllg_"+category).c_str(),"mllg cat",100.0,160.0));
+    vars.push_back(new RooRealVar(("c0_"+category).c_str(),"exponential coefficient",0.0,10.0));
+    vars.push_back(new RooRealVar(("c1_"+category).c_str(),"sigmoid offset",100.0,115.0));
+    vars.push_back(new RooRealVar(("c2_"+category).c_str(),"sigmoid width",0.05,20.0));
+    unsigned len_vars = vars.size();
+    //RooGenericPdf pdf_bkg_cat(("pdf_background_"+category).c_str(),"bkg_pdf",
+    //    "exp(-1.0*@1*(@0-114.0)/36.0)/(1.0+exp(-1.0*@2*(@0-@3)))",
+    //    RooArgSet(vars[len_vars-4],vars[len_vars-3],vars[len_vars-2],vars[len_vars-1]));
+    //RooGenericPdf pdf_sig_cat(("pdf_htozg_"+category).c_str(),"sig_pdf",
+    //    "50.0*TMath::Gaus(@0,125.0,1.5)",
+    //    RooArgSet(vars[len_vars-4]));
+    RooGenericPdf* pdf_bkg_cat = new RooGenericPdf(("pdf_background_"+category).c_str(),"bkg_pdf",
+        "exp(-1.0*@1*(@0-100.0)/60.0)/(1.0+exp(-1.0*@3*(@0-@2)))",
+        RooArgSet(*vars[len_vars-4],*vars[len_vars-3],*vars[len_vars-2],*vars[len_vars-1]));
+    RooGenericPdf* pdf_sig_cat = new RooGenericPdf(("pdf_htozg_"+category).c_str(),"sig_pdf",
+        "TMath::Gaus(@0,125.0,1.5)",
+        RooArgSet(*vars[len_vars-4]));
+    background_pdfs.push_back(pdf_bkg_cat);
+    signal_pdfs.push_back(pdf_sig_cat);
+    //background_pdfs.push_back(new RooGenericPdf(("pdf_background_"+category).c_str(),"exp_pdf",
+    //    "exp(-1.0*@1*(@0-114.0)/36.0)/(1.0+exp(-1.0*@2*(@0-@3)))",
+    //    RooArgSet(vars[len_vars-4],vars[len_vars-3],vars[len_vars-2],vars[len_vars-1])));
+    //signal_pdfs.push_back(new RooGenericPdf(("pdf_htozg_"+category).c_str(),"sig_pdf",
+    //    "50.0*TMath::Gaus(@0,125.0,1.5)",
+    //    RooArgSet(vars[len_vars-4])));
+  }
+  //RooGenericPdf pdf_bac_el("pdf_background_cat_el","exp_pdf",
+  //    "exp(-1.0*@1*(@0-114.0)/36.0)/(1.0+exp(-1.0*@2*(@0-@3)))",
+  //    RooArgSet(vars[0],vars[1],vars[2],vars[3]));
+  //RooGenericPdf pdf_sig_el("pdf_htozg_cat_el","",
+  //    "50.0*TMath::Gaus(@0,125.0,1.5)",
+  //    RooArgSet(vars[0]));
+  //background_pdfs.push_back(&pdf_bac_el);
+  //signal_pdfs.push_back(&pdf_sig_el);
+  std::cout << background_pdfs[0]->GetName() << std::endl;
+  std::cout << signal_pdfs[0]->GetName() << std::endl;
+  std::cout << background_pdfs[1]->GetName() << std::endl;
+  std::cout << signal_pdfs[1]->GetName() << std::endl;
+
+  //RooCategory cat("pdf_index","Index of Pdf which is active");
+  //RooArgList mypdfs;
+  //mypdfs.add(exp_pdf_el);
+  //mypdfs.add(exp_pdf_mu);
+  //RooMultiPdf multipdf("roomultipdf","All Pdfs",cat,mypdfs);
+  //multipdf.GetName();
 
   //Make datacard
   PlotMaker pm;
@@ -121,7 +187,6 @@ int main() {
       Axis(18, 100.0, 160.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddParametricProcess("background",background_pdfs)
       .MakeProcessParametric("htozg",signal_pdfs);
-      //.SaveDataAsHist();
 
   pm.MakePlots(1.0);
 
