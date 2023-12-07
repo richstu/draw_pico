@@ -45,8 +45,11 @@ namespace ZgFunctions {
   extern const NamedFunc zg_baseline_mu;
   extern const NamedFunc zg_baseline;
 
-  //master stitch variable, currently only has DY/ZG stitch
+  //master stitch variable
   extern const NamedFunc stitch;
+
+  //master stitch variable, for deathvalley productions
+  extern const NamedFunc stitch_deathvalley;
 
   //drmax of lead photon
   extern const NamedFunc photon_drmax;

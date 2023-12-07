@@ -31,7 +31,7 @@ using std::string;
 using std::vector;
 using ZgFunctions::HLT_pass_dilepton;
 using ZgFunctions::HLT_pass_singlelepton;
-using ZgFunctions::stitch;
+using ZgFunctions::stitch_deathvalley;
 using ZgFunctions::w_years;
 using SelectionList = Datacard::SelectionList;
 using Systematic = Datacard::Systematic;
@@ -47,7 +47,7 @@ int main() {
   //Define processes
   string prod_folder("/net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v3/");
   set<string> years = {"2018"};
-  NamedFunc trig_and_stitch = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch;
+  NamedFunc trig_and_stitch = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch_deathvalley;
   shared_ptr<Process> proc_pseudodata = Process::MakeShared<Baby_pico>(
       "data_obs", Process::Type::data, kBlack, attach_folder(prod_folder,years,
       "mc/merged_zgmc_llg",{"*DYJets*","*ZGToLLG*Tune*","*HToZG*M-125*"}),
@@ -117,6 +117,7 @@ int main() {
     //RooRealVar c0("c0_cat_el","exponential coefficient",0.0,10.0);
     //RooRealVar c1("c1_cat_el","sigmoid offset",100.0,115.0);
     //RooRealVar c2("c2_cat_el","sigmoid width",0.05,20.0);
+    //vars.push_back(new RooRealVar(("MH").c_str(),"Higgs mass",120.0,130.0));
     vars.push_back(new RooRealVar(("mllg_"+category).c_str(),"mllg cat",100.0,160.0));
     vars.push_back(new RooRealVar(("c0_"+category).c_str(),"exponential coefficient",0.0,10.0));
     vars.push_back(new RooRealVar(("c1_"+category).c_str(),"sigmoid offset",100.0,115.0));
@@ -132,7 +133,7 @@ int main() {
         "exp(-1.0*@1*(@0-100.0)/60.0)/(1.0+exp(-1.0*@3*(@0-@2)))",
         RooArgSet(*vars[len_vars-4],*vars[len_vars-3],*vars[len_vars-2],*vars[len_vars-1]));
     RooGenericPdf* pdf_sig_cat = new RooGenericPdf(("pdf_htozg_"+category).c_str(),"sig_pdf",
-        "50.0*TMath::Gaus(@0,125.0,1.5)",
+        "TMath::Gaus(@0,125.0,1.5)",
         RooArgSet(*vars[len_vars-4]));
     background_pdfs.push_back(pdf_bkg_cat);
     signal_pdfs.push_back(pdf_sig_cat);
@@ -142,8 +143,6 @@ int main() {
     //signal_pdfs.push_back(new RooGenericPdf(("pdf_htozg_"+category).c_str(),"sig_pdf",
     //    "50.0*TMath::Gaus(@0,125.0,1.5)",
     //    RooArgSet(vars[len_vars-4])));
-    std::cout << background_pdfs.back()->GetName() << std::endl;
-    std::cout << signal_pdfs.back()->GetName() << std::endl;
   }
   //RooGenericPdf pdf_bac_el("pdf_background_cat_el","exp_pdf",
   //    "exp(-1.0*@1*(@0-114.0)/36.0)/(1.0+exp(-1.0*@2*(@0-@3)))",
@@ -174,7 +173,6 @@ int main() {
       Axis(18, 100.0, 160.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddParametricProcess("background",background_pdfs)
       .MakeProcessParametric("htozg",signal_pdfs);
-      //.SaveDataAsHist();
 
   pm.MakePlots(1.0);
 

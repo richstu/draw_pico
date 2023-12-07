@@ -802,32 +802,37 @@ int main(int argc, char *argv[]){
                    mc_colors("zgtollg"), attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
                    {"*ZGToLLG_01J_5f_Tune*"}), 
                    trig_and_stitch);
-  auto proc_dyph = Process::MakeShared<Baby_pico>("DYJets (real photon)", Process::Type::background, 
-                   kYellow-9, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
-                   {"*DYJets*amcatnlo*"}), 
-                   trig_and_stitch&&"photon_pflavor[0]==1");
-  auto proc_dyel = Process::MakeShared<Baby_pico>("DYJets (photon is electron)", 
-                   Process::Type::background, 
-                   kViolet-1, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
-                   {"*DYJets*amcatnlo*"}), 
-                   trig_and_stitch&&"photon_pflavor[0]==11");
-  auto proc_dyjt = Process::MakeShared<Baby_pico>("DYJets (photon is jet)", 
-                   Process::Type::background, 
+  auto proc_dyal = Process::MakeShared<Baby_pico>("DYJets (real photon)", Process::Type::background, 
                    mc_colors("dyjets"), attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
                    {"*DYJets*amcatnlo*"}), 
-                   trig_and_stitch&&photon_isjet);
-  auto proc_dyot = Process::MakeShared<Baby_pico>("DYJets (other fake photon)", 
-                   Process::Type::background, 
-                   kGreen+2, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
-                   {"*DYJets*amcatnlo*"}), 
-                   trig_and_stitch&&"photon_pflavor[0]==0"&&!photon_isjet);
+                   trig_and_stitch);
+  //auto proc_dyph = Process::MakeShared<Baby_pico>("DYJets (real photon)", Process::Type::background, 
+  //                 kYellow-9, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+  //                 {"*DYJets*amcatnlo*"}), 
+  //                 trig_and_stitch&&"photon_pflavor[0]==1");
+  //auto proc_dyel = Process::MakeShared<Baby_pico>("DYJets (photon is electron)", 
+  //                 Process::Type::background, 
+  //                 kViolet-1, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+  //                 {"*DYJets*amcatnlo*"}), 
+  //                 trig_and_stitch&&"photon_pflavor[0]==11");
+  //auto proc_dyjt = Process::MakeShared<Baby_pico>("DYJets (photon is jet)", 
+  //                 Process::Type::background, 
+  //                 mc_colors("dyjets"), attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+  //                 {"*DYJets*amcatnlo*"}), 
+  //                 trig_and_stitch&&photon_isjet);
+  //auto proc_dyot = Process::MakeShared<Baby_pico>("DYJets (other fake photon)", 
+  //                 Process::Type::background, 
+  //                 kGreen+2, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
+  //                 {"*DYJets*amcatnlo*"}), 
+  //                 trig_and_stitch&&"photon_pflavor[0]==0"&&!photon_isjet);
   auto proc_hzg  = Process::MakeShared<Baby_pico>("H#rightarrow Z#gamma", 
                    Process::Type::signal, 
                    kRed, attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
                    {"*GluGluHToZG*M-125*"}), 
                    trig_and_stitch);
-  std::vector<std::shared_ptr<Process>> procs_dysplit = {proc_dyel, proc_dyph, proc_dyjt, 
-                                                         proc_dyot, proc_zg, proc_hzg};
+  //std::vector<std::shared_ptr<Process>> procs_dysplit = {proc_dyel, proc_dyph, proc_dyjt, 
+  //                                                       proc_dyot, proc_zg, proc_hzg};
+  std::vector<std::shared_ptr<Process>> procs_dysplit = {proc_dyal, proc_zg, proc_hzg};
 
   //------------------------------------------------------------------------------------
   //                      named funcs to be moved to a common location
@@ -1691,6 +1696,18 @@ int main(int argc, char *argv[]){
     return (ph+l1+l2).M();
   });
 
+  const NamedFunc MinDeltaPt("MinDeltaPt",[](const Baby &b) -> NamedFunc::ScalarType{
+    double ph_pt = b.photon_pt()->at(0);
+    double min_dpt = 999.0;
+    for (unsigned iel = 0; iel < b.el_pt()->size(); iel++) {
+      if (!b.el_sig()->at(iel)) continue;
+      double dpt = fabs(ph_pt-b.el_pt()->at(iel));
+      if (dpt < min_dpt)
+        min_dpt = dpt;
+    }
+    return min_dpt;
+  });
+
   //plot_cutflow
   
   NamedFunc ObjectPreselection = (NElectron_sig>=2||NMuon_sig>=2)&&(Lead_Electron_pt>25||Lead_Muon_pt>20)&&(Sublead_Electron_pt>15||Sublead_Muon_pt>10)&&NPhoton_sig>=1&&(Lead_Photon_pt>15);
@@ -1917,17 +1934,51 @@ int main(int argc, char *argv[]){
   }
 
   if (plot_dysplit) {
-    pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
-        tighter_baseline, procs_dysplit, plt_lin)
+    //pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+    //    tighter_baseline, procs_dysplit, plt_lin)
+    //    .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    //pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+    //    tighter_baseline&&"photon_elidx!=-1", procs_dysplit, plt_lin)
+    //    .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    //pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+    //    tighter_baseline&&overlapping_phel, procs_dysplit, plt_lin)
+    //    .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    //pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+    //    tighter_baseline&&!overlapping_phel, procs_dysplit, plt_lin)
+    //    .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist1D>(Axis(40,100.0,180.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, plt_lin)
         .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
-    pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
-        tighter_baseline&&"photon_elidx!=-1", procs_dysplit, plt_lin)
+    pm.Push<Hist1D>(Axis(40,100.0,180.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&!overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, plt_lin)
         .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
-    pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
-        tighter_baseline&&overlapping_phel, procs_dysplit, plt_lin)
+    pm.Push<Hist1D>(Axis(25,0.4,3.1, "photon_drmin[0]", "Min #Delta R(l, #gamma)", {}), 
+        tighter_baseline&&overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, plt_lin)
         .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
-    pm.Push<Hist1D>(Axis(60.0,100.0,160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
-        tighter_baseline&&!overlapping_phel, procs_dysplit, plt_lin)
+    pm.Push<Hist1D>(Axis(25,0.4,3.1, "photon_drmin[0]", "Min #Delta R(l, #gamma)", {}), 
+        tighter_baseline&&!overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, plt_lin)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist1D>(Axis(25,0.0,50.0, MinDeltaPt, "Min #Delta p_{T}(l, #gamma) [GeV]", {}), 
+        tighter_baseline&&overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, plt_lin)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist1D>(Axis(25,0.0,50.0, MinDeltaPt, "Min #Delta p_{T}(l,#gamma) [GeV]", {}), 
+        tighter_baseline&&!overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, plt_lin)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist2D>(Axis(20,0.4,3.1, "photon_drmin[0]", "Min #Delta R(l, #gamma)", {}), 
+        Axis(20,100.0,180.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, twodim_log_plotopts)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist2D>(Axis(20,0.4,3.1, "photon_drmin[0]", "Min #Delta R(l, #gamma)", {}), 
+        Axis(20,100.0,180.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&!overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, twodim_log_plotopts)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist2D>(Axis(25,0.0,50.0, MinDeltaPt, "Min #Delta p_{T}(l,#gamma) [GeV]", {}), 
+        Axis(20,100.0,180.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, twodim_log_plotopts)
+        .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
+    pm.Push<Hist2D>(Axis(25,0.0,50.0, MinDeltaPt, "Min #Delta p_{T}(l,#gamma) [GeV]", {}), 
+        Axis(20,100.0,180.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        tighter_baseline&&!overlapping_phel&&"photon_pflavor[0]==11", procs_dysplit, twodim_log_plotopts)
         .Weight("w_lumi"*ZgFunctions::w_years).Tag("zgshapes");
   }
 

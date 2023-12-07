@@ -286,6 +286,7 @@ std::vector<float> photon_r9
 std::vector<float> photon_sieie
 std::vector<float> photon_drmin
 std::vector<float> photon_pterr
+std::vector<float> photon_energyErr
 std::vector<float> photon_hoe
 std::vector<float> photon_idmva
 std::vector<int>   photon_pflavor
