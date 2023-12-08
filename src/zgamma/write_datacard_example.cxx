@@ -13,6 +13,7 @@
 #include "RooGenericPdf.h"
 #include "RooMultiPdf.h"
 #include "RooRealVar.h"
+#include "RooGaussian.h"
 #include "TError.h"
 #include "TColor.h"
 
@@ -163,6 +164,26 @@ int main() {
   //mypdfs.add(exp_pdf_mu);
   //RooMultiPdf multipdf("roomultipdf","All Pdfs",cat,mypdfs);
   //multipdf.GetName();
+  //RooRealVar rrv_mllg("mllg","llgamma invariant mass",114.0,150.0);
+  //RooRealVar c0("c0","exponential coefficient",0.0,10.0);
+  //c0.setVal(1.0);
+  //RooGenericPdf exp_pdf_el("pdf_background_cat_el_EXP1","exp1_pdf","exp(-1.0*c0*(mllg-114.0)/36.0)",RooArgSet(rrv_mllg,c0));
+  //RooGenericPdf exp_pdf_mu("pdf_background_cat_mu_EXP1","exp1_pdf","exp(-1.0*c0*(mllg-114.0)/36.0)",RooArgSet(rrv_mllg,c0));
+
+  //RooRealVar sigma1("sigma1","sigma1",3., 0.0,10.0);
+  //RooRealVar mean1("mean1","mean1",130., 120.0,160.0);
+
+  //RooRealVar sigma2("sigma2","sigma2",3., 0.0,10.0);
+  //RooRealVar mean2("mean2","mean2",130., 120.0,160.0);
+
+  //RooGaussian gau_pdf_el("pdf_background_cat_el_GAU1","gau1_el_pdf", rrv_mllg, mean1, sigma1);
+  //RooGaussian gau_pdf_mu("pdf_background_cat_mu_GAU1","gau1_mu_pdf", rrv_mllg, mean2, sigma2);
+
+  //vector<RooAbsPdf*> background_pdfs;
+  //background_pdfs.push_back(&exp_pdf_el);
+  //background_pdfs.push_back(&exp_pdf_mu);
+  //background_pdfs.push_back(&gau_pdf_el);
+  //background_pdfs.push_back(&gau_pdf_mu);
 
   //Make datacard
   PlotMaker pm;

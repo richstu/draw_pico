@@ -86,7 +86,8 @@ int main() {
 
   //Define systematics
   Systematic syst_altweight("altw",weight*"w_photon");
-  Systematic syst_altselection("altsel","zmassreq","ll_m[0]>80&&ll_m[0]<101"); //can make namedfunc that selects signal only using type
+  Systematic syst_altselection("altsel","zmassreq","ll_m[0]>80&&ll_m[0]<101"); 
+  //can make namedfunc that selects signal only using type
   vector<Systematic> systematics = {syst_altweight, syst_altselection};
 
   //Define parametric PDFs

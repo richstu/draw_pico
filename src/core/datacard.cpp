@@ -14,7 +14,6 @@
 
   \brief Container for TH1Ds(->RooDataHist?) associated with a single Process
   
-  TODO: may be modified if we need RooDataSet instead
 */
 
 /*! \class Datacard::Systematic
@@ -30,6 +29,8 @@
 
   \brief Container for selections to be applied to a particular category
 */
+
+//TODO merge documentation with header
 
 #include "core/datacard.hpp"
 
@@ -50,8 +51,10 @@
 #include "RooHistPdf.h"
 #include "RooRealVar.h"
 #include "RooWorkspace.h"
+#include "RooCategory.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "RooMultiPdf.h"
 
 #include "core/axis.hpp"
 #include "core/baby.hpp"
@@ -126,22 +129,40 @@ Datacard::Systematic::Systematic(const std::string &name,
 //DatacardProcess
 //----------------------------------------------------------------------------
 
+Datacard::DatacardProcess::DatacardProcess(const Figure &figure,
+    const std::shared_ptr<Process> &process) :
+    FigureComponent(figure, process) {}
+
+Datacard::DatacardProcess::DatacardProcess(const Figure &figure) :
+    FigureComponent(figure, std::shared_ptr<Process>(nullptr)) {}
+
+//----------------------------------------------------------------------------
+//DatacardProcessNonparametric
+//----------------------------------------------------------------------------
+
 /*!\brief Standard constructor
   \param[in] figure   Parent figure
   \param[in] process  Process used to fill histogram
 */
-Datacard::DatacardProcess::DatacardProcess(const Figure &figure,
+Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(const Figure &figure,
     const std::shared_ptr<Process> &process,
     const Axis &axis) :
-    FigureComponent(figure, process),
+    DatacardProcess(figure, process),
     weight_(RooRealVar("weight","",-50.0,50.0)) {
   if (process_->type_ == Process::Type::data) {
     is_data_ = true;
+    is_signal_ = false;
     process_->name_ = "data_obs";
   }
+  else if (process_->type_ == Process::Type::signal) {
+    is_data_ = false;
+    is_signal_ = true;
+  } 
   else {
     is_data_ = false;
+    is_signal_ = false;
   }
+  name_ = process_->name_;
   replace_with_param_ = false;
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   float axis_min = axis.Bins().at(0);
@@ -152,6 +173,7 @@ Datacard::DatacardProcess::DatacardProcess(const Figure &figure,
         axis.Bins().at(0),axis.Bins().at(axis.Bins().size()-1)));
     raw_histogram_nom_.push_back(TH1D("","",axis.Nbins(),&axis.Bins().at(0)));
     raw_histogram_sys_.push_back(std::vector<TH1D>());
+    is_profiled_.push_back(false);
     if (is_data_)
       raw_dataset_nom_.push_back(RooDataSet("","",RooArgSet(var_[ichan],weight_),RooFit::WeightVar(weight_)));
 
@@ -162,7 +184,7 @@ Datacard::DatacardProcess::DatacardProcess(const Figure &figure,
   }
 }
 
-void Datacard::DatacardProcess::RecordEvent(const Baby &baby) {
+void Datacard::DatacardProcessNonparametric::RecordEvent(const Baby &baby) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   float nominal_weight = datacard->nominal_weight_.GetScalar(baby);
   for (unsigned ichan = 0; ichan < datacard->n_channels_; ichan++) {
@@ -182,6 +204,232 @@ void Datacard::DatacardProcess::RecordEvent(const Baby &baby) {
       }
     } //loop over systematics
   } //loop over channels
+}
+
+/*! \brief Returns the name of the RooWorkspace saved for a given channel
+  \param[in] channel    index of channel to write
+*/
+std::string Datacard::DatacardProcessNonparametric::WSName(unsigned int channel) {
+  const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  if (is_data_) {
+    return "WS_data_obs_"+datacard->channel_name_[channel];
+  }
+  //is MC
+  return "WS_"+name_+"_"+datacard->channel_name_[channel];
+}
+
+/*! \brief Returns the name of the PDF/RooDataHist/RooDataSet saved for a given channel
+  \param[in] channel    index of channel to write
+*/
+std::string Datacard::DatacardProcessNonparametric::PDFName(unsigned int channel) {
+  const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  if (is_data_) {
+    return "data_obs_"+datacard->channel_name_[channel];
+  }
+  else if (replace_with_param_) { //MC replaced by parametric PDF
+    return param_pdf_[channel]->GetName();
+  }
+  //is MC RooHistPdf
+  return "pdf_"+name_+"_"+datacard->channel_name_[channel];
+}
+
+/*! \brief Returns yield (rate) of events in a given channel
+  \param[in] channel    index of channel
+*/
+float Datacard::DatacardProcessNonparametric::Yield(unsigned int channel, 
+                                                    unsigned int systematic) {
+  if (systematic==999)
+    return raw_histogram_nom_[channel].Integral();
+  float ratio = raw_histogram_nom_[channel].Integral()/
+                raw_histogram_sys_[channel][systematic].Integral();
+  if (ratio<1.0) ratio = 1.0/ratio;
+  return ratio;
+}
+
+/*! \brief Writes contained PDFs to a workspace and saves to ROOT file. 
+    Assumes ROOT file open
+  \param[in] channel    index of channel to write
+*/
+void Datacard::DatacardProcessNonparametric::WriteWorkspace(unsigned int channel) {
+  const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  RooWorkspace ws(WSName(channel).c_str());
+  if (is_data_) {
+    //data_norm.push_back(
+    //    datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral());
+    if (datacard->save_data_as_hist_) {
+      //TODO changed to using var_ rather than declaring new RRealVar, hopefully don't regret
+      RooDataHist data_obs(PDFName(channel).c_str(),"",RooArgList(var_[channel]),
+          &raw_histogram_nom_[channel]);
+      //std::cout << "importing data_hist" << std::endl;
+      ws.import(data_obs);
+    }
+    else { //save data as RooDataSet
+      raw_dataset_nom_[channel].SetName(PDFName(channel).c_str());
+      //std::cout << "importing dataset" << std::endl;
+      //ws.import(datacard_process_[iproc]->weight_);
+      ws.import(raw_dataset_nom_[channel]);
+    }
+  }
+  else { //is MC
+    if (replace_with_param_) { //replace histogram with analytic PDF
+      //std::cout << "importing replaced pdf" << std::endl;
+      //TODO: add some sort of fitting machinery here?
+      ws.import(*param_pdf_[channel]);
+    }
+    else { //don't replace with param, just make RooHistPdf
+      RooDataHist hist((PDFName(channel)+"_hist").c_str(),"",RooArgList(var_[channel]),
+          &raw_histogram_nom_[channel]);
+      RooHistPdf pdf(PDFName(channel).c_str(),"",RooArgList(var_[channel]),hist);
+      //add a separate norm RooRealVar for non-signal processes (signal controlled by r)
+      if (!is_signal_) {
+        float nom_yield = raw_histogram_nom_[channel].Integral();
+        RooRealVar norm((PDFName(channel)+"_norm").c_str(),"",nom_yield,
+            0,10.0*nom_yield);
+        ws.import(norm);
+      }
+      //std::cout << "importing hist pdf" << std::endl;
+      ws.import(pdf);
+    }
+  }
+  ws.Write();
+}
+
+//----------------------------------------------------------------------------
+//DatacardProcessParametric
+//----------------------------------------------------------------------------
+
+/*! \brief Add parametric process to datacard (ex. background constrained by fit)
+  \param[in] name   Name of process
+  \param[in] pdf    PDF for process by channel
+*/
+Datacard::DatacardProcessParametric::DatacardProcessParametric(const std::string &name, 
+    std::vector<RooAbsPdf*> &pdf, const Figure &figure) :
+    DatacardProcess(figure) {
+
+  std::vector<std::vector<RooAbsPdf*>> double_vec;
+  for (RooAbsPdf* channel_pdf : pdf) {
+    double_vec.push_back(std::vector<RooAbsPdf*>());
+    double_vec.back().push_back(channel_pdf);
+    is_profiled_.push_back(false);
+  }
+
+  //initialize properties
+  name_ = name;
+  pdf_ = double_vec;
+  is_data_ = false;
+  is_signal_ = false; //currently, don't allow signal
+}
+
+/*! \brief Add parametric process to datacard (ex. background constrained by fit)
+  \param[in] name   Name of process
+  \param[in] pdf    PDF for process by channel and profile
+*/
+Datacard::DatacardProcessParametric::DatacardProcessParametric(const std::string &name, 
+   std::vector<std::vector<RooAbsPdf*>> &pdf, const Figure &figure) : 
+   DatacardProcess(figure) {
+
+  //check for errors and which channels are profiled
+  for (std::vector<RooAbsPdf*>& channel_pdfs : pdf) {
+    if (channel_pdfs.size()==0)
+      throw std::invalid_argument(("Process "+name+" has a channel with 0 PDFs.").c_str());
+    else if (channel_pdfs.size()==1)
+      is_profiled_.push_back(false);
+    else
+      is_profiled_.push_back(true);
+  }
+
+  //initialize properties
+  name_ = name;
+  pdf_ = pdf;
+  is_data_ = false;
+  is_signal_ = false; //currently, don't allow signal
+}
+
+
+/*! \brief Helper function that wraps a vector of PDFs as a vector of single-entry vectors of PDFs
+  \param[in] pdf  vector of (pointers to) PDFs
+*/
+std::vector<std::vector<RooAbsPdf*>> Datacard::DatacardProcessParametric::MakeDoubleVector(
+    std::vector<RooAbsPdf*> pdfs) {
+  std::vector<std::vector<RooAbsPdf*>> double_vec;
+  for (RooAbsPdf* pdf : pdfs) {
+    double_vec.push_back(std::vector<RooAbsPdf*>());
+    double_vec.back().push_back(pdf);
+  }
+  return double_vec;
+}
+
+/*! \brief Dummy function needed for interface
+*/
+void Datacard::DatacardProcessParametric::RecordEvent(const Baby &baby) {
+  baby.SampleType();
+  return;
+}
+
+/*! \brief Returns the name of the RooAbsPdf saved for a given channel
+  \param[in] channel    index of channel
+*/
+std::string Datacard::DatacardProcessParametric::PDFName(unsigned int channel) {
+  if (!is_profiled_[channel]) {
+    return pdf_[channel][0]->GetName();
+  }
+  //is profiled
+  const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  return "pdf_"+name_+"_"+datacard->channel_name_[channel];
+}
+
+/*! \brief Returns the name of the RooWorkspace saved for a given channel
+  \param[in] channel    index of channel
+*/
+std::string Datacard::DatacardProcessParametric::WSName(unsigned int channel) {
+  //if (figure_==nullptr)
+  //  throw std::runtime_error(("WSName called for "+name_+" before datacard assignment.").c_str());
+  const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  //is MC
+  return "WS_"+name_+"_"+datacard->channel_name_[channel];
+}
+
+/*! \brief Dummy function that returns a yield (rate) of 1.0 for parametric 
+    function as per combine convention
+*/
+float Datacard::DatacardProcessParametric::Yield(unsigned int channel, unsigned int systematic) {
+  channel += 0;
+  systematic += 0;
+  return 1.0;
+}
+
+/*! \brief Writes contained PDFs to a workspace and saves to ROOT file. 
+    Assumes ROOT file open
+  \param[in] channel    index of channel to write
+*/
+void Datacard::DatacardProcessParametric::WriteWorkspace(unsigned int channel) {
+  const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  RooWorkspace ws(WSName(channel).c_str());
+  if (!is_profiled_[channel]) {
+    //TODO switch to unique_ptr in driver script?
+    RooRealVar norm((PDFName(channel)+"_norm").c_str(),"",data_norm_[channel],
+        0,3.0*data_norm_[channel]);
+    //std::cout << "importing parametric pdf" << std::endl;
+    ws.import(*pdf_[channel][0]);
+    ws.import(norm);
+  }
+  else {
+    std::string index_name = "pdfindex_" + name_ +"_" + datacard->channel_name_[channel];
+    std::string model_name = "pdfmodels_" + name_ + "_"+ datacard->channel_name_[channel];
+    RooRealVar norm((PDFName(channel)+"_norm").c_str(),"",data_norm_[channel],
+        0,3.0*data_norm_[channel]);
+    RooCategory pdfindex(index_name.c_str(), index_name.c_str());
+    RooArgList models = RooArgList(model_name.c_str());
+    for (RooAbsPdf* pdf: pdf_[channel]){
+      models.add(*pdf);
+    }
+    RooMultiPdf profile(PDFName(channel).c_str(), PDFName(channel).c_str(), pdfindex, models);
+    //      ws.import(*(param_profile_ind_process_[iproc_eff][channel]));
+    ws.import(pdfindex);
+    ws.import(profile);
+    ws.import(norm);
+  }
+  ws.Write();
 }
 
 //----------------------------------------------------------------------------
@@ -260,10 +508,17 @@ Datacard::Datacard(const std::string &name,
   }
 
   //initialize processes
+  int n_data = 0;
   for (const std::shared_ptr<Process> & process : processes) {
-    datacard_process_.push_back(std::unique_ptr<DatacardProcess>(new DatacardProcess(*this, process, axis)));
+    datacard_process_nonparametric_.push_back(
+        std::unique_ptr<DatacardProcessNonparametric>(
+        new DatacardProcessNonparametric(*this, process, axis)));
+    datacard_process_.push_back(datacard_process_nonparametric_.back().get());
+    if (datacard_process_.back()->is_data_)
+      n_data++;
   }
-  
+  if (n_data != 1)
+    throw std::invalid_argument("Exactly 1 data process should be provided to datacard.");
 }
 
 /*! \brief Produce and save datacard txt file and associate root files with 
@@ -281,76 +536,34 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   }
 
   //dummy logic to avoid unused variable needed for interface
+  //TODO: implement lumi multiplication
   luminosity += 0;
+
+  //Provide info about data yields to all processes
+  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+    float data_yield = 0;
+    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+      if (datacard_process_[iproc]->is_data_)
+        data_yield = datacard_process_[iproc]->Yield(ichan);
+    }
+    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+      datacard_process_[iproc]->data_norm_.push_back(data_yield);
+    }
+  }
 
   //save RooFit workspaces in root file
   TFile root_file(("datacards/"+subdir_mod+name_+".root").c_str(),"RECREATE"); 
-  std::vector<float> data_norm;
+  //loop over channels
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    float lower_edge = datacard_process_[0]->raw_histogram_nom_[ichan]
-        .GetXaxis()->GetBinLowEdge(1);
-    float upper_edge = datacard_process_[0]->raw_histogram_nom_[ichan]
-        .GetXaxis()->GetBinUpEdge(datacard_process_[0]->raw_histogram_nom_[ichan]
-        .GetXaxis()->GetNbins());
+    //float lower_edge = datacard_process_[0]->raw_histogram_nom_[ichan]
+    //    .GetXaxis()->GetBinLowEdge(1);
+    //float upper_edge = datacard_process_[0]->raw_histogram_nom_[ichan]
+    //    .GetXaxis()->GetBinUpEdge(datacard_process_[0]->raw_histogram_nom_[ichan]
+    //    .GetXaxis()->GetNbins());
+    //loop over processes, write relevant info for each process/channel to datacard
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (iproc < datacard_process_.size()) {
-        std::string proc_name = datacard_process_[iproc]->process_->name_;
-        std::string pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan];
-        RooWorkspace ws(("WS_"+proc_name+"_"+channel_name_[ichan]).c_str());
-        if (datacard_process_[iproc]->process_->type_ == Process::Type::data)  {
-          proc_name = "data_obs";
-          pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan];
-          data_norm.push_back(
-              datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral());
-          if (save_data_as_hist_) {
-            RooRealVar variable((variable_.Name()+channel_name_[ichan]).c_str(),
-                "",lower_edge,upper_edge);
-            RooDataHist data_obs(pdf_name.c_str(),"",RooArgList(variable),
-                &datacard_process_[iproc]->raw_histogram_nom_[ichan]);
-            std::cout << "importing data_hist" << std::endl;
-            ws.import(data_obs);
-          }
-          else {
-            datacard_process_[iproc]->raw_dataset_nom_[ichan].SetName(
-                pdf_name.c_str());
-            std::cout << "importing dataset" << std::endl;
-            //ws.import(datacard_process_[iproc]->weight_);
-            ws.import(datacard_process_[iproc]->raw_dataset_nom_[ichan]);
-          }
-        }
-        else {
-          if (datacard_process_[iproc]->replace_with_param_) {
-            std::cout << "importing replaced pdf" << std::endl;
-            ws.import(*(datacard_process_[iproc]->param_pdf_[ichan]));
-          }
-          else {
-            RooRealVar variable((variable_.Name()+channel_name_[ichan]).c_str(),
-                "",lower_edge,upper_edge);
-            RooDataHist hist((pdf_name+"_hist").c_str(),"",RooArgList(variable),
-                &datacard_process_[iproc]->raw_histogram_nom_[ichan]);
-            RooHistPdf pdf(pdf_name.c_str(),"",RooArgList(variable),hist);
-            //float nom_yield = datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral();
-            //RooRealVar norm((pdf_name+"_norm").c_str(),"",nom_yield,
-            //    0,100.0*nom_yield);
-            //ws.import(norm);
-            std::cout << "importing hist pdf" << std::endl;
-            ws.import(pdf);
-          }
-        }
-        ws.Write();
-      }
-      else {
-        unsigned iproc_eff = iproc-datacard_process_.size();
-        std::string proc_name = param_process_name_[iproc_eff];
-        std::string pdf_name = "pdf_"+proc_name+"_"+channel_name_[ichan];
-        RooRealVar norm((pdf_name+"_norm").c_str(),"",data_norm[ichan],
-            0,3.0*data_norm[ichan]);
-        RooWorkspace ws(("WS_"+proc_name+"_"+channel_name_[ichan]).c_str());
-        std::cout << "importing parametric pdf" << std::endl;
-        ws.import(*param_process_[iproc_eff][ichan]);
-        ws.import(norm);
-        ws.Write();
-      }
+      datacard_process_[iproc]->WriteWorkspace(ichan); 
+      //TODO see if this works, make workspace outside function and pass if needed
     }
   }
   root_file.Close();
@@ -361,31 +574,20 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   datacard_file.open(("datacards/"+subdir_mod+name_+".txt").c_str(),std::ios::out);
   //header
   datacard_file << "max  " << n_channels_ << " number of categories\n";
+  //subtract 1 for data, which is not counted, and 1 for combine conventions
   datacard_file << "jmax " << n_processes_-2 << " number of samples minus one\n";
   datacard_file << "kmax " << n_systematics_ <<" number of nuisance parameters\n";
   datacard_file << "-----------------------------------------------------------------"
                 << "-----------------------------------------------------------------\n";
-  //shape locations
+  //TODO adjust padding to fit strings
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (iproc < datacard_process_.size()) {
-        std::string proc_name = datacard_process_[iproc]->process_->name_;
-        if (datacard_process_[iproc]->process_->type_ == Process::Type::data)
-          proc_name = "data_obs";
-        datacard_file << "shapes " << std::left << std::setw(19)
-            << proc_name << std::left << std::setw(19) << channel_name_[ichan] 
-            << name_+".root " << "WS_"+proc_name+"_"+channel_name_[ichan] << ":"
-            << "pdf_"+proc_name+"_"+channel_name_[ichan] << "\n";
-      }
-      else {
-        unsigned iproc_eff = iproc-datacard_process_.size();
-        datacard_file << "shapes " << std::left << std::setw(19)
-            << param_process_name_[iproc_eff] << std::left << std::setw(19) 
-            << channel_name_[ichan] << name_+".root " 
-            << "WS_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
-            << ":pdf_"+param_process_name_[iproc_eff]+"_"+channel_name_[ichan] 
-            << "\n";
-      }
+      std::string proc_name = datacard_process_[iproc]->name_;
+
+      datacard_file << "shapes " << std::left << std::setw(19)
+          << proc_name << std::left << std::setw(19) << channel_name_[ichan] 
+          << name_+".root " << datacard_process_[iproc]->WSName(ichan) << ":"
+          << datacard_process_[iproc]->PDFName(ichan) << "\n";
     }
   }
   datacard_file << "-----------------------------------------------------------------"
@@ -406,31 +608,19 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   //process rates
   datacard_file << std::left << std::setw(33) << "bin";
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (iproc < datacard_process_.size()) {
-        if (datacard_process_[iproc]->process_->type_ == Process::Type::data)
-          continue;
-        datacard_file << std::left << std::setw(19) << channel_name_[ichan];
-      }
-      else {
-        datacard_file << std::left << std::setw(19) << channel_name_[ichan];
-      }
+    for (unsigned iproc = 0; iproc < n_processes_-1; iproc++) {
+      //assume 1 data process
+      datacard_file << std::left << std::setw(19) << channel_name_[ichan];
     }
   }
   datacard_file << "\n";
   datacard_file << std::left << std::setw(33) << "process";
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (iproc < datacard_process_.size()) {
-        if (datacard_process_[iproc]->process_->type_ == Process::Type::data)
-          continue;
-        std::string proc_name = datacard_process_[iproc]->process_->name_;
-        datacard_file << std::left << std::setw(19) << proc_name;
-      }
-      else {
-        unsigned iproc_eff = iproc-datacard_process_.size();
-        datacard_file << std::left << std::setw(19) << param_process_name_[iproc_eff];
-      }
+      if (datacard_process_[iproc]->is_data_)
+        continue;
+      std::string proc_name = datacard_process_[iproc]->name_;
+      datacard_file << std::left << std::setw(19) << proc_name;
     }
   }
   datacard_file << "\n";
@@ -439,28 +629,16 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
     int signal_number = -1;
     int background_number = 1;
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (iproc < datacard_process_.size()) {
-        if (datacard_process_[iproc]->process_->type_ == Process::Type::data)
-          continue;
-        else if (datacard_process_[iproc]->process_->type_ == Process::Type::signal) {
-          datacard_file << std::left << std::setw(19) << signal_number;
-          signal_number -= 1;
-        }
-        else { //background
-          datacard_file << std::left << std::setw(19) << background_number;
-          background_number += 1;
-        }
+      if (datacard_process_[iproc]->is_data_) {
+        continue;
       }
-      else { 
-        //unsigned iproc_eff = iproc-datacard_process_.size();
-        //if (param_process_type_[iproc_eff]==Process::Type::signal) {
-        //  datacard_file << std::left << std::setw(19) << signal_number;
-        //  signal_number -= 1;
-        //}
-        //else {
+      else if (datacard_process_[iproc]->is_signal_) {
+        datacard_file << std::left << std::setw(19) << signal_number;
+        signal_number -= 1;
+      }
+      else { //background
         datacard_file << std::left << std::setw(19) << background_number;
         background_number += 1;
-        //}
       }
     }
   }
@@ -468,15 +646,10 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   datacard_file << std::left << std::setw(33) << "rate";
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (iproc < datacard_process_.size()) {
-        if (datacard_process_[iproc]->process_->type_ == Process::Type::data)
-          continue;
-        datacard_file << std::left << std::setw(19) << 
-            datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral();
-      }
-      else {
-        datacard_file << std::left << std::setw(19) << "1";
-      }
+      if (datacard_process_[iproc]->is_data_)
+        continue;
+      datacard_file << std::left << std::setw(19) 
+                    << datacard_process_[iproc]->Yield(ichan);
     }
   }
   datacard_file << "\n";
@@ -488,46 +661,33 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
     datacard_file << std::left << std::setw(8) << "lnN";
     for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
       for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-        if (iproc < datacard_process_.size()) {
-          if (datacard_process_[iproc]->process_->type_ == Process::Type::data)
-            continue;
-          float ratio = datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral()/
-              datacard_process_[iproc]->raw_histogram_sys_[ichan][isyst].Integral();
-          if (ratio < 1) ratio = 1.0/ratio;
-          datacard_file << std::left << std::setw(19) << ratio;
-          //TODO make a way to make 1.0 systematics just be -
-        }
-        else {
+        if (datacard_process_[iproc]->is_data_)
+          continue;
+        float syst = datacard_process_[iproc]->Yield(ichan, isyst);
+        if (syst == 1.0)
           datacard_file << std::left << std::setw(19) << "-";
-        }
+        else
+          datacard_file << std::left << std::setw(19) << syst;
       }
     }
     datacard_file << "\n";
   }
-  //no params yets
-  datacard_file.close();
-  std::cout << "open datacards/"+subdir_mod+name_+".txt" << std::endl;
-}
 
-/*! \brief Add parametric process to datacard (ex. background constrained by fit)
-  \param[in] name   Name of process
-  \param[in] pdf    PDF for process
-*/
-Datacard& Datacard::AddParametricProcess(const std::string &name, 
-                                         std::vector<RooAbsPdf*> &pdf) {
-  if (pdf.size() != n_channels_) 
-    throw std::invalid_argument(("Wrong number of PDFs for parametric process "+name).c_str());
+  //Parameters
+  //Discrete profile indices
+  datacard_file << "\n";
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    if (pdf[ichan]->GetName() != "pdf_"+name+"_"+channel_name_[ichan]) {
-      throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
+    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+      if (datacard_process_[iproc]->is_profiled_[ichan]) {
+        datacard_file << std::left << std::setw(40) 
+                      << "pdfindex_"+datacard_process_[iproc]->name_+"_"+channel_name_[ichan]
+                      << std::left << std::left << std::setw(19) << "discrete" << "\n";
+      }
     }
   }
 
-  n_processes_++;
-  param_process_name_.push_back(name);
-  //param_process_type_.push_back(type);
-  param_process_.push_back(pdf);
-  return *this;
+  datacard_file.close();
+  std::cout << "open datacards/"+subdir_mod+name_+".txt" << std::endl;
 }
 
 /*! \brief Replaces an existing process with a parametric shape, while still 
@@ -539,14 +699,10 @@ Datacard& Datacard::MakeProcessParametric(const std::string &name,
                                           std::vector<RooAbsPdf*> &pdf) {
   if (pdf.size() != n_channels_) 
     throw std::invalid_argument(("Wrong PDFs for parametric process "+name).c_str());
-  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    if (pdf[ichan]->GetName() != "pdf_"+name+"_"+channel_name_[ichan]) {
-      throw std::invalid_argument("PDF name error. Pleas use pdf_<process>_<channel>");
-    }
-  }
 
   bool found_proc = false;
-  for (std::unique_ptr<DatacardProcess> &datacard_process : datacard_process_) {
+  for (std::unique_ptr<DatacardProcessNonparametric> &datacard_process : 
+       datacard_process_nonparametric_) {
     if (datacard_process->process_->name_ == name) {
       datacard_process->replace_with_param_ = true;
       datacard_process->param_pdf_ = pdf;
@@ -556,6 +712,40 @@ Datacard& Datacard::MakeProcessParametric(const std::string &name,
   if (!found_proc)
     throw std::invalid_argument(("No process with name "+name).c_str());
 
+  return *this;
+}
+
+/*! \brief Adds parametric processes
+  \param[in] process  parametric process to add
+*/
+Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<RooAbsPdf*> &pdf) {
+  //check for errors 
+  if (pdf.size() != n_channels_)
+    throw std::invalid_argument(
+        ("Process "+name+" does not have enough channels.").c_str());
+  //add
+  datacard_process_parametric_.push_back(
+        std::unique_ptr<DatacardProcessParametric>(
+        new DatacardProcessParametric(name, pdf, *this)));
+  datacard_process_.push_back(datacard_process_parametric_.back().get());
+  n_processes_++;
+  return *this;
+}
+
+/*! \brief Adds parametric processes
+  \param[in] process  parametric process to add
+*/
+Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<std::vector<RooAbsPdf*>> &pdf) {
+  //check for errors 
+  if (pdf.size() != n_channels_)
+    throw std::invalid_argument(
+        ("Process "+name+" does not have enough channels.").c_str());
+  //add
+  datacard_process_parametric_.push_back(
+        std::unique_ptr<DatacardProcessParametric>(
+        new DatacardProcessParametric(name, pdf, *this)));
+  datacard_process_.push_back(datacard_process_parametric_.back().get());
+  n_processes_++;
   return *this;
 }
 
@@ -580,7 +770,8 @@ void Datacard::SetLuminosityTag(const std::string &tag) {
 */
 std::set<const Process*> Datacard::GetProcesses() const {
   std::set<const Process*> processes;
-  for (const std::unique_ptr<Datacard::DatacardProcess> &datacard_process : datacard_process_) {
+  for (const std::unique_ptr<Datacard::DatacardProcessNonparametric> &datacard_process : 
+      datacard_process_nonparametric_) {
     processes.insert(datacard_process->process_.get());
   }
   return processes;
@@ -590,7 +781,8 @@ std::set<const Process*> Datacard::GetProcesses() const {
   \param[in] process   process whose figure component to find
 */
 Figure::FigureComponent * Datacard::GetComponent(const Process *process) {
-  for (const std::unique_ptr<Datacard::DatacardProcess> &datacard_process : datacard_process_) {
+  for (const std::unique_ptr<Datacard::DatacardProcessNonparametric> &datacard_process : 
+      datacard_process_nonparametric_) {
     if (datacard_process->process_.get() == process){
       return datacard_process.get();
     }
