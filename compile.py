@@ -67,6 +67,8 @@ def clean(dirs):
     tryRemove(".", "*#")
     tryRemove(dirs.exe, "*.exe")
     tryRemove(dirs.make, "*.d")
+    tryRemove(dirs.make, "*.cpp")
+    tryRemove(dirs.make, "*.pcm")
     tryRemove(dirs.obj, "*.o")
     tryRemove(dirs.obj, "*.a")
     tryRemove(dirs.inc, "baby*.hpp")

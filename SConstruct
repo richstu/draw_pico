@@ -59,15 +59,6 @@ def addKernelEnv(_env):
 def getKernel():
   return subprocess.check_output("uname -r | cut -d '-' -f1", shell=True, universal_newlines=True).rstrip()
 
-def addCombineEnv(_env):
-  kernel = getKernel()
-  if (kernel=='2.6.32'): #slc6
-    _env.Append (CCFLAGS = '-I/net/cms29/cms29r0/pico/cc7/CMSSW_10_2_11_patch1/src/HiggsAnalysis/CombinedLimit/interface' )
-    _env.Append (LINKFLAGS = '-L/net/cms29/cms29r0/pico/CMSSW_10_2_11_patch1/lib/slc6_amd64_gcc700 -lHiggsAnalysisCombinedLimit') 
-  else: #assume cc7
-    _env.Append (CCFLAGS = '-I/net/cms29/cms29r0/pico/CMSSW_10_2_11_patch1/src/HiggsAnalysis/CombinedLimit/interface' )
-    _env.Append (LINKFLAGS = '-L/net/cms29/cms29r0/pico/cc7/CMSSW_10_2_11_patch1/lib/slc7_amd64_gcc700 -lHiggsAnalysisCombinedLimit') 
-
 SConsignFile('kernel/'+getKernel()+'/sconsign.dblite')
 
 # [Requried] Export SET_ENV_PATH to script that sets root and scons environment
@@ -78,7 +69,6 @@ addKernelEnv(analysisEnv)
 addRootEnv(analysisEnv)
 addExternalEnv(analysisEnv)
 addWarningEnv(analysisEnv)
-addCombineEnv(analysisEnv)
 
 exportEnv = analysisEnv
 SConscript('SConscript', variant_dir='build/'+analysisEnv['kernel'], duplicate=0, exports="exportEnv")
