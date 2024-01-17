@@ -1,11 +1,15 @@
 #include "zgamma/zg_utilities.hpp"
 
 #include <algorithm>
+#include <memory>
 #include <stdlib.h>
 #include <regex>
+#include <vector>
 
 #include "core/baby.hpp"
+#include "core/mva_wrapper.hpp"
 #include "core/palette.hpp"
+#include "core/process.hpp"
 #include "core/sample_loader.hpp"
 #include "core/utilities.hpp"
 #include "zgamma/zg_functions.hpp"
@@ -352,6 +356,49 @@ namespace ZgUtilities {
     return std::max(dr1, dr2);
   }
 
+  //returns working version of kinematic BDT
+  std::shared_ptr<MVAWrapper> KinematicBdt() {
+    std::shared_ptr<MVAWrapper> kin_bdt_reader = std::make_shared<MVAWrapper>("kinematic_bdt");
+    kin_bdt_reader->SetVariable("photon_mva","photon_idmva[0]");
+    kin_bdt_reader->SetVariable("min_dR","photon_drmin[0]");
+    kin_bdt_reader->SetVariable("max_dR","photon_drmax[0]");
+    kin_bdt_reader->SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
+    kin_bdt_reader->SetVariable("cosTheta","llphoton_cosTheta[0]");
+    kin_bdt_reader->SetVariable("costheta","llphoton_costheta[0]");
+    kin_bdt_reader->SetVariable("phi","llphoton_psi[0]");
+    kin_bdt_reader->SetVariable("photon_res",ZgFunctions::photon_relpterr);
+    kin_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
+    kin_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
+    kin_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
+    kin_bdt_reader->BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
+    return kin_bdt_reader;
+  }
+
+  //returns NamedFunc that selects low BDT score category "ggF/untagged 4"
+  NamedFunc category_ggh4(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+    NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
+    return (kinematic_bdt_score>-0.1&&kinematic_bdt_score<0.04);
+  }
+
+  //returns NamedFunc that selects medium BDT score category "ggF/untagged 3"
+  NamedFunc category_ggh3(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+    NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
+    return (kinematic_bdt_score>0.04&&kinematic_bdt_score<0.16);
+  }
+
+  //returns NamedFunc that selects high BDT score category "ggF/untagged 2"
+  NamedFunc category_ggh2(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+    NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
+    return (kinematic_bdt_score>0.16&&kinematic_bdt_score<0.26);
+  }
+
+  //returns NamedFunc that selects very high BDT score category "ggF/untagged 1"
+  NamedFunc category_ggh1(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+    NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
+    return (kinematic_bdt_score>0.26);
+  }
+
+  //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader() {
     SampleLoader zg_sample_loader;
     zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton",ZgFunctions::HLT_pass_dilepton);
@@ -359,6 +406,14 @@ namespace ZgUtilities {
     zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton&&stitch",ZgFunctions::HLT_pass_dilepton&&ZgFunctions::stitch);
     zg_sample_loader.LoadNamedFunc("(HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch",
         (ZgFunctions::HLT_pass_dilepton||ZgFunctions::HLT_pass_singlelepton)&&ZgFunctions::stitch);
+    //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isjet",
+    //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isjet);
+    //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isother",
+    //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isother);
+    //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isisr",
+    //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isisr);
+    //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isfsr",
+    //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isfsr);
     zg_sample_loader.LoadPalette("txt/colors_zgamma.txt","default");
     return zg_sample_loader;
   }
@@ -385,6 +440,37 @@ namespace ZgUtilities {
     }
     return 0;
   }
+
+  //returns a list of just background processes from a list of processes
+  std::vector<std::shared_ptr<Process>> GetBackgroundProcesses(
+      std::vector<std::shared_ptr<Process>> processes) {
+    std::vector<std::shared_ptr<Process>> bkg_processes;
+    for (std::shared_ptr<Process> &process : processes) {
+      if (process->type_ == Process::Type::background)
+        bkg_processes.push_back(process);
+    }
+    return bkg_processes;
+  }
+
+  //returns a list of just data processes from a list of processes
+  std::vector<std::shared_ptr<Process>> GetDataProcesses(
+      std::vector<std::shared_ptr<Process>> processes) {
+    std::vector<std::shared_ptr<Process>> data_processes;
+    for (std::shared_ptr<Process> &process : processes) {
+      if (process->type_ == Process::Type::data)
+        data_processes.push_back(process);
+    }
+    return data_processes;
+  }
+
+  //sets all processes to background, useful for making colz 2D plots of data
+  void SetProcessesBackground(
+      std::vector<std::shared_ptr<Process>> &processes) {
+    for (std::shared_ptr<Process> process : processes) {
+      process->type_ = Process::Type::background;
+    }
+  }
+
 }
 
 

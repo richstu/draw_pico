@@ -54,6 +54,16 @@ def get_tgraph_maximum(graph):
       maximum = yi+0.0
   return maximum
 
+def get_stddev(lst):
+  '''Get std deviation from Python list'''
+  lst_sum = 0
+  lst_sumsq = 0
+  for i in lst:
+    lst_sum += i
+    lst_sumsq += i*i
+  lst_len = float(len(lst))
+  return sqrt(lst_sumsq/lst_len-(lst_sum/lst_len)**2)
+
 if __name__ == '__main__':
   check_call('combine -M MultiDimFit datacards/test_datacard.txt --saveWorkspace -n .bestfit'.split())
   
@@ -61,13 +71,15 @@ if __name__ == '__main__':
   w = f.Get('w')
   w.Print('v')
   
-  n_bins = 60
-  binning = ROOT.RooFit.Binning(n_bins,100,160)
+  n_bins = 50
+  lower_bound = 110
+  upper_bound = 160
+  binning = ROOT.RooFit.Binning(n_bins,lower_bound,upper_bound)
 
   ROOT.gStyle.SetOptStat(0)
   ROOT.gStyle.SetErrorX(0)
   
-  for channel in [('cat_mu',1),('cat_el',0)]:
+  for channel in [('cat_ggh4',0),('cat_ggh3',1),('cat_ggh2',2),('cat_ggh1',3)]:
     #Convert esoteric RooFit formats into regular ROOT
     can_rf = ROOT.TCanvas()
     plot = w.var('mllg_'+channel[0]).frame()
@@ -80,17 +92,22 @@ if __name__ == '__main__':
     sb_model.plotOn( plot, ROOT.RooFit.LineColor(4), ROOT.RooFit.Name('postfit_b') )
     plot.Draw()
     can_rf.Update()
+    can_rf.SaveAs('plots/zgamma_roofit_'+channel[0]+'.pdf')
     data_obs_roohist = ROOT.cast_tobject_to_roohist(can_rf.FindObject('h_data_obs'))
     postfitsb_roocurve = ROOT.cast_tobject_to_roocurve(can_rf.FindObject('postfit_sb'))
     postfitb_roocurve = ROOT.cast_tobject_to_roocurve(can_rf.FindObject('postfit_b'))
 
     #generate histograms and curves
-    difference_hist = ROOT.TH1D('','',60,100,160)
-    data_hist = ROOT.TH1D('','',60,100,160)
-    for i in range(60):
-      mllg = i*1.0+100.5
+    difference_hist = ROOT.TH1D('','',n_bins,lower_bound,upper_bound)
+    data_hist = ROOT.TH1D('','',n_bins,lower_bound,upper_bound)
+    diffs = []
+    for i in range(n_bins):
+      mllg = i*1.0+(lower_bound+0.5)
       obs_yield = get_value_tgraph(data_obs_roohist,mllg)
+      if (obs_yield < 0):
+        obs_yield = 0
       diff = obs_yield-get_value_tgraph(postfitb_roocurve,mllg)
+      diffs.append(diff)
       difference_hist.SetBinContent(i+1,diff)
       difference_hist.SetBinError(i+1,sqrt(obs_yield))
       data_hist.SetBinContent(i+1,obs_yield)
@@ -123,8 +140,8 @@ if __name__ == '__main__':
     difference_hist.GetYaxis().SetNdivisions(606)
     difference_hist.GetXaxis().SetTitle('m_{ll#gamma} [GeV]')
     difference_hist.SetLabelSize(0.035,'y')
-    difference_hist.SetMinimum(-200.0)
-    difference_hist.SetMaximum(200.0)
+    difference_hist.SetMinimum(-3.0*get_stddev(diffs))
+    difference_hist.SetMaximum(3.0*get_stddev(diffs))
     difference_hist.SetLineColor(ROOT.kBlack)
     difference_hist.SetLineWidth(2)
     difference_hist.SetMarkerColor(ROOT.kBlack)
@@ -185,5 +202,5 @@ if __name__ == '__main__':
     can.SaveAs('plots/zgamma_fit_'+channel[0]+'.pdf')
 
   f.Close()
-  check_call('rm higgsCombine.bestfit.MultiDimFit.mH120.root'.split())
+  #check_call('rm higgsCombine.bestfit.MultiDimFit.mH120.root'.split())
 

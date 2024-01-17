@@ -1,339 +1,414 @@
-#add PRODUCTION_DEATHVALLEY /net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v3/
-#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_kingscanyon_v0/
+#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_kingscanyon_v1/
+#add PRODUCTION_NAME_v11 /net/cms11/cms11r0/pico/NanoAODv11/htozgamma_kingscanyon_v1/
+#add PRODUCTION_NAME_v11p9 /net/cms11/cms11r0/pico/NanoAODv11p9/htozgamma_kingscanyon_v1/
 #add YEARS 2016APV
 #add YEARS 2016
 #add YEARS 2017
 #add YEARS 2018
+#add UNSKIMMED mc/unskimmed
 #add SLIM_LLG mc/merged_zgmc_llg
 #add SKIM_LLG mc/skim_llg
+#add SLIM_DILEP mc/merged_zgmc_ll
+#add SKIM_DILEP mc/skim_ll
+#add DATA_UNSKIMMED data/unskimmed
 #add DATA_SKIM_LLG data/skim_llg
-#add FILENAMES_QQZG *ZGToLLG_01J_5f_lowMLL*.root
-#add FILENAMES_DY *DYJetsToLL_M-50_TuneCP5_13TeV-amcatnlo*.root
+#add DATA_SLIM_LLG data/merged_zgdata_llg
+#add DATA_SKIM_DILEP data/skim_ll
+#add DATA_SLIM_DILEP data/merged_zgdata_ll
+
 #add FILENAMES_ALL *.root
+
+#add FILENAMES_QQZG *ZGToLLG_01J_5f_lowMLL*.root
+#add FILENAMES_QQZG *DYGto2LG*.root
+#add FILENAMES_DY *DYJetsToLL_M-50_TuneCP5_13TeV-amcatnlo*.root
+#add FILENAMES_DY *DYto2L*.root
 #add FILENAMES_WJETS *WJetsToLNu_Tune*.root
 #add FILENAMES_WG *WGToLNuG*.root
 #add FILENAMES_EWKZJETS *EWKZ2Jets*.root
 #add FILENAMES_EWKZG *ZGamma2JToGamma2L2J_EWK*.root
+#add FILENAMES_EWKZG *ZG2JtoG2L2J_EWK*.root
 #add FILENAMES_TTGAMMA *TGJets*.root
 #add FILENAMES_TTX *ttZJets*.root
 #add FILENAMES_TTX *ttWJets_Tune*.root
 #add FILENAMES_TTBAR *TTTo2L2Nu*.root
+#add FILENAMES_TTBAR *TTto2L2Nu*.root
 #add FILENAMES_MULTIBOSON *_WW_Tune*.root
 #add FILENAMES_MULTIBOSON *_WZ_Tune*.root
 #add FILENAMES_MULTIBOSON *_ZZ_Tune*.root
+#add FILENAMES_MULTIBOSON *WZG*.root
+#add FILENAMES_MULTIBOSON *ZZG*.root
 #add FILENAMES_MULTIBOSON *WWW_4F_Tune*.root
 #add FILENAMES_MULTIBOSON *WWZ_4F_Tune*.root
 #add FILENAMES_MULTIBOSON *WZZ*.root
 #add FILENAMES_MULTIBOSON *ZZZ*.root
+
 #add FILENAMES_OTHERHIGGS *GluGluH*.root
-#add FILENAMES_BAK_ALL *ZGToLLG_01J_5f_Tune*.root
-#add FILENAMES_BAK_ALL *DYJetsToLL*amcatnlo*.root
+
+#add FILENAMES_NONZ *WJetsToLNu_Tune*.root
+#add FILENAMES_NONZ *WGToLNuG*.root
+#add FILENAMES_NONZ *EWKZ2Jets*.root
+#add FILENAMES_NONZ *ZGamma2JToGamma2L2J_EWK*.root
+#add FILENAMES_NONZ *ZG2JtoG2L2J_EWK*.root
+#add FILENAMES_NONZ *TGJets*.root
+#add FILENAMES_NONZ *ttZJets*.root
+#add FILENAMES_NONZ *ttWJets_Tune*.root
+#add FILENAMES_NONZ *TTTo2L2Nu*.root
+#add FILENAMES_NONZ *TTto2L2Nu*.root
+#add FILENAMES_NONZ *_WW_Tune*.root
+#add FILENAMES_NONZ *_WZ_Tune*.root
+#add FILENAMES_NONZ *_ZZ_Tune*.root
+#add FILENAMES_NONZ *WZG*.root
+#add FILENAMES_NONZ *ZZG*.root
+#add FILENAMES_NONZ *WWW_4F_Tune*.root
+#add FILENAMES_NONZ *WWZ_4F_Tune*.root
+#add FILENAMES_NONZ *WZZ*.root
+#add FILENAMES_NONZ *ZZZ*.root
+
+#add FILENAMES_BAK_ALL *ZGToLLG_01J_5f_lowMLL*.root
+#add FILENAMES_BAK_ALL *DYGto2LG*.root
+#add FILENAMES_BAK_ALL *DYJetsToLL_M-50_TuneCP5_13TeV-amcatnlo*.root
+#add FILENAMES_BAK_ALL *DYto2L*.root
+#add FILENAMES_BAK_ALL *WJetsToLNu_Tune*.root
+#add FILENAMES_BAK_ALL *WGToLNuG*.root
+#add FILENAMES_BAK_ALL *EWKZ2Jets*.root
+#add FILENAMES_BAK_ALL *ZGamma2JToGamma2L2J_EWK*.root
+#add FILENAMES_BAK_ALL *ZG2JtoG2L2J_EWK*.root
 #add FILENAMES_BAK_ALL *TGJets*.root
+#add FILENAMES_BAK_ALL *ttZJets*.root
+#add FILENAMES_BAK_ALL *ttWJets_Tune*.root
+#add FILENAMES_BAK_ALL *TTTo2L2Nu*.root
+#add FILENAMES_BAK_ALL *TTto2L2Nu*.root
 #add FILENAMES_BAK_ALL *_WW_Tune*.root
 #add FILENAMES_BAK_ALL *_WZ_Tune*.root
 #add FILENAMES_BAK_ALL *_ZZ_Tune*.root
+#add FILENAMES_BAK_ALL *WZG*.root
+#add FILENAMES_BAK_ALL *ZZG*.root
 #add FILENAMES_BAK_ALL *WWW_4F_Tune*.root
 #add FILENAMES_BAK_ALL *WWZ_4F_Tune*.root
 #add FILENAMES_BAK_ALL *WZZ*.root
 #add FILENAMES_BAK_ALL *ZZZ*.root
-#add FILENAMES_BAK_ALL *ZGamma2JToGamma2L2J_EWK*.root
-#add FILENAMES_BAK_ALL *WGToLNuG*.root
-#add FILENAMES_BAK_ALL *TTTo2L2Nu*.root
-#add FILENAMES_BAK_ALL *ttZJets*.root
-#add FILENAMES_BAK_ALL *ttWJets_Tune*.root
-#add FILENAMES_HZG_ALL *HToZG*M-125*.root
-#add FILENAMES_HZG_ALL *ttHToZG_M125*.root
-#add FILENAMES_HZG_TTH *ttHToZG_M125*.root
-#add FILENAMES_HZG_VH *WplusH_HToZG*M-125*.root
-#add FILENAMES_HZG_VH *WminusH_HToZG*M-125*.root
-#add FILENAMES_HZG_VH *ZH_HToZG*M-125*.root
+
+#add FILENAMES_HASZ *ZGToLLG_01J_5f_lowMLL*.root
+#add FILENAMES_HASZ *DYGto2LG*.root
+#add FILENAMES_HASZ *DYJetsToLL_M-50_TuneCP5_13TeV-amcatnlo*.root
+#add FILENAMES_HASZ *DYto2L*.root
+#add FILENAMES_HASZ *GluGluHToZG_ZToLL_M-125*.root
+#add FILENAMES_HASZ *VBFHToZG_ZToLL_M-125*.root
+#add FILENAMES_HASZ *WplusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HASZ *WminusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HASZ *ZH_HToZG_ZToAll_M-125*.root
+#add FILENAMES_HASZ *ttHToZG_ZToLL_M-125*.root
+
+#add FILENAMES_HZG_GGF *GluGluHToZG_ZToLL_M-125*.root
 #add FILENAMES_HZG_VBF *VBFHToZG_ZToLL_M-125*.root
-#add FILENAMES_HZG_GGF *GluGluHToZG*M-125*.root
-#add FILENAMES_MC_ALL *ZGToLLG_01J_5f_Tune*.root
-#add FILENAMES_MC_ALL *DYJetsToLL*amcatnlo*.root
-#add FILENAMES_MC_ALL *TTTo2L2Nu*.root
-#add FILENAMES_MC_ALL *HToZG*M-125*.root
-#add FILENAMES_MC_ALL *ttHToZG_M125*.root
+#add FILENAMES_HZG_VH *WplusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HZG_VH *WminusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HZG_VH *ZH_HToZG_ZToAll_M-125*.root
+#add FILENAMES_HZG_TTH *ttHToZG_ZToLL_M-125*.root
 
-[[All]]
+#add FILENAMES_HZG_ALL *GluGluHToZG_ZToLL_M-125*.root
+#add FILENAMES_HZG_ALL *VBFHToZG_ZToLL_M-125*.root
+#add FILENAMES_HZG_ALL *WplusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HZG_ALL *WminusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HZG_ALL *ZH_HToZG_ZToAll_M-125*.root
+#add FILENAMES_HZG_ALL *ttHToZG_ZToLL_M-125*.root
+
+[[AllMC]]
   [Z+Fake Photon]
     ProcessType = 1
     PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
-    Selection= HLT_pass_dilepton&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Z+#gamma]
     ProcessType = 1
     PaletteColor = zgtollg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t}]
     ProcessType = 1
     PaletteColor = tt
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTBAR
-    Selection = HLT_pass_dilepton&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#gamma/t#bar{t}#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTGAMMA
-    Selection = HLT_pass_dilepton
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [VBS Z+#gamma]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZG
-    Selection = HLT_pass_dilepton
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t}+X]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTX
-    Selection = HLT_pass_dilepton
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Multiboson]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_MULTIBOSON
-    Selection = HLT_pass_dilepton&&stitch
-  [H#rightarrow Z#gamma]
-    ProcessType = 2
-    Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
-    Selection = HLT_pass_dilepton
-
-[[AllMoreTrigs]]
-  [Z+Fake Photon]
-    ProcessType = 1
-    PaletteColor = dyjets
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [Z+#gamma]
-    ProcessType = 1
-    PaletteColor = zgtollg
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [t#bar{t}]
-    ProcessType = 1
-    PaletteColor = tt
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTBAR
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [t#gamma/t#bar{t}#gamma]
-    ProcessType = 1
-    PaletteColor = ttg
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTGAMMA
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [VBS Z+#gamma]
-    ProcessType = 1
-    PaletteColor = vbszg
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZG
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [t#bar{t}+X]
-    ProcessType = 1
-    PaletteColor = ttx
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTX
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [Multiboson]
-    ProcessType = 1
-    PaletteColor = vv
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_MULTIBOSON
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W#gamma]
     ProcessType = 1
     PaletteColor = fakelep
     Files = $PRODUCTION_KINGSCANYON/$YEARS/$SKIM_LLG/$FILENAMES_WG
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
-[[MinimalMoreTrigs]]
+[[AllData]]
   [Z+Fake Photon]
     ProcessType = 1
     PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Z+#gamma]
     ProcessType = 1
     PaletteColor = zgtollg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [H#rightarrow Z#gamma]
-    ProcessType = 2
-    Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_GGF
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-
-[[AllMoreTrigsData]]
-  [Z+Fake Photon]
-    ProcessType = 1
-    PaletteColor = dyjets
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [Z+#gamma]
-    ProcessType = 1
-    PaletteColor = zgtollg
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t}]
     ProcessType = 1
     PaletteColor = tt
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTBAR
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#gamma/t#bar{t}#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTGAMMA
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [VBS Z+#gamma]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZG
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t}+X]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTX
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Multiboson]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_MULTIBOSON
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [W#gamma]
+    ProcessType = 1
+    PaletteColor = fakelep
+    Files = $PRODUCTION_KINGSCANYON/$YEARS/$SKIM_LLG/$FILENAMES_WG
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Data]
     ProcessType = 0
     Color = 1
     Files = $PRODUCTION_NAME/$YEARS/$DATA_SKIM_LLG/$FILENAMES_ALL
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = trig_single_el||trig_single_mu||trig_double_el||trig_double_mu
 
-[[AllSplit]]
+[[CondensedMC]]
   [Z+Fake Photon]
     ProcessType = 1
     PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [W+Jets]
-    ProcessType = 1
-    PaletteColor = dyjets
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_WJETS
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Z+#gamma]
     ProcessType = 1
     PaletteColor = zgtollg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [Other]
+    ProcessType = 1
+    PaletteColor = tt
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_NONZ
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+
+[[DatacardMC]]
+  [pseudodata]
+    ProcessType = 0
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HASZ
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [htozgamma]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+
+[[VerboseMC]]
+  [Z+Fake Photon]
+    ProcessType = 1
+    PaletteColor = dyjets
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [Z+#gamma]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t}]
     ProcessType = 1
     PaletteColor = tt
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTBAR
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_TGJets*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t}#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*TTGJets*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [VBS Z]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZJETS
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [VBS Z#gamma]
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [VBS Z+#gamma]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZG
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t}W]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttWJets_Tune*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t}Z]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttZJets*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [WW]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_WW_Tune*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [WZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_WZ_Tune*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [ZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_ZZ_Tune*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [WW#gamma]
-    ProcessType = 1
-    PaletteColor = vv
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWG*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [WZ#gamma]
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [WZG]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WZG*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [ZZG]
+    ProcessType = 1
+    PaletteColor = vv
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZZG*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [WWW]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWW_4F_Tune*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [WWZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWZ_4F_Tune*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [WZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WZZ*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [ZZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZZZ*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [W#gamma]
+    ProcessType = 1
+    PaletteColor = fakelep
+    Files = $PRODUCTION_KINGSCANYON/$YEARS/$SKIM_LLG/$FILENAMES_WG
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [W+Fake Photon]
+    ProcessType = 1
+    PaletteColor = fakelep
+    Files = $PRODUCTION_KINGSCANYON/$YEARS/$SKIM_LLG/$FILENAMES_WJETS
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [gg#rightarrow H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*GluGluHToZG*M-125*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*GluGluHToZG_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG*M-125*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W^{+} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WplusH_HToZG*M-125*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WplusH_HToZG_WToAll_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W^{-} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WminusH_HToZG*M-125*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WminusH_HToZG_WToAll_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Z H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZH_HToZG*M-125*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
-  [t#bar{t}H#rightarrow Z#gamma]
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZH_HToZG_ZToAll_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [t#bar{t} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttHToZG_M125*.root
-    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttHToZG_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+
+[[SignalUnskimmed]]
+  [gg#rightarrow H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*GluGluHToZG_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [VBF H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 3
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*VBFHToZG_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [W^{+} H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 4
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*WplusH_HToZG_WToAll_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [W^{-} H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 5
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*WminusH_HToZG_WToAll_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [Z H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 6
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*ZH_HToZG_ZToAll_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [t#bar{t} H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 7
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*ttHToZG_ZToLL_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
 [[ttHtoZG]]
   [ttH#rightarrow Z#gamma]
@@ -355,3 +430,63 @@
     Color = 6
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_VBF
     Selection = HLT_pass_dilepton
+
+[[ZGDYsplit]]
+  [Z+Fake photon (#gamma=jet)]
+    ProcessType = 1
+    PaletteColor = dyjets
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
+    Selection = use_event&&trig&&photon_isjet
+  [Z+Fake photon (#gamma=e)]
+    ProcessType = 1
+    PaletteColor = dyel
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)&&(photon_pflavor[0]==11)
+  [Z+"Fake" photon (real #gamma)]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)&&(photon_pflavor[0]==1)
+  [Z+Fake photon (other fake)]
+    ProcessType = 1
+    PaletteColor = dyother
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
+    Selection = use_event&&trig&&photon_isother
+  [Z+#gamma (ISR)]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_QQZG
+    Selection = use_event&&trig&&photon_isisr
+  [Z+#gamma (FSR)]
+    ProcessType = 1
+    PaletteColor = zgfsr
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_QQZG
+    Selection = use_event&&trig&&photon_isfsr
+
+[[llcr]]
+  [Z+Fake Photon]
+    ProcessType = 1
+    PaletteColor = dyjets
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_DILEP/$FILENAMES_DY
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [Z+#gamma]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_DILEP/$FILENAMES_QQZG
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [Other]
+    ProcessType = 1
+    PaletteColor = tt
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_DILEP/$FILENAMES_NONZ
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_DILEP/$FILENAMES_HZG_ALL
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [Data]
+    ProcessType = 0
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$DATA_SLIM_DILEP/$FILENAMES_ALL
+    Selection = trig_single_el||trig_single_mu||trig_double_el||trig_double_mu
+

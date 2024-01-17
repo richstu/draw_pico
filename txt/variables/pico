@@ -285,6 +285,7 @@ std::vector<float> photon_reliso
 std::vector<float> photon_r9
 std::vector<float> photon_sieie
 std::vector<float> photon_drmin
+std::vector<float> photon_drmax
 std::vector<float> photon_pterr
 std::vector<float> photon_energyErr
 std::vector<float> photon_hoe
@@ -292,6 +293,8 @@ std::vector<float> photon_idmva
 std::vector<int>   photon_pflavor
 std::vector<bool>  photon_id
 std::vector<bool>  photon_id80
+std::vector<bool>  photon_isScEtaEB
+std::vector<bool>  photon_isScEtaEE
 std::vector<bool>  photon_elveto
 std::vector<bool>  photon_sig
 std::vector<int>   photon_elidx
@@ -367,6 +370,7 @@ int mlsp
 float weight
 float w_lumi
 float w_lep
+float w_trig
 float w_el_id
 float w_mu_id
 float w_mu_iso
@@ -549,6 +553,31 @@ std::vector<float> sys_pu
 std::vector<float> sys_prefire
 
 std::vector<float> sys_murf
+
+#variations have index: 0 (ISR=2 FSR=1), 1 (ISR=1 FSR=2), 2 (ISR=0.5 FSR=1), 2(ISR=1 FSR=0.5)
+std::vector<float> sys_ps
+
+#index matches jet_*
+std::vector<float> sys_jet_pt_jesup
+std::vector<float> sys_jet_pt_jesdn
+std::vector<float> sys_jet_pt_jerup
+std::vector<float> sys_jet_pt_jerdn
+std::vector<float> sys_jet_m_jesup
+std::vector<float> sys_jet_m_jesdn
+std::vector<float> sys_jet_m_jerup
+std::vector<float> sys_jet_m_jerdn
+
+#index matches electron_*
+std::vector<float> sys_el_pt_scaleup
+std::vector<float> sys_el_pt_scaledn
+std::vector<float> sys_el_pt_resup
+std::vector<float> sys_el_pt_resdn
+
+#index matches photon_*
+std::vector<float> sys_photon_pt_scaleup
+std::vector<float> sys_photon_pt_scaledn
+std::vector<float> sys_photon_pt_resup
+std::vector<float> sys_photon_pt_resdn
 
 # variations have index 0 (JER smearing up), 1 (JER smearing down), 2 (JEC up) and 3 (JEC down)
 std::vector<float> sys_ht
