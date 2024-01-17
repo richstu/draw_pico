@@ -1,5 +1,5 @@
 /**
- * Script to write datacard for H->Zgamma analysis
+ * Script to test various functionalities of datacard class
  */
 
 #include <iostream>

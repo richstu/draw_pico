@@ -54,6 +54,9 @@ namespace ZgFunctions {
   //drmax of lead photon
   extern const NamedFunc photon_drmax;
 
+  //relative pt uncertainty of lead photon for kingscanyon_v0 productions and earlier
+  extern const NamedFunc photon_relpterr_deathvalley;
+
   //relative pt uncertainty of lead photon
   extern const NamedFunc photon_relpterr;
 

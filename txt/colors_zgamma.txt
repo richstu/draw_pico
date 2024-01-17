@@ -1,7 +1,10 @@
 [default]
  data       0   0   0
  zgtollg   22 186 197
+ zgfsr    204 153 254
  dyjets   255 180   0
+ dyel     254 114   0
+ dyother  254 227  86
  tt       255 102   0
  vbszg     51 153 255
  ttg      255 163 102

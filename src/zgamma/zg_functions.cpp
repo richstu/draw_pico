@@ -8,6 +8,7 @@
 
 using NamedFuncUtilities::ReduceNamedFunc;
 using NamedFuncUtilities::FilterNamedFunc;
+using NamedFuncUtilities::reduce_sum;
 using NamedFuncUtilities::reduce_max;
 using NamedFuncUtilities::reduce_sublead;
 
@@ -170,10 +171,10 @@ namespace ZgFunctions {
       return ZgUtilities::pdrmax(b);
   });
 
-  ////relative pt uncertainty of lead photon
-  //const NamedFunc photon_relpterr("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
-  //    return b.photon_pterr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
-  //});
+  //relative pt uncertainty of lead photon for kingscanyon_v0 productions and earlier
+  const NamedFunc photon_relpterr_deathvalley("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
+      return b.photon_pterr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
+  });
 
   //relative pt uncertainty of lead photon
   const NamedFunc photon_relpterr("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -198,6 +199,16 @@ namespace ZgFunctions {
 
   //pT/m of Higgs candidate
   const NamedFunc llphoton_rel_pt = NamedFunc("llphoton_pt[0]/llphoton_m[0]").Name("llphoton_rel_pt");
+
+  //OR of triggers used in H->Zgamma analysis
+  const NamedFunc trig = NamedFunc("trig_single_el||trig_single_mu||trig_double_el||trig_double_mu")
+                         .Name("trig");
+
+  //photon_isjet
+  //photon_isother
+  //photon_isisr
+  //photon_isfsr
+  //left off implement the above from ex. plot_bkgshapes, cross-check 
 
   //vector of whether GenParticles are the first copy
   const NamedFunc mc_isFirstCopy("mc_isFirstCopy",[](const Baby &b) -> NamedFunc::VectorType{
