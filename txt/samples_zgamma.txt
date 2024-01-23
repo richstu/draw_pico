@@ -94,22 +94,22 @@
 #add FILENAMES_HASZ *DYto2L*.root
 #add FILENAMES_HASZ *GluGluHToZG_ZToLL_M-125*.root
 #add FILENAMES_HASZ *VBFHToZG_ZToLL_M-125*.root
-#add FILENAMES_HASZ *WplusH_HToZG_WToAll_ZToLL_M-125*.root
-#add FILENAMES_HASZ *WminusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HASZ *WplusH_HToZG_WToAll_M-125*.root
+#add FILENAMES_HASZ *WminusH_HToZG_WToAll_M-125*.root
 #add FILENAMES_HASZ *ZH_HToZG_ZToAll_M-125*.root
 #add FILENAMES_HASZ *ttHToZG_ZToLL_M-125*.root
 
 #add FILENAMES_HZG_GGF *GluGluHToZG_ZToLL_M-125*.root
 #add FILENAMES_HZG_VBF *VBFHToZG_ZToLL_M-125*.root
-#add FILENAMES_HZG_VH *WplusH_HToZG_WToAll_ZToLL_M-125*.root
-#add FILENAMES_HZG_VH *WminusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HZG_VH *WplusH_HToZG_WToAll_M-125*.root
+#add FILENAMES_HZG_VH *WminusH_HToZG_WToAll_M-125*.root
 #add FILENAMES_HZG_VH *ZH_HToZG_ZToAll_M-125*.root
 #add FILENAMES_HZG_TTH *ttHToZG_ZToLL_M-125*.root
 
 #add FILENAMES_HZG_ALL *GluGluHToZG_ZToLL_M-125*.root
 #add FILENAMES_HZG_ALL *VBFHToZG_ZToLL_M-125*.root
-#add FILENAMES_HZG_ALL *WplusH_HToZG_WToAll_ZToLL_M-125*.root
-#add FILENAMES_HZG_ALL *WminusH_HToZG_WToAll_ZToLL_M-125*.root
+#add FILENAMES_HZG_ALL *WplusH_HToZG_WToAll_M-125*.root
+#add FILENAMES_HZG_ALL *WminusH_HToZG_WToAll_M-125*.root
 #add FILENAMES_HZG_ALL *ZH_HToZG_ZToAll_M-125*.root
 #add FILENAMES_HZG_ALL *ttHToZG_ZToLL_M-125*.root
 
@@ -195,11 +195,6 @@
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_MULTIBOSON
-    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
-  [W#gamma]
-    ProcessType = 1
-    PaletteColor = fakelep
-    Files = $PRODUCTION_KINGSCANYON/$YEARS/$SKIM_LLG/$FILENAMES_WG
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
@@ -360,12 +355,12 @@
   [W^{+} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WplusH_HToZG_WToAll_ZToLL_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WplusH_HToZG_WToAll_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W^{-} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WminusH_HToZG_WToAll_ZToLL_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WminusH_HToZG_WToAll_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Z H#rightarrow Z#gamma]
     ProcessType = 2
@@ -392,12 +387,12 @@
   [W^{+} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 4
-    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*WplusH_HToZG_WToAll_ZToLL_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*WplusH_HToZG_WToAll_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W^{-} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 5
-    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*WminusH_HToZG_WToAll_ZToLL_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*WminusH_HToZG_WToAll_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Z H#rightarrow Z#gamma]
     ProcessType = 2

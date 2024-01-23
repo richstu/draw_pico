@@ -67,7 +67,7 @@ namespace ZgFunctions {
     else if (b.SampleTypeString()=="2022EE")
       return 27.01;
     else if (b.SampleTypeString()=="2023")
-      return 17.61;
+      return 17.68;
     //else if (b.SampleTypeString()=="2023BPix")
     return 9.53;
   });
@@ -103,6 +103,34 @@ namespace ZgFunctions {
   //subleading electron pt
   const NamedFunc sublead_el_pt = ReduceNamedFunc(FilterNamedFunc("el_pt","el_sig"),
       reduce_sublead).Name("sublead_el_pt");
+
+  //leading jet pt
+  const NamedFunc lead_jet_pt = ReduceNamedFunc(FilterNamedFunc("jet_pt","jet_isgood"),
+      reduce_max).Name("lead_jet_pt");
+
+  //subleading jet pt
+  const NamedFunc sublead_jet_pt = ReduceNamedFunc(FilterNamedFunc("jet_pt","jet_isgood"),
+      reduce_sublead).Name("sublead_jet_pt");
+
+  //trigger-paired lepton pt plateau cuts
+  const NamedFunc trig_plateau_cuts("trig_plateau_cuts", [](const Baby &b) -> NamedFunc::ScalarType{
+    double el_cut = 35;
+    double mu_cut = 25;
+    if (b.SampleTypeString()=="2016APV" || b.SampleTypeString()=="-2016APV" ||
+        b.SampleTypeString()=="2016" || b.SampleTypeString()=="-2016")
+      el_cut = 30;
+    else if (b.SampleTypeString()=="2017" || b.SampleTypeString()=="-2017")
+      mu_cut = 28;
+    if (b.nel()>=1)
+      if (b.trig_single_el() && b.el_pt()->at(0)>el_cut) return true;
+    if (b.nel()>=2)
+      if (b.trig_double_el() && b.el_pt()->at(0)>25 && b.el_pt()->at(1)>15) return true;
+    if (b.nmu()>=1)
+      if (b.trig_single_mu() && b.mu_pt()->at(0)>mu_cut) return true;
+    if (b.nmu()>=2)
+      if (b.trig_double_mu() && b.mu_pt()->at(0)>20 && b.mu_pt()->at(1)>10) return true;
+    return false;
+  });
 
   //common NamedFuncs for run 2 baseline selection
   NamedFunc zg_baseline_nolep = "nlep>=2 && nphoton>=1 && (ll_m[0]>50) && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ((llphoton_m[0]+ll_m[0])>=185)";
@@ -168,33 +196,33 @@ namespace ZgFunctions {
 
   //drmax of lead photon
   const NamedFunc photon_drmax("photon_drmax",[](const Baby &b) -> NamedFunc::ScalarType{
-      return ZgUtilities::pdrmax(b);
+    return ZgUtilities::pdrmax(b);
   });
 
   //relative pt uncertainty of lead photon for kingscanyon_v0 productions and earlier
   const NamedFunc photon_relpterr_deathvalley("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
-      return b.photon_pterr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
+    return b.photon_pterr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
   });
 
   //relative pt uncertainty of lead photon
   const NamedFunc photon_relpterr("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
-      return b.photon_energyErr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
+    return b.photon_energyErr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
   });
 
   //lead lepton eta (=lep_eta[0], but this isn't saved in slims =( )
   //only works for 2 lepton events
   const NamedFunc lead_lepton_eta("lead_lepton_eta",[](const Baby &b) -> NamedFunc::ScalarType{
-      if (b.ll_lepid()->size() < 1) return 0;
-      if (b.ll_lepid()->at(0) == 11) return b.el_eta()->at(b.ll_i1()->at(0));
-      return b.mu_eta()->at(b.ll_i1()->at(0));
+    if (b.ll_lepid()->size() < 1) return 0;
+    if (b.ll_lepid()->at(0) == 11) return b.el_eta()->at(b.ll_i1()->at(0));
+    return b.mu_eta()->at(b.ll_i1()->at(0));
   });
 
   //sublead lepton eta (=lep_eta[0], but this isn't saved in slims =( )
   //only works for 2 lepton events
   const NamedFunc sublead_lepton_eta("sublead_lepton_eta",[](const Baby &b) -> NamedFunc::ScalarType{
-      if (b.ll_lepid()->size() < 1) return 0;
-      if (b.ll_lepid()->at(0) == 11) return b.el_eta()->at(b.ll_i2()->at(0));
-      return b.mu_eta()->at(b.ll_i2()->at(0));
+    if (b.ll_lepid()->size() < 1) return 0;
+    if (b.ll_lepid()->at(0) == 11) return b.el_eta()->at(b.ll_i2()->at(0));
+    return b.mu_eta()->at(b.ll_i2()->at(0));
   });
 
   //pT/m of Higgs candidate
@@ -204,11 +232,30 @@ namespace ZgFunctions {
   const NamedFunc trig = NamedFunc("trig_single_el||trig_single_mu||trig_double_el||trig_double_mu")
                          .Name("trig");
 
-  //photon_isjet
-  //photon_isother
-  //photon_isisr
-  //photon_isfsr
-  //left off implement the above from ex. plot_bkgshapes, cross-check 
+  //modified ptt variable
+  const NamedFunc llphoton_pttmod("llphoton_pttmod",[](const Baby &b) -> NamedFunc::ScalarType{
+    TVector3 zgamma, z, gamma;
+    gamma.SetPtEtaPhi(b.photon_pt()->at(0),b.photon_eta()->at(0),b.photon_phi()->at(0)); 
+    z.SetPtEtaPhi(b.ll_pt()->at(0),b.ll_eta()->at(0),b.ll_phi()->at(0)); 
+    zgamma = z+gamma;
+    return (zgamma.Cross(z-gamma)).Mag()/zgamma.Mag();
+  });
+
+  //maximum lepton mini isolation
+  const NamedFunc max_lep_miniso("max_lep_miniso",[](const Baby &b) -> NamedFunc::ScalarType{
+    double max_miniso = 0;
+    for (unsigned iel = 0; iel < b.el_pt()->size(); iel++) {
+      if (b.el_sig()->at(iel))
+        if (b.el_miniso()->at(iel) > max_miniso)
+          max_miniso = b.el_miniso()->at(iel);
+    }
+    for (unsigned imu = 0; imu < b.mu_pt()->size(); imu++) {
+      if (b.mu_sig()->at(imu))
+        if (b.mu_miniso()->at(imu) > max_miniso)
+          max_miniso = b.mu_miniso()->at(imu);
+    }
+    return max_miniso;
+  });
 
   //vector of whether GenParticles are the first copy
   const NamedFunc mc_isFirstCopy("mc_isFirstCopy",[](const Baby &b) -> NamedFunc::VectorType{

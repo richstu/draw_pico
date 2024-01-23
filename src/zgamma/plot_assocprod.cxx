@@ -47,10 +47,10 @@ int main() {
   //setup
   gErrorIgnoreLevel = 6000;
 
-  std::vector<std::shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","All");
-  std::vector<std::shared_ptr<Process>> procs_tth = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","All");
-  std::vector<std::shared_ptr<Process>> procs_vh = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","All");
-  std::vector<std::shared_ptr<Process>> procs_vbf = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","All");
+  std::vector<std::shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMC");
+  std::vector<std::shared_ptr<Process>> procs_tth = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMC");
+  std::vector<std::shared_ptr<Process>> procs_vh = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMC");
+  std::vector<std::shared_ptr<Process>> procs_vbf = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMC");
   std::vector<std::shared_ptr<Process>> proc_zg_tth = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","ttHtoZG");
   std::vector<std::shared_ptr<Process>> proc_zg_vh = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","VHtoZG");
   std::vector<std::shared_ptr<Process>> proc_zg_vbf = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","VBFHtoZG");
@@ -642,6 +642,60 @@ int main() {
     return b.w_lumi();
   });
 
+  const NamedFunc january_baseline = NamedFunc("(nel>=2||nmu>=2) && nphoton>=1 && photon_id80[0] && (ll_m[0]>81 && ll_m[0]<101) && (ll_charge[0]==0) && ((photon_pt[0]/llphoton_m[0])>15.0/110.0) && ((llphoton_m[0]+ll_m[0])>185)" && trig_plateau_cuts).Name("baseline");
+
+  //fat jet signal branch including DR 0.8 separation from photons/leptons
+  const NamedFunc fjet_sig("fjet_sig",[](const Baby &b) -> NamedFunc::VectorType{
+    vector<double> isgood;
+    for (unsigned ifjet = 0; ifjet < b.fjet_pt()->size(); ifjet++) {
+      if (b.fjet_pt()->at(ifjet) < 200) {
+        isgood.push_back(0);
+        continue;
+      }
+      for (unsigned iel = 0; iel < b.el_pt()->size(); iel++) {
+        if (b.el_sig()->at(iel)) {
+          if (deltaR(b.fjet_eta()->at(ifjet), b.fjet_phi()->at(ifjet),
+                     b.el_eta()->at(iel), b.el_phi()->at(iel))<0.8) {
+            isgood.push_back(0);
+            continue;
+          }
+        }
+      }
+      for (unsigned imu = 0; imu < b.mu_pt()->size(); imu++) {
+        if (b.mu_sig()->at(imu)) {
+          if (deltaR(b.fjet_eta()->at(ifjet), b.fjet_phi()->at(ifjet),
+                     b.mu_eta()->at(imu), b.mu_phi()->at(imu))<0.8) {
+            isgood.push_back(0);
+            continue;
+          }
+        }
+      }
+      for (unsigned iph = 0; iph < b.photon_pt()->size(); iph++) {
+        if (b.photon_sig()->at(iph)) {
+          if (deltaR(b.fjet_eta()->at(ifjet), b.fjet_phi()->at(ifjet),
+                     b.photon_eta()->at(iph), b.photon_phi()->at(iph))<0.8) {
+            isgood.push_back(0);
+            continue;
+          }
+        }
+      }
+      isgood.push_back(1);
+    }
+    return isgood;
+  });
+
+  const NamedFunc sig_fjet_pt = FilterNamedFunc("fjet_pt",fjet_sig).Name("sig_fjet_pt");
+  const NamedFunc sig_fjet_pnet_wtag = FilterNamedFunc("fjet_pnet_wtag",fjet_sig).Name("sig_fjet_pnet_wtag");
+  const NamedFunc sig_fjet_pnet_ttag = FilterNamedFunc("fjet_pnet_ttag",fjet_sig).Name("sig_fjet_pnet_ttag");
+
+  const NamedFunc lead_sig_fjet_pt = ReduceNamedFunc(sig_fjet_pt,reduce_max).Name("lead_sig_fjet_pt");
+  const NamedFunc lead_sig_fjet_pnet_wtag = MultiReduceNamedFunc(
+      {sig_fjet_pt,sig_fjet_pnet_wtag},reduce_maxfirst).Name("lead_sig_fjet_pnet_wtag");
+  const NamedFunc lead_sig_fjet_pnet_ttag = MultiReduceNamedFunc(
+      {sig_fjet_pt,sig_fjet_pnet_ttag},reduce_maxfirst).Name("lead_sig_fjet_pnet_ttag");
+
+  const NamedFunc nsig_fjet = ReduceNamedFunc(fjet_sig,reduce_sum).Name("nsig_fjet");
+
   //NamedFuncs
   
   //NamedFunc mc_higgs_pt("mc_higgs_pt",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -1014,7 +1068,7 @@ int main() {
   //  return reco_num;
   //});
 
-  //NamedFunc higgs_window = "llphoton_m[0]>122&&llphoton_m[0]<128";
+  NamedFunc higgs_window = "llphoton_m[0]>122&&llphoton_m[0]<128";
 
   //------------------------------------------------------------------------------------
   //                                        BDTs
@@ -1028,7 +1082,8 @@ int main() {
   bool plot_vh_met = false;
   bool plot_vh_hadronic = false;
   bool plot_vbf = false;
-  bool plot_yield_tables = true;
+  bool plot_yield_tables = false;
+  bool plot_vh_hadronic_pico = true;
   bool plot_mllgs = false;
 
   MVAWrapper tthlep_bdt_reader("tthlep_bdt");
@@ -1599,8 +1654,33 @@ int main() {
         procs, ops).Weight(w_ewkzgamma*w_years*w_run3).Tag("zgassoc");
   }
 
+  if (plot_vh_hadronic_pico) {
+    pm.multithreaded_ = false;
+    pm.Push<Hist1D>(Axis(4,-0.5,3.5, nsig_fjet, "N_{AK8 Jet}", {}), 
+        january_baseline&&"nbm==0"&&higgs_window,
+        procs, ops_shapes).Weight("weight"*w_years).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(30,200.0,500.0, lead_sig_fjet_pt, "Fat jet p_{T} [GeV]", {}), 
+        january_baseline&&"nbm==0"&&higgs_window&&(nsig_fjet>=1),
+        procs, ops_shapes).Weight("weight"*w_years).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(20,0.0,1.0, lead_sig_fjet_pnet_wtag, "Fat jet W-tag score", {}), 
+        january_baseline&&"nbm==0"&&higgs_window&&(nsig_fjet>=1),
+        procs, ops_shapes).Weight("weight"*w_years).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(20,0.0,1.0, lead_sig_fjet_pnet_ttag, "Fat jet top-tag score", {}), 
+        january_baseline&&"nbm==0"&&higgs_window&&(nsig_fjet>=1),
+        procs, ops_shapes).Weight("weight"*w_years).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(20,0.0,4.0, "llphoton_pt[0]/llphoton_m[0]", "p_{Tll#gamma}/m_{ll#gamma}", {}), 
+        january_baseline&&"nbm==0"&&higgs_window&&(nsig_fjet>=1),
+        procs, ops_shapes).Weight("weight"*w_years).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(20,0.0,4.0, "llphoton_pt[0]/llphoton_m[0]", "p_{Tll#gamma}/m_{ll#gamma}", {}), 
+        january_baseline&&"nbm==0"&&higgs_window&&(nsig_fjet>=1)&&lead_sig_fjet_pnet_wtag>0.7,
+        procs, ops).Weight("weight"*w_years).Tag("zgassoc");
+    pm.Push<Hist1D>(Axis(30,100,160, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), 
+        january_baseline&&"nbm==0"&&(nsig_fjet>=1)&&lead_sig_fjet_pnet_wtag>0.7&&"(llphoton_pt[0]/llphoton_m[0])>1.5",
+        procs, ops).Weight("weight"*w_years).Tag("zgassoc");
+  }
+
   pm.min_print_ = true;
-  pm.SetLuminosityTag("340").MakePlots(1.0);
+  pm.SetLuminosityTag("200").MakePlots(1.0);
 
   return 0;
 }

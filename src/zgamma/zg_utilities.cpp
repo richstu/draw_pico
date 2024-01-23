@@ -398,6 +398,51 @@ namespace ZgUtilities {
     return (kinematic_bdt_score>0.26);
   }
 
+  //returns working version of dijet BDT
+  std::shared_ptr<MVAWrapper> VbfBdt() {
+    std::shared_ptr<MVAWrapper> vbf_bdt_reader = std::make_shared<MVAWrapper>("vbf_bdt");
+    vbf_bdt_reader->SetVariable("photon_mva","photon_idmva[0]");
+    vbf_bdt_reader->SetVariable("min_dR","photon_drmin[0]");
+    vbf_bdt_reader->SetVariable("max_dR","photon_drmax[0]");
+    vbf_bdt_reader->SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
+    vbf_bdt_reader->SetVariable("cosTheta","llphoton_cosTheta[0]");
+    vbf_bdt_reader->SetVariable("costheta","llphoton_costheta[0]");
+    vbf_bdt_reader->SetVariable("phi","llphoton_psi[0]");
+    vbf_bdt_reader->SetVariable("photon_res",ZgFunctions::photon_relpterr);
+    vbf_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
+    vbf_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
+    vbf_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
+    vbf_bdt_reader->SetVariable("detajj","dijet_deta");
+    vbf_bdt_reader->SetVariable("dphizgjj","llphoton_dijet_dphi[0]");
+    vbf_bdt_reader->SetVariable("zgjj_balance","llphoton_dijet_balance[0]");
+    vbf_bdt_reader->SetVariable("ptt","llphoton_pTt2[0]");
+    vbf_bdt_reader->SetVariable("dphijj","dijet_dphi");
+    vbf_bdt_reader->SetVariable("zeppenfeld","photon_zeppenfeld[0]");
+    vbf_bdt_reader->SetVariable("ptj2",ZgFunctions::lead_jet_pt);
+    vbf_bdt_reader->SetVariable("ptj1",ZgFunctions::sublead_jet_pt);
+    vbf_bdt_reader->SetVariable("drgj","photon_jet_mindr[0]");
+    vbf_bdt_reader->BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_dijet_BDT.weights.xml");
+    return vbf_bdt_reader;
+  }
+
+  //returns NamedFunc that selects high BDT score VBF category "VBF/dijet 1"
+  NamedFunc category_vbf1(std::shared_ptr<MVAWrapper> vbf_bdt) {
+    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
+    return (vbf_bdt_score>0.14);
+  }
+
+  //returns NamedFunc that selects medium BDT score VBF category "VBF/dijet 2"
+  NamedFunc category_vbf2(std::shared_ptr<MVAWrapper> vbf_bdt) {
+    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
+    return (vbf_bdt_score>0.06&&vbf_bdt_score<0.14);
+  }
+
+  //returns NamedFunc that selects low BDT score VBF category "VBF/dijet 3"
+  NamedFunc category_vbf3(std::shared_ptr<MVAWrapper> vbf_bdt) {
+    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
+    return (vbf_bdt_score<0.06);
+  }
+
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader() {
     SampleLoader zg_sample_loader;

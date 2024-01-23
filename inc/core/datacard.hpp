@@ -8,7 +8,6 @@
 
 #include "RooAbsPdf.h"
 #include "RooDataSet.h"
-#include "RooMultiPdf.h"
 #include "RooRealVar.h"
 #include "TH1.h"
 
@@ -17,6 +16,7 @@
 #include "core/figure.hpp"
 #include "core/named_func.hpp"
 #include "core/process.hpp"
+#include "core/RooMultiPdf.hpp"
 
 /*!\brief Figure subclass used to produce combine datacards (i.e. statistical models)
 */

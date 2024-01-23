@@ -71,15 +71,17 @@ if __name__ == '__main__':
   w = f.Get('w')
   w.Print('v')
   
-  n_bins = 50
-  lower_bound = 110
+  n_bins = 55
+  lower_bound = 105
   upper_bound = 160
   binning = ROOT.RooFit.Binning(n_bins,lower_bound,upper_bound)
 
   ROOT.gStyle.SetOptStat(0)
   ROOT.gStyle.SetErrorX(0)
   
-  for channel in [('cat_ggh4',0),('cat_ggh3',1),('cat_ggh2',2),('cat_ggh1',3)]:
+  for channel in [('cat_ggh4',0),('cat_ggh3',1),('cat_ggh2',2),('cat_ggh1',3),
+                  ('cat_vbf3',4),('cat_vbf2',5),('cat_vbf1',6),('cat_vh3l',7),
+                  ('cat_vhmet',8),('cat_tthhad',9),('cat_tthlep',10)]:
     #Convert esoteric RooFit formats into regular ROOT
     can_rf = ROOT.TCanvas()
     plot = w.var('mllg_'+channel[0]).frame()
