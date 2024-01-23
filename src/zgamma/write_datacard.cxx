@@ -14,7 +14,6 @@
 #include "RooBernstein.h"
 #include "RooCategory.h"
 #include "RooGenericPdf.h"
-#include "RooMultiPdf.h"
 #include "RooRealVar.h"
 #include "TError.h"
 #include "TColor.h"
@@ -26,6 +25,8 @@
 #include "core/plot_maker.hpp"
 #include "core/process.hpp"
 #include "core/utilities.hpp"
+#include "core/RooGaussStepBernstein.hpp"
+#include "core/RooMultiPdf.hpp"
 #include "zgamma/zg_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
 
@@ -34,9 +35,9 @@ using std::set;
 using std::shared_ptr;
 using std::string;
 using std::vector;
-using ZgFunctions::HLT_pass_dilepton;
-using ZgFunctions::HLT_pass_singlelepton;
-using ZgFunctions::stitch_deathvalley;
+using ZgFunctions::llphoton_pttmod;
+using ZgFunctions::max_lep_miniso;
+using ZgFunctions::trig_plateau_cuts;
 using ZgFunctions::w_years;
 using ZgUtilities::ZgSampleLoader;
 using ZgUtilities::KinematicBdt;
@@ -44,6 +45,10 @@ using ZgUtilities::category_ggh4;
 using ZgUtilities::category_ggh3;
 using ZgUtilities::category_ggh2;
 using ZgUtilities::category_ggh1;
+using ZgUtilities::VbfBdt;
+using ZgUtilities::category_vbf3;
+using ZgUtilities::category_vbf2;
+using ZgUtilities::category_vbf1;
 using SelectionList = Datacard::SelectionList;
 using Systematic = Datacard::Systematic;
 //const Process::Type data = Process::Type::data;
@@ -61,54 +66,138 @@ int main() {
 
   //Define NamedFuncs
   NamedFunc mllg = NamedFunc("llphoton_m[0]").Name("mllg");
-  NamedFunc lep_pt_cuts = NamedFunc("(nel>=2&&el_pt[0]>25&&el_pt[1]>15)||(nmu>=2&&mu_pt[0]>20&&mu_pt[1]>10)").Name("lep_pt_cuts");
+  NamedFunc mllg_range_cut = NamedFunc("llphoton_m[0]>105&&llphoton_m[0]<160");
+
   shared_ptr<MVAWrapper> kinematic_bdt = KinematicBdt();
   NamedFunc ggh4 = category_ggh4(kinematic_bdt);
   NamedFunc ggh3 = category_ggh3(kinematic_bdt);
   NamedFunc ggh2 = category_ggh2(kinematic_bdt);
   NamedFunc ggh1 = category_ggh1(kinematic_bdt);
 
+  shared_ptr<MVAWrapper> vbf_bdt = VbfBdt();
+  NamedFunc vbf3 = category_vbf3(vbf_bdt);
+  NamedFunc vbf2 = category_vbf2(vbf_bdt);
+  NamedFunc vbf1 = category_vbf1(vbf_bdt);
+
   //Define weight
   NamedFunc weight(w_years*"weight"); 
 
   //Define channels
   SelectionList category_ggh4("cat_ggh4");
-  category_ggh4.AddSelection("objectreq","nphoton>=1&&nlep>=2");
+  category_ggh4.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet<2&&met<90");
+  category_ggh4.AddSelection("lepptcuts",trig_plateau_cuts);
   category_ggh4.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_ggh4.AddSelection("zchargereq","ll_charge[0]==0");
   category_ggh4.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
   category_ggh4.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
-  category_ggh4.AddSelection("photonidcut","photon_id80[0]");
-  category_ggh4.AddSelection("lepptcuts",lep_pt_cuts);
-  category_ggh4.AddSelection("mllgcuts","llphoton_m[0]>110&&llphoton_m[0]<160");
+  category_ggh4.AddSelection("photonidreq","photon_id80[0]");
+  category_ggh4.AddSelection("mllgrange",mllg_range_cut);
   category_ggh4.AddSelection("bdtcuts",ggh4);
   SelectionList category_ggh3("cat_ggh3");
-  category_ggh3.AddSelection("objectreq","nphoton>=1&&nlep>=2");
+  category_ggh3.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet<2&&met<90");
+  category_ggh3.AddSelection("lepptcuts",trig_plateau_cuts);
   category_ggh3.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_ggh3.AddSelection("zchargereq","ll_charge[0]==0");
   category_ggh3.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
   category_ggh3.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
-  category_ggh3.AddSelection("photonidcut","photon_id80[0]");
-  category_ggh3.AddSelection("lepptcuts",lep_pt_cuts);
-  category_ggh3.AddSelection("mllgcuts","llphoton_m[0]>110&&llphoton_m[0]<160");
+  category_ggh3.AddSelection("photonidreq","photon_id80[0]");
+  category_ggh3.AddSelection("mllgrange",mllg_range_cut);
   category_ggh3.AddSelection("bdtcuts",ggh3);
   SelectionList category_ggh2("cat_ggh2");
-  category_ggh2.AddSelection("objectreq","nphoton>=1&&nlep>=2");
+  category_ggh2.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet<2&&met<90");
+  category_ggh2.AddSelection("lepptcuts",trig_plateau_cuts);
   category_ggh2.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_ggh2.AddSelection("zchargereq","ll_charge[0]==0");
   category_ggh2.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
   category_ggh2.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
-  category_ggh2.AddSelection("photonidcut","photon_id80[0]");
-  category_ggh2.AddSelection("lepptcuts",lep_pt_cuts);
-  category_ggh2.AddSelection("mllgcuts","llphoton_m[0]>110&&llphoton_m[0]<160");
+  category_ggh2.AddSelection("photonidreq","photon_id80[0]");
+  category_ggh2.AddSelection("mllgrange",mllg_range_cut);
   category_ggh2.AddSelection("bdtcuts",ggh2);
   SelectionList category_ggh1("cat_ggh1");
-  category_ggh1.AddSelection("objectreq","nphoton>=1&&nlep>=2");
+  category_ggh1.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet<2&&met<90");
+  category_ggh1.AddSelection("lepptcuts",trig_plateau_cuts);
   category_ggh1.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_ggh1.AddSelection("zchargereq","ll_charge[0]==0");
   category_ggh1.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
   category_ggh1.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
-  category_ggh1.AddSelection("photonidcut","photon_id80[0]");
-  category_ggh1.AddSelection("lepptcuts",lep_pt_cuts);
-  category_ggh1.AddSelection("mllgcuts","llphoton_m[0]>110&&llphoton_m[0]<160");
+  category_ggh1.AddSelection("photonidreq","photon_id80[0]");
+  category_ggh1.AddSelection("mllgrange",mllg_range_cut);
   category_ggh1.AddSelection("bdtcuts",ggh1);
-  vector<SelectionList> channels = {category_ggh4,category_ggh3,category_ggh2,category_ggh1};
+  SelectionList category_vbf3("cat_vbf3");
+  category_vbf3.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet>=2&&nbm==0");
+  category_vbf3.AddSelection("lepptcuts",trig_plateau_cuts);
+  category_vbf3.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_vbf3.AddSelection("zchargereq","ll_charge[0]==0");
+  category_vbf3.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
+  category_vbf3.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
+  category_vbf3.AddSelection("photonidreq","photon_id80[0]");
+  category_vbf3.AddSelection("mllgrange",mllg_range_cut);
+  category_vbf3.AddSelection("bdtcuts",vbf3);
+  SelectionList category_vbf2("cat_vbf2");
+  category_vbf2.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet>=2&&nbm==0");
+  category_vbf2.AddSelection("lepptcuts",trig_plateau_cuts);
+  category_vbf2.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_vbf2.AddSelection("zchargereq","ll_charge[0]==0");
+  category_vbf2.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
+  category_vbf2.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
+  category_vbf2.AddSelection("photonidreq","photon_id80[0]");
+  category_vbf2.AddSelection("mllgrange",mllg_range_cut);
+  category_vbf2.AddSelection("bdtcuts",vbf2);
+  SelectionList category_vbf1("cat_vbf1");
+  category_vbf1.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet>=2&&nbm==0");
+  category_vbf1.AddSelection("lepptcuts",trig_plateau_cuts);
+  category_vbf1.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_vbf1.AddSelection("zchargereq","ll_charge[0]==0");
+  category_vbf1.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
+  category_vbf1.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
+  category_vbf1.AddSelection("photonidreq","photon_id80[0]");
+  category_vbf1.AddSelection("mllgrange",mllg_range_cut);
+  category_vbf1.AddSelection("bdtcuts",vbf1);
+  SelectionList category_vhmet("cat_vhmet");
+  category_vhmet.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet<2&&met>90");
+  category_vhmet.AddSelection("lepptcuts",trig_plateau_cuts);
+  category_vhmet.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_vhmet.AddSelection("zchargereq","ll_charge[0]==0");
+  category_vhmet.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
+  category_vhmet.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
+  category_vhmet.AddSelection("photonidreq","photon_id80[0]");
+  category_vhmet.AddSelection("mllgrange",mllg_range_cut);
+  category_vhmet.AddSelection("pttmodreq",llphoton_pttmod<60.0);
+  category_vhmet.AddSelection("ptllgreq","llphoton_pt[0]/llphoton_m[0]>0.4");
+  SelectionList category_vh3l("cat_vh3l");
+  category_vh3l.AddSelection("objectreq","nphoton>=1&&nlep>=3&&nbm==0");
+  category_vh3l.AddSelection("lepptcuts",trig_plateau_cuts);
+  category_vh3l.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_vh3l.AddSelection("zchargereq","ll_charge[0]==0");
+  category_vh3l.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
+  category_vh3l.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
+  category_vh3l.AddSelection("photonidreq","photon_id80[0]");
+  category_vh3l.AddSelection("mllgrange",mllg_range_cut);
+  category_vh3l.AddSelection("minisoreq",max_lep_miniso<0.15);
+  category_vh3l.AddSelection("ptllgreq","llphoton_pt[0]/llphoton_m[0]>0.3");
+  SelectionList category_tthhad("cat_tthhad");
+  category_tthhad.AddSelection("objectreq","nphoton>=1&&nlep==2&&njet>=5&&nbm>=1");
+  category_tthhad.AddSelection("lepptcuts",trig_plateau_cuts);
+  category_tthhad.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_tthhad.AddSelection("zchargereq","ll_charge[0]==0");
+  category_tthhad.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
+  category_tthhad.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
+  category_tthhad.AddSelection("photonidreq","photon_id80[0]");
+  category_tthhad.AddSelection("mllgrange",mllg_range_cut);
+  SelectionList category_tthlep("cat_tthlep");
+  category_tthlep.AddSelection("objectreq","nphoton>=1&&nlep>=3&&njet>=3&&nbm>=1");
+  category_tthlep.AddSelection("lepptcuts",trig_plateau_cuts);
+  category_tthlep.AddSelection("zmassreq","ll_m[0]>81&&ll_m[0]<101");
+  category_tthlep.AddSelection("zchargereq","ll_charge[0]==0");
+  category_tthlep.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
+  category_tthlep.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
+  category_tthlep.AddSelection("photonidreq","photon_id80[0]");
+  category_tthlep.AddSelection("mllgrange",mllg_range_cut);
+  category_tthlep.AddSelection("minisoreq",max_lep_miniso<0.15);
+  vector<SelectionList> channels = {category_ggh4,category_ggh3,category_ggh2,
+                                    category_ggh1,category_vbf3,category_vbf2,
+                                    category_vbf1,category_vh3l,category_vhmet,
+                                    category_tthhad,category_tthlep};
 
   //Define systematics
   //Systematic syst_altweight("altw",weight*"w_photon");
@@ -124,8 +213,10 @@ int main() {
   vector<RooAbsPdf*> signal_pdfs;
   vector<shared_ptr<RooRealVar>> vars;
   
-  for (string category : {"cat_ggh4", "cat_ggh3", "cat_ggh2", "cat_ggh1"}) {
-    shared_ptr<RooRealVar> pdf_mllg = make_shared<RooRealVar>(("mllg_"+category).c_str(),"mllg cat",110.0,160.0); vars.push_back(pdf_mllg);
+  for (string category : {"cat_ggh4", "cat_ggh3", "cat_ggh2", "cat_ggh1", 
+                          "cat_vbf3", "cat_vbf2", "cat_vbf1", "cat_vh3l", 
+                          "cat_vhmet", "cat_tthhad", "cat_tthlep"}) {
+    shared_ptr<RooRealVar> pdf_mllg = make_shared<RooRealVar>(("mllg_"+category).c_str(),"mllg cat",105.0,160.0); vars.push_back(pdf_mllg);
 
     //shared_ptr<RooRealVar> b5_c0 = make_shared<RooRealVar>(("b5_c0_"+category).c_str(),"bern 5 coefficient 0",-1.0,1.0); vars.push_back(b5_c0);
     //shared_ptr<RooRealVar> b5_c1 = make_shared<RooRealVar>(("b5_c1_"+category).c_str(),"bern 5 coefficient 1",-1.0,1.0); vars.push_back(b5_c1);
@@ -147,29 +238,51 @@ int main() {
     //    "(@1*pow((165-@0)/60,5)+@2*(5*(@0-105)/60*pow((165-@0)/60,4))+@3*(10*pow((@0-105)/60,2)*pow((165-@0)/60,3))+@4*(10*pow((@0-105)/60,3)*pow((165-@0)/60,2))+@5*(5*pow((@0-105)/60,4)*(165-@0)/60)+@6*pow((@0-105)/60,5))/(1.0+exp(-1.0*@8*(@0-@7)))",
     //    RooArgSet(*pdf_mllg,*b5_c0,*b5_c1,*b5_c2,*b5_c3,*b5_c4,*b5_c5,*b5_so,*b5_sw));
 
-    RooArgSet bern6_argset;
-    bern6_argset.add(*pdf_mllg);
-    shared_ptr<RooRealVar> b6_c0 = make_shared<RooRealVar>(("b6_c0_"+category).c_str(),"bern 6 coefficient 0",-1.0,1.0); vars.push_back(b6_c0); bern6_argset.add(*b6_c0);
-    shared_ptr<RooRealVar> b6_c1 = make_shared<RooRealVar>(("b6_c1_"+category).c_str(),"bern 6 coefficient 1",-1.0,1.0); vars.push_back(b6_c1); bern6_argset.add(*b6_c1);
-    shared_ptr<RooRealVar> b6_c2 = make_shared<RooRealVar>(("b6_c2_"+category).c_str(),"bern 6 coefficient 2",-1.0,1.0); vars.push_back(b6_c2); bern6_argset.add(*b6_c2);
-    shared_ptr<RooRealVar> b6_c3 = make_shared<RooRealVar>(("b6_c3_"+category).c_str(),"bern 6 coefficient 3",-1.0,1.0); vars.push_back(b6_c3); bern6_argset.add(*b6_c3);
-    shared_ptr<RooRealVar> b6_c4 = make_shared<RooRealVar>(("b6_c4_"+category).c_str(),"bern 6 coefficient 4",-1.0,1.0); vars.push_back(b6_c4); bern6_argset.add(*b6_c4);
-    shared_ptr<RooRealVar> b6_c5 = make_shared<RooRealVar>(("b6_c5_"+category).c_str(),"bern 6 coefficient 5",-1.0,1.0); vars.push_back(b6_c5); bern6_argset.add(*b6_c5);
-    shared_ptr<RooRealVar> b6_c6 = make_shared<RooRealVar>(("b6_c6_"+category).c_str(),"bern 6 coefficient 6",-1.0,1.0); vars.push_back(b6_c6); bern6_argset.add(*b6_c6);
-    shared_ptr<RooRealVar> b6_so = make_shared<RooRealVar>(("b6_so_"+category).c_str(),"bern 6 sigmoid offset",90.0,125.0); vars.push_back(b6_so); bern6_argset.add(*b6_so);
-    shared_ptr<RooRealVar> b6_sw = make_shared<RooRealVar>(("b6_sw_"+category).c_str(),"bern 6 sigmoid width",0.005,30.0); vars.push_back(b6_sw); bern6_argset.add(*b6_sw);
-    b6_c0->setVal(1.0);
-    b6_c1->setVal(0.1);
-    b6_c2->setVal(0.1);
-    b6_c3->setVal(0.1);
-    b6_c4->setVal(0.1);
-    b6_c5->setVal(0.0);
-    b6_c6->setVal(0.0);
-    b6_so->setVal(110);
-    b6_sw->setVal(0.25);
-    RooGenericPdf* pdf_bkg_cat_bern6 = new RooGenericPdf(("pdf_background_"+category+"_bern6").c_str(),"bkg_pdf",
-        "(@1*pow((160-@0)/50,6)+@2*(6*(@0-110)/50*pow((160-@0)/50,5))+@3*(15*pow((@0-110)/50,2)*pow((160-@0)/50,4))+@4*(20*pow((@0-110)/50,3)*pow((160-@0)/50,3))+@5*(15*pow((@0-110)/50,4)*pow((160-@0)/50,2))+@6*(6*pow((@0-110)/50,5)*(160-@0)/50)+@7*pow((@0-110)/50,6))/(1.0+exp(-1.0*@9*(@0-@8)))",
-        bern6_argset);
+    //RooArgSet bern6_argset;
+    //bern6_argset.add(*pdf_mllg);
+    //shared_ptr<RooRealVar> b6_c0 = make_shared<RooRealVar>(("b6_c0_"+category).c_str(),"bern 6 coefficient 0",-1.0,1.0); vars.push_back(b6_c0); bern6_argset.add(*b6_c0);
+    //shared_ptr<RooRealVar> b6_c1 = make_shared<RooRealVar>(("b6_c1_"+category).c_str(),"bern 6 coefficient 1",-1.0,1.0); vars.push_back(b6_c1); bern6_argset.add(*b6_c1);
+    //shared_ptr<RooRealVar> b6_c2 = make_shared<RooRealVar>(("b6_c2_"+category).c_str(),"bern 6 coefficient 2",-1.0,1.0); vars.push_back(b6_c2); bern6_argset.add(*b6_c2);
+    //shared_ptr<RooRealVar> b6_c3 = make_shared<RooRealVar>(("b6_c3_"+category).c_str(),"bern 6 coefficient 3",-1.0,1.0); vars.push_back(b6_c3); bern6_argset.add(*b6_c3);
+    //shared_ptr<RooRealVar> b6_c4 = make_shared<RooRealVar>(("b6_c4_"+category).c_str(),"bern 6 coefficient 4",-1.0,1.0); vars.push_back(b6_c4); bern6_argset.add(*b6_c4);
+    //shared_ptr<RooRealVar> b6_c5 = make_shared<RooRealVar>(("b6_c5_"+category).c_str(),"bern 6 coefficient 5",-1.0,1.0); vars.push_back(b6_c5); bern6_argset.add(*b6_c5);
+    //shared_ptr<RooRealVar> b6_c6 = make_shared<RooRealVar>(("b6_c6_"+category).c_str(),"bern 6 coefficient 6",-1.0,1.0); vars.push_back(b6_c6); bern6_argset.add(*b6_c6);
+    //shared_ptr<RooRealVar> b6_so = make_shared<RooRealVar>(("b6_so_"+category).c_str(),"bern 6 sigmoid offset",90.0,125.0); vars.push_back(b6_so); bern6_argset.add(*b6_so);
+    //shared_ptr<RooRealVar> b6_sw = make_shared<RooRealVar>(("b6_sw_"+category).c_str(),"bern 6 sigmoid width",0.005,30.0); vars.push_back(b6_sw); bern6_argset.add(*b6_sw);
+    //b6_c0->setVal(1.0);
+    //b6_c1->setVal(0.1);
+    //b6_c2->setVal(0.1);
+    //b6_c3->setVal(0.1);
+    //b6_c4->setVal(0.1);
+    //b6_c5->setVal(0.0);
+    //b6_c6->setVal(0.0);
+    //b6_so->setVal(110);
+    //b6_sw->setVal(0.25);
+    //RooGenericPdf* pdf_bkg_cat_bern6 = new RooGenericPdf(("pdf_background_"+category+"_bern6").c_str(),"bkg_pdf",
+    //    "(@1*pow((160-@0)/50,6)+@2*(6*(@0-110)/50*pow((160-@0)/50,5))+@3*(15*pow((@0-110)/50,2)*pow((160-@0)/50,4))+@4*(20*pow((@0-110)/50,3)*pow((160-@0)/50,3))+@5*(15*pow((@0-110)/50,4)*pow((160-@0)/50,2))+@6*(6*pow((@0-110)/50,5)*(160-@0)/50)+@7*pow((@0-110)/50,6))/(1.0+exp(-1.0*@9*(@0-@8)))",
+    //    bern6_argset);
+
+    RooArgList bern5_argset;
+    shared_ptr<RooRealVar> b5_gm = make_shared<RooRealVar>(("b5_gm_"+category).c_str(),"bern 5 gaussian mean",0.0,0.0); vars.push_back(b5_gm);
+    shared_ptr<RooRealVar> b5_gs = make_shared<RooRealVar>(("b5_gs_"+category).c_str(),"bern 5 gaussian width",1.0,75.0); vars.push_back(b5_gs);
+    shared_ptr<RooRealVar> b5_st = make_shared<RooRealVar>(("b5_st_"+category).c_str(),"bern 5 step",80.0,120.0); vars.push_back(b5_st);
+    shared_ptr<RooRealVar> b5_c0 = make_shared<RooRealVar>(("b5_c0_"+category).c_str(),"bern 5 coefficient 0",-2.0,2.0); vars.push_back(b5_c0); bern5_argset.add(*b5_c0);
+    shared_ptr<RooRealVar> b5_c1 = make_shared<RooRealVar>(("b5_c1_"+category).c_str(),"bern 5 coefficient 1",-2.0,2.0); vars.push_back(b5_c1); bern5_argset.add(*b5_c1);
+    shared_ptr<RooRealVar> b5_c2 = make_shared<RooRealVar>(("b5_c2_"+category).c_str(),"bern 5 coefficient 2",-2.0,2.0); vars.push_back(b5_c2); bern5_argset.add(*b5_c2);
+    shared_ptr<RooRealVar> b5_c3 = make_shared<RooRealVar>(("b5_c3_"+category).c_str(),"bern 5 coefficient 3",-2.0,2.0); vars.push_back(b5_c3); bern5_argset.add(*b5_c3);
+    shared_ptr<RooRealVar> b5_c4 = make_shared<RooRealVar>(("b5_c4_"+category).c_str(),"bern 5 coefficient 4",-2.0,2.0); vars.push_back(b5_c4); bern5_argset.add(*b5_c4);
+    shared_ptr<RooRealVar> b5_c5 = make_shared<RooRealVar>(("b5_c5_"+category).c_str(),"bern 5 coefficient 5",-2.0,2.0); vars.push_back(b5_c5); bern5_argset.add(*b5_c5);
+    b5_gs->setVal(10.0);
+    b5_st->setVal(105.0);
+    b5_c0->setVal(0.8);
+    b5_c1->setVal(0.5);
+    b5_c2->setVal(0.1);
+    b5_c3->setVal(0.1);
+    b5_c4->setVal(0.1);
+    b5_c5->setVal(0.1);
+    RooGaussStepBernstein* pdf_bkg_cat_gsb = new RooGaussStepBernstein(
+        ("pdf_background_"+category+"_bern5").c_str(),"bkg_pdf",
+        *pdf_mllg, *b5_gm, *b5_gs, *b5_st, bern5_argset);
 
     //RooArgSet laurent2_argset;
     //laurent2_argset.add(*pdf_mllg);
@@ -506,7 +619,7 @@ int main() {
         RooArgSet(*pdf_mllg));
 
     //background_pdfs.push_back(vector<RooAbsPdf*>{pdf_bkg_cat_bern3,pdf_bkg_cat_exp1});
-    background_pdfs.push_back(pdf_bkg_cat_bern6);
+    background_pdfs.push_back(pdf_bkg_cat_gsb);
     signal_pdfs.push_back(pdf_sig_cat);
   }
   ////std::cout << background_pdfs[0][0]->GetName() << std::endl;
@@ -531,7 +644,7 @@ int main() {
   pm.min_print_ = true;
 
   pm.Push<Datacard>("test_datacard", channels, systematics, processes, weight,
-      Axis(50, 110.0, 160.0, mllg, "m_{ll#gamma} [GeV]", {}))
+      Axis(55, 105.0, 160.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddParametricProcess("background",background_pdfs)
       .MakeProcessParametric("htozgamma",signal_pdfs);
 

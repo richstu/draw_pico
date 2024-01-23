@@ -392,7 +392,7 @@
   ShowBackgroundError = 1
   ExtraLabelSize = 0.04
   TitleType = 0
-  StackType = 2
+  StackType = 0
   OverflowType = 0
   BottomType = 1
   UseCMYK = 0

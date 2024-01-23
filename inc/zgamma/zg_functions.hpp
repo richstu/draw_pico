@@ -40,6 +40,15 @@ namespace ZgFunctions {
   //subleading electron pt
   extern const NamedFunc sublead_el_pt;
 
+  //leading jet pt
+  extern const NamedFunc lead_jet_pt;
+
+  //subleading jet pt
+  extern const NamedFunc sublead_jet_pt;
+
+  //trigger-paired lepton pt plateau cuts
+  extern const NamedFunc trig_plateau_cuts;
+
   //common NamedFuncs for run 2 baseline selection
   extern const NamedFunc zg_baseline_el;
   extern const NamedFunc zg_baseline_mu;
@@ -70,6 +79,12 @@ namespace ZgFunctions {
 
   //pT/m of Higgs candidate
   extern const NamedFunc llphoton_rel_pt;
+
+  //modified ptt variable
+  extern const NamedFunc llphoton_pttmod;
+
+  //maximum lepton mini isolation
+  extern const NamedFunc max_lep_miniso;
 
   //vector of whether GenParticles are the first copy
   extern const NamedFunc mc_isFirstCopy;

@@ -16,6 +16,7 @@
 #include "core/figure.hpp"
 #include "core/named_func.hpp"
 #include "core/process.hpp"
+#include "core/RooMultiPdf.hpp"
 
 class Datacard final: public Figure{
 public:

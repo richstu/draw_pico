@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "TError.h"
+#include "TLorentzVector.h"
 
 #include "core/hist1d.hpp"
 #include "core/hist2d.hpp"
@@ -45,7 +46,7 @@ int main() {
   //------------------------------------------------------------------------------------
 
   string production = "kingscanyonv1";
-  string years = "2018";
+  string years = "2016APV";
   set<string> year_set;
 
   //------------------------------------------------------------------------------------
@@ -147,6 +148,74 @@ int main() {
       "pass_muon_jet&&pass_low_neutral_jet&&pass_htratio_dphi_tight&&pass_ecalnoisejet")
       .Name("RA2b_filters");
 
+  //returns ll mass calculated with corrected muon pts
+  const NamedFunc ll_corrected_m("ll_corrected_m",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    //only recalculate for Muons
+    if (b.ll_lepid()->at(0)==11) return b.ll_m()->at(0);
+    TLorentzVector m1, m2;
+    m1.SetPtEtaPhiM(b.mu_corrected_pt()->at(b.ll_i1()->at(0)),
+                    b.mu_eta()->at(b.ll_i1()->at(0)),
+                    b.mu_phi()->at(b.ll_i1()->at(0)),
+                    0.106);
+    m2.SetPtEtaPhiM(b.mu_corrected_pt()->at(b.ll_i2()->at(0)),
+                    b.mu_eta()->at(b.ll_i2()->at(0)),
+                    b.mu_phi()->at(b.ll_i2()->at(0)),
+                    0.106);
+    return (m1+m2).M();
+  });
+
+  //returns llgamma mass calculated with corrected muon pts
+  const NamedFunc llphoton_corrected_m("llphoton_corrected_m",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    //only recalculate for Muons
+    if (b.ll_lepid()->at(0)==11) return b.llphoton_m()->at(0);
+    TLorentzVector m1, m2, ph;
+    m1.SetPtEtaPhiM(b.mu_corrected_pt()->at(b.ll_i1()->at(0)),
+                    b.mu_eta()->at(b.ll_i1()->at(0)),
+                    b.mu_phi()->at(b.ll_i1()->at(0)),
+                    0.106);
+    m2.SetPtEtaPhiM(b.mu_corrected_pt()->at(b.ll_i2()->at(0)),
+                    b.mu_eta()->at(b.ll_i2()->at(0)),
+                    b.mu_phi()->at(b.ll_i2()->at(0)),
+                    0.106);
+    ph.SetPtEtaPhiM(b.photon_pt()->at(0),
+                    b.photon_eta()->at(0),
+                    b.photon_phi()->at(0),
+                    0.0);
+    return (m1+m2+ph).M();
+  });
+
+  //Z pt reweighting for DY amcatnlo sample
+  const NamedFunc w_z_pt("w_z_pt",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.ll_pt()->at(0)<4.0) return 0.797367794342;
+    else if (b.ll_pt()->at(0)>4.0 && b.ll_pt()->at(0)<8.0) return 0.963481849777;
+    else if (b.ll_pt()->at(0)>8.0 && b.ll_pt()->at(0)<12.0) return 1.10947026956;
+    else if (b.ll_pt()->at(0)>12.0 && b.ll_pt()->at(0)<16.0) return 1.13303095085;
+    else if (b.ll_pt()->at(0)>16.0 && b.ll_pt()->at(0)<20.0) return 1.10507933272;
+    else if (b.ll_pt()->at(0)>20.0 && b.ll_pt()->at(0)<24.0) return 1.06546778102;
+    else if (b.ll_pt()->at(0)>24.0 && b.ll_pt()->at(0)<28.0) return 1.02690512253;
+    else if (b.ll_pt()->at(0)>28.0 && b.ll_pt()->at(0)<32.0) return 0.998144202223;
+    else if (b.ll_pt()->at(0)>32.0 && b.ll_pt()->at(0)<36.0) return 0.980250142177;
+    else if (b.ll_pt()->at(0)>36.0 && b.ll_pt()->at(0)<40.0) return 0.973450539142;
+    else if (b.ll_pt()->at(0)>40.0 && b.ll_pt()->at(0)<44.0) return 0.97617079356;
+    else if (b.ll_pt()->at(0)>44.0 && b.ll_pt()->at(0)<48.0) return 0.981375335328;
+    else if (b.ll_pt()->at(0)>48.0 && b.ll_pt()->at(0)<52.0) return 0.993206582579;
+    else if (b.ll_pt()->at(0)>52.0 && b.ll_pt()->at(0)<56.0) return 1.00126345214;
+    else if (b.ll_pt()->at(0)>56.0 && b.ll_pt()->at(0)<60.0) return 0.992131806641;
+    else if (b.ll_pt()->at(0)>60.0 && b.ll_pt()->at(0)<64.0) return 1.00412729589;
+    else if (b.ll_pt()->at(0)>64.0 && b.ll_pt()->at(0)<68.0) return 0.996317799849;
+    else if (b.ll_pt()->at(0)>68.0 && b.ll_pt()->at(0)<72.0) return 1.00097024039;
+    else if (b.ll_pt()->at(0)>72.0 && b.ll_pt()->at(0)<76.0) return 0.991976342728;
+    else if (b.ll_pt()->at(0)>76.0 && b.ll_pt()->at(0)<80.0) return 1.00189295984;
+    else if (b.ll_pt()->at(0)>80.0 && b.ll_pt()->at(0)<84.0) return 0.999540995194;
+    else if (b.ll_pt()->at(0)>84.0 && b.ll_pt()->at(0)<88.0) return 1.00989788201;
+    else if (b.ll_pt()->at(0)>88.0 && b.ll_pt()->at(0)<92.0) return 0.998043283075;
+    else if (b.ll_pt()->at(0)>92.0 && b.ll_pt()->at(0)<96.0) return 0.991865704292;
+    return 0.98350435542;
+  });
+
   const NamedFunc w_lumi_years("w_lumi*w_years",
       [](const Baby &b) -> NamedFunc::ScalarType{
     if (b.type()<1000) return 1.0;
@@ -173,13 +242,14 @@ int main() {
   pm.multithreaded_ = true;
   pm.min_print_ = true;
 
-  for (unsigned iwgt = 0; iwgt < 4; iwgt++) {
+  for (unsigned iwgt = 0; iwgt < 5; iwgt++) {
 
     //set weight
     NamedFunc weight = "weight"*w_years;
     if (iwgt==1) weight = w_lumi_years;
     if (iwgt==2) weight = w_lumi_lep_years;
     if (iwgt==3) weight = w_lumi_lep_trig_years;
+    if (iwgt==4) weight = "weight"*w_years*w_z_pt;
 
     //Z->ee electron plots
     pm.Push<Hist1D>(Axis(25,0.0,100.0, "el_pt[0]", "Lead electron p_{T} [GeV]", {}), 
@@ -238,6 +308,10 @@ int main() {
         zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_pt[1]", "Sublead muon p_{T} [GeV]", {}), 
         zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[0]", "Lead muon corrected p_{T} [GeV]", {}), 
+        zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[1]", "Sublead muon corrected p_{T} [GeV]", {}), 
+        zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,-2.5,2.5, "mu_eta[0]", "Lead muon #eta", {}), 
         zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,-2.5,2.5, "mu_eta[1]", "Sublead muon #eta", {}), 
@@ -283,6 +357,8 @@ int main() {
     pm.Push<Hist1D>(Axis(25,-3.1416,3.1416, "ll_phi[0]", "Z candidate #phi", {}), 
         zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,71,111, "ll_m[0]", "Z candidate m [GeV]", {}), 
+        "nmu==2&&nphoton==0", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,71,111, ll_corrected_m, "Z candidate corrected m [GeV]", {}), 
         "nmu==2&&nphoton==0", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
 
     //Z->eey electron plots
@@ -397,6 +473,10 @@ int main() {
         zmmy_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_pt[1]", "Sublead muon p_{T} [GeV]", {}), 
         zmmy_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[0]", "Lead muon corrected p_{T} [GeV]", {}), 
+        zmmy_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[1]", "Sublead muon corrected p_{T} [GeV]", {}), 
+        zmmy_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,-2.5,2.5, "mu_eta[0]", "Lead muon #eta", {}), 
         zmmy_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,-2.5,2.5, "mu_eta[1]", "Sublead muon #eta", {}), 
@@ -497,6 +577,8 @@ int main() {
     pm.Push<Hist1D>(Axis(25,-3.1416,3.1416, "llphoton_phi[0]", "Z candidate #phi", {}), 
         zmmy_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,71,111, "llphoton_m[0]", "Z candidate m [GeV]", {}), 
+        "nmu==2&&nphoton==1", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,71,111, llphoton_corrected_m, "Z candidate corrected m [GeV]", {}), 
         "nmu==2&&nphoton==1", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
   }
 

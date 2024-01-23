@@ -50,6 +50,15 @@ namespace ZgUtilities {
   //returns NamedFunc that selects very high BDT score category "ggF/untagged 1"
   NamedFunc category_ggh1(std::shared_ptr<MVAWrapper> kinematic_bdt);
 
+  //returns working version of dijet BDT
+  std::shared_ptr<MVAWrapper> VbfBdt();
+  //returns NamedFunc that selects high BDT score VBF category "VBF/dijet 1"
+  NamedFunc category_vbf1(std::shared_ptr<MVAWrapper> vbf_bdt);
+  //returns NamedFunc that selects medium BDT score VBF category "VBF/dijet 2"
+  NamedFunc category_vbf2(std::shared_ptr<MVAWrapper> vbf_bdt);
+  //returns NamedFunc that selects low BDT score VBF category "VBF/dijet 3"
+  NamedFunc category_vbf3(std::shared_ptr<MVAWrapper> vbf_bdt);
+
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader();
   int get_btag_wp_deepjet(int year, float discriminator_value);
