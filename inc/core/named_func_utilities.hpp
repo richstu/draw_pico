@@ -11,8 +11,8 @@ namespace NamedFuncUtilities {
   //Returns a vector named func that is vector_named_func filtered with filter_named_func
   NamedFunc FilterNamedFunc(NamedFunc vector_named_func, NamedFunc filter_named_func);
 
-  //Returns a vector named func that is vector_named_func with map_function applied to it
-  NamedFunc MapNamedFunc(NamedFunc vector_named_func, std::function<double(double)> map_function);
+  //Returns a named func that is input_named_func with map_function applied (entrywise) to it
+  NamedFunc MapNamedFunc(NamedFunc input_named_func, std::function<double(double)> map_function);
 
   //Returns a scalar named func that is vector_named_func with reduce_function applied to it
   NamedFunc ReduceNamedFunc(NamedFunc vector_named_func, 

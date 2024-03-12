@@ -97,6 +97,7 @@ public:
     std::string WSName(unsigned int channel) final;
     std::string PDFName(unsigned int channel) final;
     float Yield(unsigned int channel, unsigned int systematic = 999) final;
+    void FitAndFreeze(unsigned int channel);
 
     std::vector<TH1D> raw_histogram_nom_; //!< nominal histogram per channel 
     std::vector<std::vector<TH1D>> raw_histogram_sys_; //!< histogram per systematic per channel
@@ -104,7 +105,7 @@ public:
     std::vector<RooRealVar> var_;       //!< Signal extraction variable
     RooRealVar weight_;                 //!< Weight variable
     bool replace_with_param_;           //!< If process should be replaced by parametric model
-    std::vector<RooAbsPdf*> param_pdf_; //!< Parametric model pdf per channel
+    std::vector<std::shared_ptr<RooAbsPdf>> param_pdf_; //!< Parametric model pdf per channel
 
   private:
     DatacardProcessNonparametric() = delete;
@@ -119,8 +120,11 @@ public:
   */
   class DatacardProcessParametric final: public DatacardProcess{
   public:
-    DatacardProcessParametric(const std::string &name, std::vector<RooAbsPdf*> &pdf, const Figure& figure); 
-    DatacardProcessParametric(const std::string &name, std::vector<std::vector<RooAbsPdf*>> &pdf, const Figure& figure);
+    DatacardProcessParametric(const std::string &name, 
+        std::vector<std::shared_ptr<RooAbsPdf>> &pdf, const Figure& figure); 
+    DatacardProcessParametric(const std::string &name, 
+        std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> &pdf, 
+        const Figure& figure);
     ~DatacardProcessParametric() = default;
     void RecordEvent(const Baby &baby) final;
     void WriteWorkspace(unsigned int channel) final; 
@@ -128,13 +132,11 @@ public:
     std::string PDFName(unsigned int channel) final; 
     float Yield(unsigned int channel, unsigned int systematic = 999) final;
 
-    std::vector<std::vector<RooAbsPdf*>> pdf_; //!<PDF for each channel
-    //for processes using discrete profiling, there will be multiple
-    //PDFs(inner vector) per channel
-    //std::vector<std::string> param_func_name_; //!<Name of each PDF for discrete profiled processes
+    std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> pdf_; //!<PDF for each channel
 
   private:
-    static std::vector<std::vector<RooAbsPdf*>> MakeDoubleVector(std::vector<RooAbsPdf*> pdfs);
+    static std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> 
+        MakeDoubleVector(std::vector<std::shared_ptr<RooAbsPdf>> pdfs);
     DatacardProcessParametric() = delete;
     DatacardProcessParametric(const DatacardProcessParametric &) = delete;
     DatacardProcessParametric& operator=(const DatacardProcessParametric &) = delete;
@@ -152,14 +154,12 @@ public:
            const std::vector<std::shared_ptr<Process>> &processes,
            const NamedFunc &weight,
            const Axis &axis);
-  //Datacard& AddParametricProcess(const std::string &name, 
-  //                               std::vector<RooAbsPdf*> &pdf);
   Datacard& AddParametricProcess(const std::string &name, 
-                                 std::vector<RooAbsPdf*> &pdf);
+                                 std::vector<std::shared_ptr<RooAbsPdf>> &pdf);
   Datacard& AddParametricProcess(const std::string &name, 
-                                 std::vector<std::vector<RooAbsPdf*>> &pdf);
+                                 std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> &pdf);
   Datacard& MakeProcessParametric(const std::string &name, 
-                                  std::vector<RooAbsPdf*> &pdf);
+                                  std::vector<std::shared_ptr<RooAbsPdf>> &pdf);
   Datacard& SaveDataAsHist(bool save_data_as_hist = true);
   Datacard(Datacard &&) = default;
   Datacard& operator=(Datacard &&) = default;
@@ -191,14 +191,6 @@ public:
   std::vector<std::unique_ptr<DatacardProcessParametric>> datacard_process_parametric_; 
       //!<Parametric processes in datacard
   bool save_data_as_hist_;                   //!<Flag indicating to save data as RDataSet or RDataHist
-  //std::vector<std::string> param_process_name_; //!<Name for each parametric processes
-  //std::vector<std::vector<RooAbsPdf*>> param_process_; //!<PDF for each parametric process
-  //std::vector<std::vector<std::string>> param_func_name_;
-  //std::vector<bool> param_process_profile_dec;
-  //std::vector<std::vector<RooAbsPdf*>> param_process_;
-  //std::vector<std::vector<std::vector<RooAbsPdf*>>> param_profile_process_;
-  //std::vector<std::vector<RooCategory*>> param_profile_ind_process_;
-  //TODO clean up commented lines once everything works
 
 private:
 

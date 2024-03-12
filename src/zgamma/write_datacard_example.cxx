@@ -26,6 +26,7 @@
 #include "core/utilities.hpp"
 #include "zgamma/zg_functions.hpp"
 
+using std::make_shared;
 using std::set;
 using std::shared_ptr;
 using std::string;
@@ -93,9 +94,9 @@ int main() {
   //Define parametric PDFs
   //vector<RooAbsPdf*> background_pdfs_raw;
   //vector<RooAbsPdf*> signal_pdfs_raw;
-  vector<RooAbsPdf*> background_pdfs;
-  vector<RooAbsPdf*> signal_pdfs;
-  vector<RooRealVar*> vars;
+  vector<shared_ptr<RooAbsPdf>> background_pdfs;
+  vector<shared_ptr<RooAbsPdf>> signal_pdfs;
+  vector<shared_ptr<RooRealVar>> vars;
   //RooRealVar rrv_mllg("mllg","mllg cat",100.0,160.0);
   //for (string category : {"cat_el","cat_mu"}) {
   //  vars.push_back(RooRealVar(("mllg_"+category).c_str(),"mllg cat",100.0,160.0));
@@ -119,10 +120,10 @@ int main() {
     //RooRealVar c1("c1_cat_el","sigmoid offset",100.0,115.0);
     //RooRealVar c2("c2_cat_el","sigmoid width",0.05,20.0);
     //vars.push_back(new RooRealVar(("MH").c_str(),"Higgs mass",120.0,130.0));
-    vars.push_back(new RooRealVar(("mllg_"+category).c_str(),"mllg cat",100.0,160.0));
-    vars.push_back(new RooRealVar(("c0_"+category).c_str(),"exponential coefficient",0.0,10.0));
-    vars.push_back(new RooRealVar(("c1_"+category).c_str(),"sigmoid offset",100.0,115.0));
-    vars.push_back(new RooRealVar(("c2_"+category).c_str(),"sigmoid width",0.05,20.0));
+    vars.push_back(make_shared<RooRealVar>(("mllg_"+category).c_str(),"mllg cat",100.0,160.0));
+    vars.push_back(make_shared<RooRealVar>(("c0_"+category).c_str(),"exponential coefficient",0.0,10.0));
+    vars.push_back(make_shared<RooRealVar>(("c1_"+category).c_str(),"sigmoid offset",100.0,115.0));
+    vars.push_back(make_shared<RooRealVar>(("c2_"+category).c_str(),"sigmoid width",0.05,20.0));
     unsigned len_vars = vars.size();
     //RooGenericPdf pdf_bkg_cat(("pdf_background_"+category).c_str(),"bkg_pdf",
     //    "exp(-1.0*@1*(@0-114.0)/36.0)/(1.0+exp(-1.0*@2*(@0-@3)))",
@@ -130,10 +131,10 @@ int main() {
     //RooGenericPdf pdf_sig_cat(("pdf_htozg_"+category).c_str(),"sig_pdf",
     //    "50.0*TMath::Gaus(@0,125.0,1.5)",
     //    RooArgSet(vars[len_vars-4]));
-    RooGenericPdf* pdf_bkg_cat = new RooGenericPdf(("pdf_background_"+category).c_str(),"bkg_pdf",
+    shared_ptr<RooGenericPdf> pdf_bkg_cat = make_shared<RooGenericPdf>(("pdf_background_"+category).c_str(),"bkg_pdf",
         "exp(-1.0*@1*(@0-100.0)/60.0)/(1.0+exp(-1.0*@3*(@0-@2)))",
         RooArgSet(*vars[len_vars-4],*vars[len_vars-3],*vars[len_vars-2],*vars[len_vars-1]));
-    RooGenericPdf* pdf_sig_cat = new RooGenericPdf(("pdf_htozg_"+category).c_str(),"sig_pdf",
+    shared_ptr<RooGenericPdf> pdf_sig_cat = make_shared<RooGenericPdf>(("pdf_htozg_"+category).c_str(),"sig_pdf",
         "TMath::Gaus(@0,125.0,1.5)",
         RooArgSet(*vars[len_vars-4]));
     background_pdfs.push_back(pdf_bkg_cat);

@@ -189,6 +189,8 @@ int main() {
   //Z pt reweighting for DY amcatnlo sample
   const NamedFunc w_z_pt("w_z_pt",
       [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString().Contains("-")) 
+      return 1.; //data
     if (b.ll_pt()->at(0)<4.0) return 0.797367794342;
     else if (b.ll_pt()->at(0)>4.0 && b.ll_pt()->at(0)<8.0) return 0.963481849777;
     else if (b.ll_pt()->at(0)>8.0 && b.ll_pt()->at(0)<12.0) return 1.10947026956;
@@ -233,6 +235,54 @@ int main() {
     if (b.type()<1000) return 1.0;
     return b.w_lumi()*b.w_lep()*b.w_trig()*w_years.GetScalar(b);
   });
+
+  const NamedFunc w_lumi_lep_trig_pu_years("w_lumi*w_lep*w_trig*w_pu*w_years",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type()<1000) return 1.0;
+    return b.w_lumi()*b.w_lep()*b.w_trig()*b.w_pu()*w_years.GetScalar(b);
+  });
+
+  const NamedFunc w_lumi_lep_trig_pu_prefire_years("w_lumi*w_lep*w_trig*w_pu*w_prefire*w_years",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type()<1000) return 1.0;
+    return b.w_lumi()*b.w_lep()*b.w_trig()*b.w_pu()*b.w_prefire()*w_years.GetScalar(b);
+  });
+
+  const NamedFunc weight_syslep_up("weight_syslep_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type()<1000) return 1.0;
+    return b.weight()/b.w_lep()*b.sys_lep()->at(0)*w_years.GetScalar(b);
+  });
+
+  const NamedFunc weight_syslep_dn("weight_syslep_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type()<1000) return 1.0;
+    return b.weight()/b.w_lep()*b.sys_lep()->at(1)*w_years.GetScalar(b);
+  });
+
+  const NamedFunc weight_systrig_up("weight_systrig_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type()<1000) return 1.0;
+    return b.weight()/b.w_trig()*b.sys_trig()->at(0)*w_years.GetScalar(b);
+  });
+
+  const NamedFunc weight_systrig_dn("weight_systrig_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type()<1000) return 1.0;
+    return b.weight()/b.w_trig()*b.sys_trig()->at(1)*w_years.GetScalar(b);
+  });
+
+  const NamedFunc weight_sysprefire_up("weight_sysprefire_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type()<1000) return 1.0;
+    return b.weight()/b.w_prefire()*b.sys_prefire()->at(0)*w_years.GetScalar(b);
+  });
+
+  const NamedFunc weight_sysprefire_dn("weight_sysprefire_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type()<1000) return 1.0;
+    return b.weight()/b.w_prefire()*b.sys_prefire()->at(1)*w_years.GetScalar(b);
+  });
   
   //------------------------------------------------------------------------------------
   //                                   plots and tables
@@ -242,20 +292,36 @@ int main() {
   pm.multithreaded_ = true;
   pm.min_print_ = true;
 
-  for (unsigned iwgt = 0; iwgt < 5; iwgt++) {
+  for (unsigned iwgt = 0; iwgt < 9; iwgt++) {
 
     //set weight
     NamedFunc weight = "weight"*w_years;
     if (iwgt==1) weight = w_lumi_years;
     if (iwgt==2) weight = w_lumi_lep_years;
     if (iwgt==3) weight = w_lumi_lep_trig_years;
-    if (iwgt==4) weight = "weight"*w_years*w_z_pt;
+    if (iwgt==4) weight = w_lumi_lep_trig_pu_years;
+    if (iwgt==5) weight = w_lumi_lep_trig_pu_prefire_years;
+    if (iwgt==6) weight = "weight"*w_years*w_z_pt;
+    if (iwgt==7) weight = weight_sysprefire_up*w_years*w_z_pt;
+    if (iwgt==8) weight = weight_sysprefire_dn*w_years*w_z_pt;
+    //if (iwgt==7) weight = weight_syslep_up*w_years*w_z_pt;
+    //if (iwgt==8) weight = weight_syslep_dn*w_years*w_z_pt;
+    //if (iwgt==9) weight = weight_systrig_up*w_years*w_z_pt;
+    //if (iwgt==10) weight = weight_systrig_dn*w_years*w_z_pt;
 
     //Z->ee electron plots
     pm.Push<Hist1D>(Axis(25,0.0,100.0, "el_pt[0]", "Lead electron p_{T} [GeV]", {}), 
         zee_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,0.0,100.0, "el_pt[1]", "Sublead electron p_{T} [GeV]", {}), 
         zee_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "el_pt[0]", "Lead electron p_{T} [GeV]", {}), 
+        zee_ctrlregion&&"trig_double_el", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "el_pt[1]", "Sublead electron p_{T} [GeV]", {}), 
+        zee_ctrlregion&&"trig_double_el", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "el_pt[0]", "Lead electron p_{T} [GeV]", {}), 
+        zee_ctrlregion&&"trig_single_el", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "el_pt[1]", "Sublead electron p_{T} [GeV]", {}), 
+        zee_ctrlregion&&"trig_single_el", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,-2.5,2.5, "el_eta[0]", "Lead electron #eta", {}), 
         zee_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,-2.5,2.5, "el_eta[1]", "Sublead electron #eta", {}), 
@@ -312,6 +378,14 @@ int main() {
         zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[1]", "Sublead muon corrected p_{T} [GeV]", {}), 
         zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[0]", "Lead muon corrected p_{T} [GeV]", {}), 
+        zmm_ctrlregion&&"trig_single_mu", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[1]", "Sublead muon corrected p_{T} [GeV]", {}), 
+        zmm_ctrlregion&&"trig_single_mu", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[0]", "Lead muon corrected p_{T} [GeV]", {}), 
+        zmm_ctrlregion&&"trig_double_mu", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
+    pm.Push<Hist1D>(Axis(25,0.0,100.0, "mu_corrected_pt[1]", "Sublead muon corrected p_{T} [GeV]", {}), 
+        zmm_ctrlregion&&"trig_double_mu", procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,-2.5,2.5, "mu_eta[0]", "Lead muon #eta", {}), 
         zmm_ctrlregion, procs, ops).Weight(weight).Tag("zgvalidate_"+production+"_"+years);
     pm.Push<Hist1D>(Axis(25,-2.5,2.5, "mu_eta[1]", "Sublead muon #eta", {}), 

@@ -2,9 +2,19 @@
 
 #include <algorithm>
 #include <memory>
+#include <sstream>
+#include <string>
 #include <stdlib.h>
 #include <regex>
 #include <vector>
+
+#include "RooAbsPdf.h"
+#include "RooArgList.h"
+#include "RooArgSet.h"
+#include "RooFFTConvPdf.h"
+#include "RooGaussian.h"
+#include "RooGenericPdf.h"
+#include "RooRealVar.h"
 
 #include "core/baby.hpp"
 #include "core/mva_wrapper.hpp"
@@ -12,6 +22,7 @@
 #include "core/process.hpp"
 #include "core/sample_loader.hpp"
 #include "core/utilities.hpp"
+#include "core/RooGaussStepBernstein.hpp"
 #include "zgamma/zg_functions.hpp"
 
 namespace ZgUtilities {
@@ -356,6 +367,105 @@ namespace ZgUtilities {
     return std::max(dr1, dr2);
   }
 
+  // Returns 4-momentum of q1 (quark from gluon-gluon fusion)
+  //  Defined in Equation 4
+  TLorentzVector get_q1(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
+    TVector3 htran = llg_p4.BoostVector();
+    htran.SetZ(0);
+    llg_p4.Boost(-1*htran);
+    double pz, E;
+    pz = llg_p4.Pz() + llg_p4.E();
+    E  = llg_p4.E()  + llg_p4.Pz();
+    TLorentzVector k1;
+    k1.SetPxPyPzE(0,0,pz/2,E/2);
+    k1.Boost(htran);
+    return k1;
+  }
+  
+  // Returns 4-momentum of q2 (quark from gluon-gluon fusion)
+  //  Defined in Equation 5
+  TLorentzVector get_q2(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
+    TVector3 htran = llg_p4.BoostVector();
+    htran.SetZ(0);
+    llg_p4.Boost(-1*htran);
+    double pz, E;
+    pz = llg_p4.Pz() - llg_p4.E();
+    E  = llg_p4.E()  - llg_p4.Pz();
+    TLorentzVector k2;
+    k2.SetPxPyPzE(0,0,pz/2,E/2);
+    k2.Boost(htran);
+    return k2;
+  }
+  
+  // Returns magnitude of Z candidate 3-momentum 
+  //  Defined in Equation 7
+  double get_lambdaZ(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector ll_p4 = lep_minus + lep_plus;
+    TLorentzVector llg_p4 = ll_p4 + gamma;
+    return sqrt(pow(llg_p4.Dot(ll_p4)/llg_p4.M(),2)-pow(ll_p4.M(),2));
+  }
+
+  // Cosine of angle between incoming quarks and outgoing Zs in higgs frame 
+  //  Defined in Equation 8
+  double get_cosTheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector ll_p4 = lep_minus + lep_plus;
+    TLorentzVector llg_p4 = ll_p4 + gamma;
+    TLorentzVector q1_p4 = get_q1(lep_minus, lep_plus, gamma);
+    TLorentzVector q2_p4 = get_q2(lep_minus, lep_plus, gamma);
+    double lambdaZ = get_lambdaZ(lep_minus, lep_plus, gamma);
+    double cosTheta = ll_p4.Dot(q2_p4-q1_p4)/(llg_p4.M()*lambdaZ);
+    if(abs(cosTheta) > 1.01) std::cout << "ERROR: cTheta = " << cosTheta <<  std::endl;
+    return cosTheta;
+  }
+  
+  // Cosine of angle between lepton 1 and parent Z in Higgs frame 
+  //  Defined in Equation 13
+  double get_costheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
+    double lambdaZ = get_lambdaZ(lep_minus, lep_plus, gamma);
+    double ctheta = llg_p4.Dot(lep_plus-lep_minus)/(llg_p4.M()*lambdaZ);
+    if(ctheta > 1) ctheta = 0.999;
+    if(ctheta <-1) ctheta = -0.999;
+    return ctheta;
+  }
+  
+  // Angle of the Z decay plane from the z-axis (defined in Equation 1) in the higgs frame
+  //  Defined in Equation 21+22
+  double get_phi(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
+    TLorentzVector q1_p4 = get_q1(lep_minus, lep_plus, gamma);
+    TLorentzVector l1_p4 = lep_minus;
+    TLorentzVector l2_p4 = lep_plus;
+    TLorentzVector ll_p4 = lep_minus + lep_plus;
+  
+    // Boost l1, l2, q1, ll to llg frame
+    TVector3 llgBoost = llg_p4.BoostVector();
+    l1_p4.Boost(-1*llgBoost);
+    l2_p4.Boost(-1*llgBoost);
+    q1_p4.Boost(-1*llgBoost);
+    ll_p4.Boost(-1*llgBoost);
+  
+    TVector3 l1_p3 = l1_p4.Vect();
+    TVector3 l2_p3 = l2_p4.Vect();
+    TVector3 q1_p3 = q1_p4.Vect();
+    TVector3 ll_p3  = ll_p4.Vect();
+  
+    double sinTheta = sqrt(1-pow(get_cosTheta(lep_minus, lep_plus, gamma),2));
+    double cosphi, sinphi;
+    cosphi = -1*l1_p3.Cross(l2_p3).Dot(q1_p3.Cross(ll_p3))/l1_p3.Cross(l2_p3).Mag()/q1_p3.Cross(ll_p3).Mag();
+    sinphi = -1*l1_p3.Cross(l2_p3).Dot(q1_p3)/l1_p3.Cross(l2_p3).Mag()/q1_p3.Mag()/sinTheta;
+    double phi(0);
+    if(abs(cosphi) > 1.01) std::cout << "ERROR: cphi = " << cosphi <<  std::endl;
+    if(cosphi > 1) cosphi = 1;
+    if(cosphi < -1) cosphi = -1;
+    if(sinphi < 0) phi = -1*acos(cosphi);
+    else           phi = acos(cosphi);
+    if (phi < 0) phi += 2*TMath::Pi();
+    return phi;
+  }
+
   //returns working version of kinematic BDT
   std::shared_ptr<MVAWrapper> KinematicBdt() {
     std::shared_ptr<MVAWrapper> kin_bdt_reader = std::make_shared<MVAWrapper>("kinematic_bdt");
@@ -514,6 +624,146 @@ namespace ZgUtilities {
     for (std::shared_ptr<Process> process : processes) {
       process->type_ = Process::Type::background;
     }
+  }
+
+  //Adds second order exponential function convoluted with a Gaussian
+  void AddGaussStepExponential(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
+                               std::vector<std::shared_ptr<RooAbsPdf>> &aux_pdfs,
+                               std::vector<std::shared_ptr<RooRealVar>> &vars,
+                               std::shared_ptr<RooRealVar> &mllg,
+                               std::string category,
+                               unsigned int order) {
+    RooArgList exp_arglist;
+    exp_arglist.add(*mllg);
+    std::string exp_name = "exp"+std::to_string(order);
+    std::shared_ptr<RooRealVar> exp_o1 = std::make_shared<RooRealVar>(
+        (exp_name+"_o1_"+category).c_str(),
+        ("Exponential "+std::to_string(order)+" step").c_str(),90.0,120.0); 
+    vars.push_back(exp_o1); 
+    exp_arglist.add(*exp_o1);
+
+    for (unsigned icoef = 0; icoef<order; icoef++) {
+      std::string p_name = exp_name+"_p"+std::to_string(icoef)
+                           +"_"+category;
+      std::string p_title = "Exponential "+std::to_string(order)
+                            +" factor "+std::to_string(icoef);
+      std::string c_name = exp_name+"_c"+std::to_string(icoef)
+                           +"_"+category;
+      std::string c_title = "Exponential "+std::to_string(order)
+                            +" coefficient "+std::to_string(icoef);
+      float lower_bound = -20.0;
+      float upper_bound = 20.0;
+      if (icoef==0) {
+        lower_bound = 0.5;
+        upper_bound = 0.5;
+      }
+      std::shared_ptr<RooRealVar> exp_pn = std::make_shared<RooRealVar>(
+          p_name.c_str(),p_title.c_str(),-20.0,0.0); 
+      exp_pn->setVal(-0.5);
+      vars.push_back(exp_pn);
+      exp_arglist.add(*exp_pn);
+      std::shared_ptr<RooRealVar> exp_cn = std::make_shared<RooRealVar>(
+          c_name.c_str(),c_title.c_str(),lower_bound,upper_bound); 
+      if (icoef!=0) {
+        exp_cn->setVal(0.1);
+      }
+      vars.push_back(exp_cn);
+      exp_arglist.add(*exp_cn);
+    }
+
+
+    std::stringstream str_stream;
+    str_stream << std::fixed << std::setprecision(1) << mllg->getMin();
+    std::string offset = str_stream.str();
+    str_stream.str(std::string());
+    str_stream << std::fixed << std::setprecision(1) 
+               << (mllg->getMax()-mllg->getMin());
+    std::string range = str_stream.str();
+    std::string scaled_arg = "(@0-"+offset+")/"+range;
+    std::string exp_def = "(@0<@1 ? 0.0 : 1.0)*(";
+    for (unsigned iterm = 0; iterm<order; iterm++) {
+      if (iterm != 0) exp_def += "+";
+      exp_def += ("@"+std::to_string(iterm*2+3)+"*exp(@"
+                  +std::to_string(iterm*2+2)+"*"+scaled_arg+")");
+    }
+    exp_def += ")";
+    std::cout << "DEBUG: " << exp_def << std::endl;
+    std::shared_ptr<RooGenericPdf> step_exp = std::make_shared<RooGenericPdf>(
+        ("stepexp_"+category+"_"+exp_name).c_str(),"stepexp",
+        exp_def.c_str(), exp_arglist);
+    aux_pdfs.push_back(step_exp);
+
+    std::shared_ptr<RooRealVar> exp_w1 = std::make_shared<RooRealVar>(
+        (exp_name+"_w1_"+category).c_str(),
+        ("Bernstein "+std::to_string(order)+" gauss width").c_str(),0.05,20.0); 
+    vars.push_back(exp_w1); 
+    std::shared_ptr<RooRealVar> exp_m1 = std::make_shared<RooRealVar>(
+        (exp_name+"_m1_"+category).c_str(),
+        ("Bernstein "+std::to_string(order)+" gauss mean").c_str(),0.0,0.0); 
+    vars.push_back(exp_m1); 
+    exp_o1->setVal(105);
+    exp_w1->setVal(0.05);
+
+    std::shared_ptr<RooGaussian> gauss = std::make_shared<RooGaussian>(("gauss_"+exp_name+"_"+category).c_str(),"gauss",
+                      *mllg, *exp_m1, *exp_w1);
+    aux_pdfs.push_back(gauss);
+
+    mllg->setBins(20000,"cache");
+    std::shared_ptr<RooFFTConvPdf> step_exp_pdf = std::make_shared<RooFFTConvPdf>(
+        ("pdf_background_"+category+"_"+exp_name).c_str(),
+        "bkg_pdf", *mllg, *step_exp, *gauss);
+    step_exp_pdf->setBufferFraction(0.5);
+
+    pdfs.push_back(step_exp_pdf);
+  }
+
+  //Adds Bernstein polynomial times a step function convoluted with a 
+  //Gaussian to the list of RooAbsPdfs
+  void AddGaussStepBernstein(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
+                             std::vector<std::shared_ptr<RooRealVar>> &vars,
+                             std::shared_ptr<RooRealVar> &mllg,
+                             std::string category,
+                             unsigned int order) {
+    RooArgSet bern_argset;
+    for (unsigned icoef = 0; icoef<=order; icoef++) {
+      std::string var_name = "b"+std::to_string(order)
+                             +"_c"+std::to_string(icoef)
+                             +"_"+category;
+      std::string var_title = "Bernstein "+std::to_string(order)
+                              +" coefficient "+std::to_string(icoef);
+      float lower_bound = -20.0;
+      float upper_bound = 20.0;
+      if (icoef==0) {
+        lower_bound = 0.3;
+        upper_bound = 0.3;
+      }
+      std::shared_ptr<RooRealVar> b_cn = std::make_shared<RooRealVar>(
+          var_name.c_str(),var_title.c_str(),lower_bound,upper_bound); 
+      vars.push_back(b_cn); 
+      bern_argset.add(*b_cn);
+      if (icoef!=0) {
+        b_cn->setVal(0.01);
+      }
+    }
+    std::shared_ptr<RooRealVar> b_o1 = std::make_shared<RooRealVar>(
+        ("b"+std::to_string(order)+"_o1_"+category).c_str(),
+        ("Bernstein "+std::to_string(order)+" step").c_str(),90.0,120.0); 
+    vars.push_back(b_o1); 
+    std::shared_ptr<RooRealVar> b_w1 = std::make_shared<RooRealVar>(
+        ("b"+std::to_string(order)+"_w1_"+category).c_str(),
+        ("Bernstein "+std::to_string(order)+" gauss width").c_str(),0.05,20.0); 
+    vars.push_back(b_w1); 
+    std::shared_ptr<RooRealVar> b_m1 = std::make_shared<RooRealVar>(
+        ("b"+std::to_string(order)+"_m1_"+category).c_str(),
+        ("Bernstein "+std::to_string(order)+" gauss mean").c_str(),0.0,0.0); 
+    vars.push_back(b_m1); 
+    b_o1->setVal(105);
+    b_w1->setVal(0.05);
+    std::shared_ptr<RooGaussStepBernstein> pdf_bkg_cat_bern = 
+        std::make_shared<RooGaussStepBernstein>(
+        ("pdf_background_"+category+"_bern_"+std::to_string(order)).c_str(),
+        "bkg_pdf", *mllg, *b_m1, *b_w1, *b_o1, bern_argset);
+    pdfs.push_back(pdf_bkg_cat_bern);
   }
 
 }

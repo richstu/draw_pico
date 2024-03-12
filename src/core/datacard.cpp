@@ -246,6 +246,29 @@ float Datacard::DatacardProcessNonparametric::Yield(unsigned int channel,
   return ratio;
 }
 
+/*! \brief Performs fit to data and freezes PDF parameters
+  \param[in] channel   index of channel to fit
+*/
+void Datacard::DatacardProcessNonparametric::FitAndFreeze(unsigned int channel) {
+  if (is_data_ || !replace_with_param_)
+    throw std::runtime_error("FitAndFreeze called for function with no parametric form.");
+  RooDataHist fit_hist("fit_hist","",RooArgList(var_[channel]), &raw_histogram_nom_[channel]);
+  param_pdf_[channel]->fitTo(fit_hist);
+  RooArgSet* params = param_pdf_[channel]->getParameters(fit_hist);
+  //can't use normal range for loop because ancient ROOT version...
+  RooFIter param_iterator = params->fwdIterator();
+  bool param_loop = true;
+  while (param_loop) {
+    RooAbsArg* param = param_iterator.next();
+    if (param != nullptr) {
+      static_cast<RooRealVar*>(param)->setConstant(true);
+    }
+    else {
+      param_loop = false;
+    }
+  }
+}
+
 /*! \brief Writes contained PDFs to a workspace and saves to ROOT file. 
     Assumes ROOT file open
   \param[in] channel    index of channel to write
@@ -254,26 +277,19 @@ void Datacard::DatacardProcessNonparametric::WriteWorkspace(unsigned int channel
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   RooWorkspace ws(WSName(channel).c_str());
   if (is_data_) {
-    //data_norm.push_back(
-    //    datacard_process_[iproc]->raw_histogram_nom_[ichan].Integral());
     if (datacard->save_data_as_hist_) {
-      //TODO changed to using var_ rather than declaring new RRealVar, hopefully don't regret
       RooDataHist data_obs(PDFName(channel).c_str(),"",RooArgList(var_[channel]),
           &raw_histogram_nom_[channel]);
-      //std::cout << "importing data_hist" << std::endl;
       ws.import(data_obs);
     }
     else { //save data as RooDataSet
       raw_dataset_nom_[channel].SetName(PDFName(channel).c_str());
-      //std::cout << "importing dataset" << std::endl;
-      //ws.import(datacard_process_[iproc]->weight_);
       ws.import(raw_dataset_nom_[channel]);
     }
   }
   else { //is MC
     if (replace_with_param_) { //replace histogram with analytic PDF
-      //std::cout << "importing replaced pdf" << std::endl;
-      //TODO: add some sort of fitting machinery here?
+      FitAndFreeze(channel);
       ws.import(*param_pdf_[channel]);
     }
     else { //don't replace with param, just make RooHistPdf
@@ -287,7 +303,6 @@ void Datacard::DatacardProcessNonparametric::WriteWorkspace(unsigned int channel
             0,10.0*nom_yield);
         ws.import(norm);
       }
-      //std::cout << "importing hist pdf" << std::endl;
       ws.import(pdf);
     }
   }
@@ -302,13 +317,14 @@ void Datacard::DatacardProcessNonparametric::WriteWorkspace(unsigned int channel
   \param[in] name   Name of process
   \param[in] pdf    PDF for process by channel
 */
-Datacard::DatacardProcessParametric::DatacardProcessParametric(const std::string &name, 
-    std::vector<RooAbsPdf*> &pdf, const Figure &figure) :
+Datacard::DatacardProcessParametric::DatacardProcessParametric(
+    const std::string &name, 
+    std::vector<std::shared_ptr<RooAbsPdf>> &pdf, const Figure &figure) :
     DatacardProcess(figure) {
 
-  std::vector<std::vector<RooAbsPdf*>> double_vec;
-  for (RooAbsPdf* channel_pdf : pdf) {
-    double_vec.push_back(std::vector<RooAbsPdf*>());
+  std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> double_vec;
+  for (std::shared_ptr<RooAbsPdf> channel_pdf : pdf) {
+    double_vec.push_back(std::vector<std::shared_ptr<RooAbsPdf>>());
     double_vec.back().push_back(channel_pdf);
     is_profiled_.push_back(false);
   }
@@ -324,12 +340,14 @@ Datacard::DatacardProcessParametric::DatacardProcessParametric(const std::string
   \param[in] name   Name of process
   \param[in] pdf    PDF for process by channel and profile
 */
-Datacard::DatacardProcessParametric::DatacardProcessParametric(const std::string &name, 
-   std::vector<std::vector<RooAbsPdf*>> &pdf, const Figure &figure) : 
-   DatacardProcess(figure) {
+Datacard::DatacardProcessParametric::DatacardProcessParametric(
+    const std::string &name, 
+    std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> &pdf, 
+    const Figure &figure) : 
+    DatacardProcess(figure) {
 
   //check for errors and which channels are profiled
-  for (std::vector<RooAbsPdf*>& channel_pdfs : pdf) {
+  for (std::vector<std::shared_ptr<RooAbsPdf>>& channel_pdfs : pdf) {
     if (channel_pdfs.size()==0)
       throw std::invalid_argument(("Process "+name+" has a channel with 0 PDFs.").c_str());
     else if (channel_pdfs.size()==1)
@@ -349,11 +367,12 @@ Datacard::DatacardProcessParametric::DatacardProcessParametric(const std::string
 /*! \brief Helper function that wraps a vector of PDFs as a vector of single-entry vectors of PDFs
   \param[in] pdf  vector of (pointers to) PDFs
 */
-std::vector<std::vector<RooAbsPdf*>> Datacard::DatacardProcessParametric::MakeDoubleVector(
-    std::vector<RooAbsPdf*> pdfs) {
-  std::vector<std::vector<RooAbsPdf*>> double_vec;
-  for (RooAbsPdf* pdf : pdfs) {
-    double_vec.push_back(std::vector<RooAbsPdf*>());
+std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> 
+    Datacard::DatacardProcessParametric::MakeDoubleVector(
+    std::vector<std::shared_ptr<RooAbsPdf>> pdfs) {
+  std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> double_vec;
+  for (std::shared_ptr<RooAbsPdf> pdf : pdfs) {
+    double_vec.push_back(std::vector<std::shared_ptr<RooAbsPdf>>());
     double_vec.back().push_back(pdf);
   }
   return double_vec;
@@ -406,10 +425,8 @@ void Datacard::DatacardProcessParametric::WriteWorkspace(unsigned int channel) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   RooWorkspace ws(WSName(channel).c_str());
   if (!is_profiled_[channel]) {
-    //TODO switch to unique_ptr in driver script?
     RooRealVar norm((PDFName(channel)+"_norm").c_str(),"",data_norm_[channel],
         0,3.0*data_norm_[channel]);
-    //std::cout << "importing parametric pdf" << std::endl;
     ws.import(*pdf_[channel][0]);
     ws.import(norm);
   }
@@ -420,11 +437,11 @@ void Datacard::DatacardProcessParametric::WriteWorkspace(unsigned int channel) {
         0,3.0*data_norm_[channel]);
     RooCategory pdfindex(index_name.c_str(), index_name.c_str());
     RooArgList models = RooArgList(model_name.c_str());
-    for (RooAbsPdf* pdf: pdf_[channel]){
+    for (std::shared_ptr<RooAbsPdf> pdf: pdf_[channel]){
       models.add(*pdf);
     }
     RooMultiPdf profile(PDFName(channel).c_str(), PDFName(channel).c_str(), pdfindex, models);
-    //      ws.import(*(param_profile_ind_process_[iproc_eff][channel]));
+    //ws.import(*(param_profile_ind_process_[iproc_eff][channel]));
     ws.import(pdfindex);
     ws.import(profile);
     ws.import(norm);
@@ -695,8 +712,9 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   \param[in] name   Name of process
   \param[in] pdf    PDF for process
 */
-Datacard& Datacard::MakeProcessParametric(const std::string &name, 
-                                          std::vector<RooAbsPdf*> &pdf) {
+Datacard& Datacard::MakeProcessParametric(
+    const std::string &name, 
+    std::vector<std::shared_ptr<RooAbsPdf>> &pdf) {
   if (pdf.size() != n_channels_) 
     throw std::invalid_argument(("Wrong PDFs for parametric process "+name).c_str());
 
@@ -718,7 +736,9 @@ Datacard& Datacard::MakeProcessParametric(const std::string &name,
 /*! \brief Adds parametric processes
   \param[in] process  parametric process to add
 */
-Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<RooAbsPdf*> &pdf) {
+Datacard& Datacard::AddParametricProcess(
+    const std::string &name, 
+    std::vector<std::shared_ptr<RooAbsPdf>> &pdf) {
   //check for errors 
   if (pdf.size() != n_channels_)
     throw std::invalid_argument(
@@ -735,7 +755,9 @@ Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<Ro
 /*! \brief Adds parametric processes
   \param[in] process  parametric process to add
 */
-Datacard& Datacard::AddParametricProcess(const std::string &name, std::vector<std::vector<RooAbsPdf*>> &pdf) {
+Datacard& Datacard::AddParametricProcess(
+    const std::string &name, 
+    std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> &pdf) {
   //check for errors 
   if (pdf.size() != n_channels_)
     throw std::invalid_argument(

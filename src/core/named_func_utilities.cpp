@@ -27,13 +27,18 @@ namespace NamedFuncUtilities {
     });
   }
   
-  //Returns a vector named func that is vector_named_func with map_function applied to it
-  NamedFunc MapNamedFunc(NamedFunc vector_named_func, std::function<double(double)> map_function) {
-    return NamedFunc("MapNamedFunc("+vector_named_func.Name()+")",[vector_named_func,map_function](const Baby &b) -> NamedFunc::VectorType{
+  //Returns a named func that is input_named_func with map_function applied (entrywise) to it
+  NamedFunc MapNamedFunc(NamedFunc input_named_func, std::function<double(double)> map_function) {
+    if (input_named_func.IsScalar()) {
+      return NamedFunc("MapNamedFunc("+input_named_func.Name()+")",[input_named_func,map_function](const Baby &b) -> NamedFunc::ScalarType{
+        return map_function(input_named_func.GetScalar(b));
+      });
+    }
+    return NamedFunc("MapNamedFunc("+input_named_func.Name()+")",[input_named_func,map_function](const Baby &b) -> NamedFunc::VectorType{
       std::vector<double> mapped_named_func;
-      std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
-      for (unsigned i = 0; i < vector_named_func_.size(); i++) {
-        mapped_named_func.push_back(map_function(vector_named_func_[i]));
+      std::vector<double> input_named_func_ = input_named_func.GetVector(b);
+      for (unsigned i = 0; i < input_named_func_.size(); i++) {
+        mapped_named_func.push_back(map_function(input_named_func_[i]));
       }
       return mapped_named_func;
     });

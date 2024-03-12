@@ -36,7 +36,7 @@ envClone.Depends(run_tree_generator, tree_variable_files)
 envClone.Depends(run_tree_generator, tree_generator)
 
 # Run genreflex
-reflex_files = ['RooMultiPdf','RooGaussStepBernstein']
+reflex_files = ['RooMultiPdf','RooGaussStepBernstein','RooDoubleCBFast']
 reflex_generated_files = []
 run_genreflex = []
 for reflex_file in reflex_files:

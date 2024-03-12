@@ -9,6 +9,8 @@
 #include <map>
 #include <memory>
 
+#include "RooAbsPdf.h"
+#include "RooRealVar.h"
 #include "TString.h"
 #include "TLorentzVector.h"
 
@@ -38,6 +40,14 @@ namespace ZgUtilities {
   double cos_Theta(const Baby &b, bool gen = false);
   double Getphi(const Baby &b, bool gen = false);
   double pdrmax(const Baby &b);
+
+  //correct angle functions from Jaebak
+  TLorentzVector get_q1(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
+  TLorentzVector get_q2(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
+  double get_lambdaZ(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
+  double get_cosTheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
+  double get_costheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
+  double get_phi(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
 
   //returns working version of kinematic BDT
   std::shared_ptr<MVAWrapper> KinematicBdt();
@@ -74,5 +84,21 @@ namespace ZgUtilities {
   //sets all processes to background, useful for making colz 2D plots of data
   void SetProcessesBackground(
       std::vector<std::shared_ptr<Process>> &processes);
+
+  //Adds second order exponential function convoluted with a Gaussian
+  void AddGaussStepExponential(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
+                               std::vector<std::shared_ptr<RooAbsPdf>> &aux_pdfs,
+                               std::vector<std::shared_ptr<RooRealVar>> &vars,
+                               std::shared_ptr<RooRealVar> &mllg,
+                               std::string category,
+                               unsigned int order);
+
+  //Adds Bernstein polynomial times a step function convoluted with a 
+  //Gaussian to the list of RooAbsPdfs
+  void AddGaussStepBernstein(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
+                             std::vector<std::shared_ptr<RooRealVar>> &vars,
+                             std::shared_ptr<RooRealVar> &mllg,
+                             std::string category,
+                             unsigned int order);
 }
 #endif
