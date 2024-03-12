@@ -1,6 +1,8 @@
 draw_pico
 ========
 
+**draw_pico** is a user-level analysis framework for making 1-d histograms, 2-d histograms, efficiency plots, tables, events scans, and statistical models (in the form of [combine](https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit) datacards) from high energy physics n-tuples. Currently supported n-tuple formats include [picos](https://github.com/richstu/nano2pico) and [NanoAOD](https://github.com/cms-sw/cmssw/tree/master/PhysicsTools/NanoAOD), though new formats can be easily added with a specification text file. It has been used for the the CMS HH(4b)+MET analysis, as well as the CMS H to Z gamma analysis.
+
 Repository inherited from: [https://github.com/ald77/ra4_draw](https://github.com/ald77/ra4_draw)
 
 For examples of functionality see: [src/core/test.cxx](src/core/test.cxx)

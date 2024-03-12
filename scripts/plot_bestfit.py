@@ -1,9 +1,13 @@
 #/usr/bin/env python
+"""Driver script for combine for Higgs to Z gamma analysis
+"""
 
+from argparse import ArgumentParser
 from array import array
 from math import sqrt
 from subprocess import check_call
 import ROOT
+import ctypes
 
 ROOT.gInterpreter.Declare("""
 
@@ -12,6 +16,9 @@ RooHist* cast_tobject_to_roohist(TObject* object)
 
 RooCurve* cast_tobject_to_roocurve(TObject* object)
 { return static_cast<RooCurve*>(object); }
+
+TTree* cast_tobject_to_ttree(TObject* object)
+{ return static_cast<TTree*>(object); }
 
 """)
 
@@ -23,36 +30,49 @@ def get_value_tgraph(graph, x):
   x      point to get value at
   '''
   npoints = graph.GetN();
-  xi = ROOT.Double(0.0)
-  yi = ROOT.Double(0.0)
+  #xi = ROOT.Double(0.0)
+  #yi = ROOT.Double(0.0)
+  xi = ctypes.c_double(0.0);
+  yi = ctypes.c_double(0.0);
   graph.GetPoint(0,xi,yi)
-  if (x < xi):
+  if (x < xi.value):
     raise ValueError('Requested x '+str(x)+' is less than graph minimum '+str(xi))
   graph.GetPoint(npoints-1,xi,yi)
-  if (x > xi):
+  if (x > xi.value):
     raise ValueError('Requested x '+str(x)+' is greater than graph maximum '+str(xi))
-  if (x == xi):
-    return (yi+0.0)
+  if (x == xi.value):
+    return (yi.value+0.0)
   idx = 0
   graph.GetPoint(idx,xi,yi)
-  while (xi <= x):
+  while (xi.value <= x):
     graph.GetPoint(idx,xi,yi)
     idx += 1
-  xi_prev = ROOT.Double(0.0)
-  yi_prev = ROOT.Double(0.0)
+  #xi_prev = ROOT.Double(0.0)
+  #yi_prev = ROOT.Double(0.0)
+  xi_prev = ctypes.c_double(0.0)
+  yi_prev = ctypes.c_double(0.0)
   graph.GetPoint(idx-2,xi_prev,yi_prev)
-  return (x-xi_prev)/(xi-xi_prev)*(yi-yi_prev)+yi_prev
+  return (x-xi_prev.value)/(xi.value-xi_prev.value)*(yi.value-yi_prev.value)+yi_prev.value
 
 def get_tgraph_maximum(graph):
   npoints = graph.GetN();
-  xi = ROOT.Double(0.0)
-  yi = ROOT.Double(0.0)
+  #xi = ROOT.Double(0.0)
+  #yi = ROOT.Double(0.0)
+  xi = ctypes.c_double(0.0)
+  yi = ctypes.c_double(0.0)
   maximum = 0.0
   for i in range(npoints):
     graph.GetPoint(i,xi,yi)
-    if yi > maximum:
-      maximum = yi+0.0
+    if yi.value > maximum:
+      maximum = yi.value+0.0
   return maximum
+
+def get_mean(lst):
+  '''Get mean from Python list'''
+  lst_sum = 0
+  for i in lst:
+    lst_sum += i
+  return lst_sum/float(len(lst))
 
 def get_stddev(lst):
   '''Get std deviation from Python list'''
@@ -65,15 +85,28 @@ def get_stddev(lst):
   return sqrt(lst_sumsq/lst_len-(lst_sum/lst_len)**2)
 
 if __name__ == '__main__':
-  check_call('combine -M MultiDimFit datacards/test_datacard.txt --saveWorkspace -n .bestfit'.split())
+
+  argument_parser = ArgumentParser(prog='plot_bestfit',
+  description='Driver script for combine for Higgs to Z gamma analysis.')
+  argument_parser.add_argument('-i','--input_filename',default='datacards/test_datacard.txt')
+  argument_parser.add_argument('-v','--verbose',action='store_true')
+  argument_parser.add_argument('-s','--significance',action='store_true')
+  argument_parser.add_argument('-t','--toys',default='30')
+  argument_parser.add_argument('-l','--leaveoutput',action='store_true')
+  args = argument_parser.parse_args()
+
+  check_call(('combine -M MultiDimFit '+args.input_filename+' --saveWorkspace -n .bestfit').split())
   
-  f = ROOT.TFile('higgsCombine.bestfit.MultiDimFit.mH120.root')
-  w = f.Get('w')
-  w.Print('v')
+  f_mdf = ROOT.TFile('higgsCombine.bestfit.MultiDimFit.mH120.root')
+  w = f_mdf.Get('w')
+  if (args.verbose):
+    w.Print('v')
   
+  #these options are currently hardcoded
   n_bins = 55
   lower_bound = 105
   upper_bound = 160
+  lumi_string = '138'
   binning = ROOT.RooFit.Binning(n_bins,lower_bound,upper_bound)
 
   ROOT.gStyle.SetOptStat(0)
@@ -82,6 +115,7 @@ if __name__ == '__main__':
   for channel in [('cat_ggh4',0),('cat_ggh3',1),('cat_ggh2',2),('cat_ggh1',3),
                   ('cat_vbf3',4),('cat_vbf2',5),('cat_vbf1',6),('cat_vh3l',7),
                   ('cat_vhmet',8),('cat_tthhad',9),('cat_tthlep',10)]:
+  #for channel in [('cat_ggh4',0)]:
     #Convert esoteric RooFit formats into regular ROOT
     can_rf = ROOT.TCanvas()
     plot = w.var('mllg_'+channel[0]).frame()
@@ -119,12 +153,14 @@ if __name__ == '__main__':
     difference_b = array('d')
     difference_sb = array('d')
     for i in range(postfitsb_roocurve.GetN()):
-      xi = ROOT.Double(0.0)
-      yi = ROOT.Double(0.0)
+      #xi = ROOT.Double(0.0)
+      #yi = ROOT.Double(0.0)
+      xi = ctypes.c_double(0.0)
+      yi = ctypes.c_double(0.0)
       postfitsb_roocurve.GetPoint(i,xi,yi)
-      difference_x.append(xi+0.0)
+      difference_x.append(xi.value+0.0)
       difference_b.append(0.0)
-      difference_sb.append(yi-get_value_tgraph(postfitb_roocurve,xi+0.0))
+      difference_sb.append(yi.value-get_value_tgraph(postfitb_roocurve,xi.value+0.0))
     difference_b_plot = ROOT.TGraph(len(difference_x),difference_x,difference_b)
     difference_sb_plot = ROOT.TGraph(len(difference_x),difference_x,difference_sb)
   
@@ -190,7 +226,7 @@ if __name__ == '__main__':
     label.DrawLatex(0.20,0.96,"#font[62]{CMS} #scale[0.8]{#font[52]{Work in Progress}}")
     label.SetTextAlign(31)
     label.SetTextSize(0.03)
-    label.DrawLatex(0.93,0.96,"#font[42]{60 fb^{-1} (13 TeV)}")
+    label.DrawLatex(0.93,0.96,"#font[42]{"+lumi_string+" fb^{-1} (13 TeV)}")
     top_pad.Modified()
     can.cd()
     bot_pad.Draw('same')
@@ -203,6 +239,31 @@ if __name__ == '__main__':
     can.Draw()
     can.SaveAs('plots/zgamma_fit_'+channel[0]+'.pdf')
 
-  f.Close()
-  #check_call('rm higgsCombine.bestfit.MultiDimFit.mH120.root'.split())
+  f_mdf.Close()
+
+  if (args.significance):
+    check_call('combine higgsCombine.bestfit.MultiDimFit.mH120.root --snapshotName MultiDimFit -M Significance --significance --toysNoSystematics --bypassFrequentistFit -t -1 --expectSignal=1 -n .asimov'.split())
+    check_call(('combine higgsCombine.bestfit.MultiDimFit.mH120.root --snapshotName MultiDimFit -M Significance --significance --toysNoSystematics --bypassFrequentistFit -t '+args.toys+' --expectSignal=1 -n .toys').split())
+    f_asi = ROOT.TFile('higgsCombine.asimov.Significance.mH120.root','READ')
+    tree = ROOT.cast_tobject_to_ttree(f_asi.Get('limit'))
+    asimov_significance = 0
+    for event in tree:
+      #with significance option, limit branch actually contains significances
+      asimov_significance = event.limit
+    f_asi.Close()
+    f_sig = ROOT.TFile('higgsCombine.toys.Significance.mH120.123456.root','READ')
+    tree = ROOT.cast_tobject_to_ttree(f_sig.Get('limit'))
+    significances = []
+    for event in tree:
+      #with significance option, limit branch actually contains significances
+      significances.append(event.limit)
+    f_sig.Close()
+    print('Significance from asimov: '+str(asimov_significance))
+    print('Significance from toys: '+str(get_mean(significances))+' +- '+str(get_stddev(significances)))
+
+  if (not args.leaveoutput):
+    check_call('rm higgsCombine.bestfit.MultiDimFit.mH120.root'.split())
+    if (args.significance):
+      check_call('rm higgsCombine.asimov.Significance.mH120.root'.split())
+      check_call('rm higgsCombine.toys.Significance.mH120.123456.root'.split())
 

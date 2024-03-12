@@ -482,19 +482,29 @@ if __name__=='__main__':
     var1_bin_centers = [(var1_bins[ivar1]+var1_bins[ivar1+1])/2.0 for ivar1 in range(len(var1_bins)-1)]
     var2_bin_centers = [(var2_bins[ivar2]+var2_bins[ivar2+1])/2.0 for ivar2 in range(len(var2_bins)-1)]
 
+    #debug
+    print(plot_names[iplot])
+
     #fill x and y values from JSON
     x_vals = array('d')
     x_sup = array('d')
     x_sdn = array('d')
+    x_idxs = array('d')
+    x_unit = array('d')
     y_vals = [array('d') for ivar2 in range(len(var2_bin_centers))]
     y_sup = [array('d') for ivar2 in range(len(var2_bin_centers))]
     y_sdn = [array('d') for ivar2 in range(len(var2_bin_centers))]
+    s_vals = [array('d') for ivar2 in range(len(var2_bin_centers))]
+    s_sup = [array('d') for ivar2 in range(len(var2_bin_centers))]
+    s_sdn = [array('d') for ivar2 in range(len(var2_bin_centers))]
     ratio_vals = [array('d') for ivar2 in range(len(var2_bin_centers))]
     ratio_sup = [array('d') for ivar2 in range(len(var2_bin_centers))]
     ratio_sdn = [array('d') for ivar2 in range(len(var2_bin_centers))]
     for ivar1 in range(len(var1_bin_centers)):
       var1_bin_center = var1_bin_centers[ivar1]
       x_vals.append(var1_bin_center)
+      x_idxs.append(float(ivar1))
+      x_unit.append(0.5)
       x_sdn.append(var1_bin_center-var1_bins[ivar1])
       x_sup.append(var1_bins[ivar1+1]-var1_bin_center)
       for ivar2 in range(len(var2_bin_centers)):
@@ -528,6 +538,9 @@ if __name__=='__main__':
         y_vals[ivar2].append(data_eff)
         y_sup[ivar2].append(data_sup)
         y_sdn[ivar2].append(data_sdn)
+        s_vals[ivar2].append(simu_eff)
+        s_sup[ivar2].append(simu_sup)
+        s_sdn[ivar2].append(simu_sdn)
         ratio = 0.0
         if (simu_eff != 0):
           ratio = data_eff/simu_eff
@@ -541,6 +554,8 @@ if __name__=='__main__':
         ratio_sdn[ivar2].append(ratio-ratio_dn)
 
     #create and style graphs
+    data_validation_graphs = []
+    simu_validation_graphs = []
     upper_graphs = []
     lower_graphs = []
     colors = get_palette_lines(len(var2_bin_centers))
@@ -559,6 +574,20 @@ if __name__=='__main__':
       lower_graphs[-1].SetMarkerColor(colors[ivar2])
       lower_graphs[-1].SetMarkerStyle(ROOT.kFullCircle)
 
+      data_validation_graphs.append(ROOT.TGraphAsymmErrors(len(x_vals),x_idxs,
+        y_vals[ivar2],x_unit,x_unit,y_sdn[ivar2],y_sup[ivar2]))
+      data_validation_graphs[-1].SetLineWidth(3)
+      data_validation_graphs[-1].SetLineColor(colors[ivar2])
+      data_validation_graphs[-1].SetMarkerColor(colors[ivar2])
+      data_validation_graphs[-1].SetMarkerStyle(ROOT.kFullCircle)
+
+      simu_validation_graphs.append(ROOT.TGraphAsymmErrors(len(x_vals),x_idxs,
+        y_vals[ivar2],x_unit,x_unit,s_sdn[ivar2],s_sup[ivar2]))
+      simu_validation_graphs[-1].SetLineWidth(3)
+      simu_validation_graphs[-1].SetLineColor(colors[ivar2])
+      simu_validation_graphs[-1].SetMarkerColor(colors[ivar2])
+      simu_validation_graphs[-1].SetMarkerStyle(ROOT.kFullCircle)
+
     #do plotting
     dummy_hist_upper = ROOT.TH1D('','',100,var1_bins[0],var1_bins[-1])
     dummy_hist_upper.SetMinimum(0.0)
@@ -569,6 +598,17 @@ if __name__=='__main__':
     dummy_hist_upper.GetYaxis().SetTitle(efficiency_names[iplot]+' Efficiency (Data)')
     dummy_hist_upper.GetYaxis().SetNdivisions(606)
     dummy_hist_upper.GetXaxis().SetNdivisions(606)
+
+    dummy_hist_valid = ROOT.TH1D('','',100,-0.5,float(len(var1_bin_centers))-0.5)
+    dummy_hist_valid.SetMinimum(0.0)
+    dummy_hist_valid.SetMaximum(1.2)
+    dummy_hist_valid.SetLabelSize(0.028,'x')
+    dummy_hist_valid.SetLabelSize(0.028,'y')
+    dummy_hist_valid.SetTitleSize(0.025,'y')
+    dummy_hist_valid.GetYaxis().SetTitle(efficiency_names[iplot]+' Efficiency')
+    dummy_hist_valid.GetYaxis().SetNdivisions(606)
+    dummy_hist_valid.GetXaxis().SetNdivisions(606)
+    dummy_hist_valid.GetXaxis().SetTitle('Bin')
 
     dummy_hist_lower = ROOT.TH1D('','',100,var1_bins[0],var1_bins[-1])
     dummy_hist_lower.SetMinimum(0.25)
@@ -632,3 +672,58 @@ if __name__=='__main__':
     can.Draw()
     can.SaveAs('plots/zgcorr__'+plot_names[iplot])
 
+    can_valid_data = ROOT.TCanvas('can_valid_data','can_valid_data',600,600)
+    can_valid_data.cd()
+    dummy_hist_valid.Draw()
+    leg_valid_data = ROOT.TLegend(0.6,0.15,0.85,0.35)
+    leg_valid_data.SetEntrySeparation(0)
+    for ivar2 in range(len(var2_bin_centers)):
+      data_validation_graphs[ivar2].Draw('same P')
+      var_nounit = secondary_var_names[iplot]
+      var_unit = ''
+      if var_nounit.find('[') != -1:
+        var_unit = ' '+var_nounit[var_nounit.find('[')+1:var_nounit.find(']')]
+        var_nounit = var_nounit[:var_nounit.find('[')-1]
+      eta_text = (str(var2_bins[ivar2])+' < '+var_nounit
+          +' < '+str(var2_bins[ivar2+1])+var_unit)
+      leg_valid_data.AddEntry(data_validation_graphs[ivar2], eta_text, 'LP')
+    leg_valid_data.SetBorderSize(0)
+    leg_valid_data.Draw('same')
+    label_valid_data = ROOT.TLatex()
+    label_valid_data.SetTextSize(0.035)
+    label_valid_data.SetNDC(ROOT.kTRUE)
+    label_valid_data.SetTextAlign(11)
+    label_valid_data.DrawLatex(0.1,0.91,'#font[62]{CMS} #scale[0.8]{#font[52]{Private Work}}')
+    label_valid_data.SetTextAlign(31)
+    label_valid_data.SetTextSize(0.03)
+    label_valid_data.DrawLatex(0.9,0.91,'#font[42]{'+lumi_values[iplot]+' fb^{-1} (13 TeV)}')
+    can_valid_data.Draw()
+    can_valid_data.SaveAs('plots/zgcorr_validdata__'+plot_names[iplot])
+
+    can_valid_simu = ROOT.TCanvas('can_valid_simu','can_valid_simu',600,600)
+    can_valid_simu.cd()
+    dummy_hist_valid.Draw()
+    leg_valid_simu = ROOT.TLegend(0.6,0.15,0.85,0.35)
+    leg_valid_simu.SetEntrySeparation(0)
+    for ivar2 in range(len(var2_bin_centers)):
+      simu_validation_graphs[ivar2].Draw('same P')
+      var_nounit = secondary_var_names[iplot]
+      var_unit = ''
+      if var_nounit.find('[') != -1:
+        var_unit = ' '+var_nounit[var_nounit.find('[')+1:var_nounit.find(']')]
+        var_nounit = var_nounit[:var_nounit.find('[')-1]
+      eta_text = (str(var2_bins[ivar2])+' < '+var_nounit
+          +' < '+str(var2_bins[ivar2+1])+var_unit)
+      leg_valid_simu.AddEntry(simu_validation_graphs[ivar2], eta_text, 'LP')
+    leg_valid_simu.SetBorderSize(0)
+    leg_valid_simu.Draw('same')
+    label_valid_simu = ROOT.TLatex()
+    label_valid_simu.SetTextSize(0.035)
+    label_valid_simu.SetNDC(ROOT.kTRUE)
+    label_valid_simu.SetTextAlign(11)
+    label_valid_simu.DrawLatex(0.1,0.91,'#font[62]{CMS} #scale[0.8]{#font[52]{Private Work}}')
+    label_valid_simu.SetTextAlign(31)
+    label_valid_simu.SetTextSize(0.03)
+    label_valid_simu.DrawLatex(0.9,0.91,'#font[42]{'+lumi_values[iplot]+' fb^{-1} (13 TeV)}')
+    can_valid_simu.Draw()
+    can_valid_simu.SaveAs('plots/zgcorr_validsimu__'+plot_names[iplot])

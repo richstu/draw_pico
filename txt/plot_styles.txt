@@ -395,6 +395,8 @@
   StackType = 0
   OverflowType = 0
   BottomType = 1
+  RatioMinimum = 0.6
+  RatioMaximum = 1.4
   UseCMYK = 0
   ShowBackgroundError = 0
   FileExtensions = pdf
@@ -491,9 +493,11 @@
   ShowBackgroundError = 1
   ExtraLabelSize = 0.04
   TitleType = 0
-  StackType = 2
+  StackType = 0
   OverflowType = 0
   BottomType = 1
+  RatioMinimum = 0.6
+  RatioMaximum = 1.4
   UseCMYK = 0
   ShowBackgroundError = 0
   FileExtensions = pdf

@@ -30,7 +30,7 @@ BABY_INCS := $(addprefix $(INCDIR)/core/baby_, $(addsuffix .hpp, $(BABY_TYPES)))
 BABY_OBJS := $(addprefix $(OBJDIR)/core/baby_, $(addsuffix .o, $(BABY_TYPES)))
 BABY_DEPS := $(addprefix $(MAKEDIR)/core/baby_, $(addsuffix .d, $(BABY_TYPES)))
 
-REFLEXES = $(OBJDIR)/core/RooMultiPdf_dict.o $(OBJDIR)/core/RooGaussStepBernstein_dict.o
+REFLEXES = $(OBJDIR)/core/RooMultiPdf_dict.o $(OBJDIR)/core/RooGaussStepBernstein_dict.o $(OBJDIR)/core/RooDoubleCBFast.o
 
 FILTER_OUT = $(foreach v,$(2),$(if $(findstring $(1),$(v)),,$(v)))
 
