@@ -4,7 +4,7 @@
 #include "RooAbsArg.h"
 #include "RooAbsPdf.h"
 #include "RooAbsReal.h"
-#include "RooRealProxy.h"
+//#include "RooRealProxy.h"
 #include "RooRealVar.h"
 #include "RooArgList.h"
 #include "RooAbsCategory.h"
@@ -26,7 +26,7 @@
 class RooAbsArg;
 class RooAbsPdf;
 class RooAbsReal;
-class RooRealProxy;
+//class RooRealProxy;
 class RooArgList;
 
 using namespace std;
