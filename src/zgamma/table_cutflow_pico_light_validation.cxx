@@ -30,7 +30,9 @@ using namespace PlotOptTypes;
 namespace{
   const string path_to_production_base = "/net/cms11/cms11r0/pico/"; //Some things may need to be changed in main() if path structure changes significantly
   const string tag_a= "htozgamma_kingscanyon_v1";
+  //const string skim_a = "skim_llg";
   const string skim_a = "merged_*_llg";
+  //const string skim_a = "unskimmed";
   float lumi = 1;
   string tag = "";
 }
@@ -105,7 +107,7 @@ const NamedFunc wgt("wgt",[](const Baby &b) -> NamedFunc::ScalarType{
     return 1;
   }
   return b.weight();
- });
+});
 
 const NamedFunc signal_lead_muon_pt("signal_lead_muon_pt",[](const Baby &b) -> NamedFunc::ScalarType{
   for (unsigned iPart = 0; iPart<b.mu_pt()->size(); iPart++) {
@@ -141,55 +143,280 @@ const NamedFunc signal_sublead_electron_pt("signal_sublead_electron_pt",[](const
   return -999;
 });
 
+//Holdover from index chasing. Should be unceccesary after kingscanyon_v1
+/*
+const NamedFunc get_Zid("get_Zid",[](const Baby &b)->NamedFunc::ScalarType{
+  int Zid = -999;
+  for (int i = 0; i < b.nll(); i++){
+    if(b.ll_charge()->at(i) == 0){
+      Zid = i;
+      break;
+    }
+  }
+  return Zid;
+});
+
+const NamedFunc get_flav("get_flav",[](const Baby &b)->NamedFunc::ScalarType{
+  int out = 0;
+  if (get_Zid.GetScalar(b) < 0) return out;
+  else{
+    return b.ll_lepid()->at(get_Zid.GetScalar(b));
+  }
+});
+
+const NamedFunc get_mll("get_mll",[] (const Baby &b)->NamedFunc::ScalarType{
+  double out = -1;
+  if (get_Zid.GetScalar(b) < 0) return out;
+  else{
+    return b.ll_m()->at(get_Zid.GetScalar(b));
+  }
+});
+
+const NamedFunc get_yid("get_yid",[](const Baby &b)->NamedFunc::ScalarType{
+  int yid = -999;
+  for (int i = 0; i < b.nphoton(); i++){
+    if(b.photon_id80()->at(i)){
+      yid = i;
+      break;
+    }
+  }
+  return yid;
+});
+
+const NamedFunc wp80fix("wp80fix",[](const Baby &b)->NamedFunc::ScalarType{
+  bool WP = false;
+  if (get_yid.GetScalar(b) < 0) return WP;
+  else if (b.photon_id80()->at(get_yid.GetScalar(b))){
+    WP = true;
+  }
+  return WP;
+});
+
+const NamedFunc get_Hid("get_Hid",[](const Baby &b)->NamedFunc::ScalarType{
+  int Hid = -999;
+  if (get_Zid.GetScalar(b) < 0 || get_yid.GetScalar(b) < 0) return Hid;
+  else{
+    for (int i = 0; i < b.nllphoton(); i++){
+      if(b.llphoton_ill()->at(i) == get_Zid.GetScalar(b) && b.llphoton_iph()->at(i) == get_yid.GetScalar(b)){
+        Hid = i;
+        break;
+      }
+    }
+    return Hid;
+  }
+});
+
+const NamedFunc get_mlly("get_mlly",[](const Baby &b)->NamedFunc::ScalarType{
+  double out = -1;
+  if(get_Hid.GetScalar(b) < 0) return out;
+  else{
+    return b.llphoton_m()->at(get_Hid.GetScalar(b));
+  }
+});
+
+const NamedFunc get_ratio("get_ratio",[](const Baby &b)->NamedFunc::ScalarType{
+  double out = -1;
+  if(get_Hid.GetScalar(b) < 0) return out;
+  else{
+    return b.photon_pt()->at(get_yid.GetScalar(b))/b.llphoton_m()->at(get_Hid.GetScalar(b));
+  }
+});
+
+const NamedFunc get_sum("get_sum",[](const Baby &b)->NamedFunc::ScalarType{
+  double out = -1;
+  if(get_Hid.GetScalar(b) < 0) return out;
+  else{
+    return b.ll_m()->at(get_Zid.GetScalar(b)) + b.llphoton_m()->at(get_Hid.GetScalar(b));
+  }
+});
+*/
+
+  //This code defines the triggers and trigger pt selections. The muon triggers may be incorrect, but I tried to add all the triggers it could be
+  const NamedFunc trigs_2016_e = "HLT_Ele27_WPTight_Gsf";                  const NamedFunc trigs_2016_ee = "HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ";
+  const NamedFunc trigs_2017_e = "HLT_Ele32_WPTight_Gsf_L1DoubleEG";       const NamedFunc trigs_2017_ee = "HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL"; //Use for kingscanyon_v1
+  //const NamedFunc trigs_2017_e = "HLT_Ele32_WPTight_Gsf_L1DoubleEG";       const NamedFunc trigs_2017_ee = "HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL"; //use for all versions past kingscanyon_v1
+  const NamedFunc trigs_2018_e = "HLT_Ele32_WPTight_Gsf";                  const NamedFunc trigs_2018_ee = "HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL";
+  const NamedFunc trigs_2022_e = "HLT_Ele30_WPTight_Gsf";                  const NamedFunc trigs_2022_ee = "HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL";
+  const NamedFunc trigs_2023_e = "HLT_Ele30_WPTight_Gsf";                  const NamedFunc trigs_2023_ee = "HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL";
+
+  const NamedFunc trigs_2016_mu = "HLT_IsoMu24 || HLT_IsoTkMu24";          const NamedFunc trigs_2016_mumu = "HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ || HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL || HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ";
+  const NamedFunc trigs_2017_mu = "HLT_IsoMu27";                           const NamedFunc trigs_2017_mumu = "HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8 || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8";
+  const NamedFunc trigs_2018_mu = "HLT_IsoMu24";                           const NamedFunc trigs_2018_mumu = "HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8";
+  const NamedFunc trigs_2022_mu = "HLT_IsoMu24";                           const NamedFunc trigs_2022_mumu = "HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8";
+  const NamedFunc trigs_2023_mu = "HLT_IsoMu24";                           const NamedFunc trigs_2023_mumu = "HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8";
+
+  const NamedFunc trigs_pT_2016_el = (trigs_2016_e && signal_lead_electron_pt > 30) || (trigs_2016_ee && signal_lead_electron_pt > 25 && signal_sublead_electron_pt > 15);
+  const NamedFunc trigs_pT_2016_mu = (trigs_2016_mu && signal_lead_muon_pt > 25) || (trigs_2016_mumu && signal_lead_muon_pt > 20 && signal_sublead_muon_pt > 10);
+  const NamedFunc trigs_pT_2016 = trigs_pT_2016_el || trigs_pT_2016_mu;
+
+  const NamedFunc trigs_pT_2017_el = (trigs_2017_e && signal_lead_electron_pt > 35) || (trigs_2017_ee && signal_lead_electron_pt > 25 && signal_sublead_electron_pt > 15); 
+  const NamedFunc trigs_pT_2017_mu = (trigs_2017_mu && signal_lead_muon_pt > 28) || (trigs_2017_mumu && signal_lead_muon_pt > 20 && signal_sublead_muon_pt > 10);
+  const NamedFunc trigs_pT_2017 = trigs_pT_2017_el || trigs_pT_2017_mu;
+
+  const NamedFunc trigs_pT_2018_el = (trigs_2018_e && signal_lead_electron_pt > 35) || (trigs_2018_ee && signal_lead_electron_pt > 25 && signal_sublead_electron_pt > 15);
+  const NamedFunc trigs_pT_2018_mu = (trigs_2018_mu && signal_lead_muon_pt > 25) || (trigs_2018_mumu && signal_lead_muon_pt > 20 && signal_sublead_muon_pt > 10);
+  const NamedFunc trigs_pT_2018 = trigs_pT_2018_el || trigs_pT_2018_mu;
+
+  const NamedFunc trigs_pT_2022_el = (trigs_2022_e && signal_lead_electron_pt > 35) || (trigs_2022_ee && signal_lead_electron_pt > 25 && signal_sublead_electron_pt > 15);
+  const NamedFunc trigs_pT_2022_mu = (trigs_2022_mu && signal_lead_muon_pt > 25) || (trigs_2022_mumu && signal_lead_muon_pt > 20 && signal_sublead_muon_pt > 10);
+  const NamedFunc trigs_pT_2022 = trigs_pT_2022_el || trigs_pT_2022_mu;
+
+  const NamedFunc trigs_pT_2023_el = (trigs_2023_e && signal_lead_electron_pt > 35) || (trigs_2023_ee && signal_lead_electron_pt > 25 && signal_sublead_electron_pt > 15);
+  const NamedFunc trigs_pT_2023_mu = (trigs_2023_mu && signal_lead_muon_pt > 25) || (trigs_2023_mumu && signal_lead_muon_pt > 20 && signal_sublead_muon_pt > 10);
+  const NamedFunc trigs_pT_2023 = trigs_pT_2023_el || trigs_pT_2023_mu;
+
+  //Electron trigs for run 2 and run 3, no pT cut
+  const NamedFunc trigs_el("trigs_el", [](const Baby &b)->NamedFunc::ScalarType{
+      bool res = false;
+      if (abs(b.SampleType()) == 2016){
+          res = trigs_2016_e.GetScalar(b) || trigs_2016_ee.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2017){
+          res = trigs_2017_e.GetScalar(b) || trigs_2017_ee.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2018){
+          res = trigs_2018_e.GetScalar(b) || trigs_2018_ee.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2022){
+          res = trigs_2022_e.GetScalar(b) || trigs_2022_ee.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2023){
+          res = trigs_2023_e.GetScalar(b) || trigs_2023_ee.GetScalar(b);
+      };
+      return res;
+  });
+
+  //Electron trigs for run 2 and 3, pT cut included
+  const NamedFunc trigs_el_pT("trigs_el_pT", [](const Baby &b)->NamedFunc::ScalarType{
+      bool res = false;
+      if (abs(b.SampleType()) == 2016){
+          res = trigs_pT_2016_el.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2017){
+          res = trigs_pT_2017_el.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2018){
+          res = trigs_pT_2018_el.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2022){
+          res = trigs_pT_2022_el.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2023){
+          res = trigs_pT_2023_el.GetScalar(b);
+      };
+      return res;
+  });
+
+  //Muon trigs for run 2 and run 3, no pT cut
+  const NamedFunc trigs_mu("trigs_mu", [](const Baby &b)->NamedFunc::ScalarType{
+      bool res = false;
+      if (abs(b.SampleType()) == 2016){
+          res = trigs_2016_mu.GetScalar(b) || trigs_2016_mumu.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2017){
+          res = trigs_2017_mu.GetScalar(b) || trigs_2017_mumu.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2018){
+          res = trigs_2018_mu.GetScalar(b) || trigs_2018_mumu.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2022){
+          res = trigs_2022_mu.GetScalar(b) || trigs_2022_mumu.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2023){
+          res = trigs_2023_mu.GetScalar(b) || trigs_2023_mumu.GetScalar(b);
+      };
+      return res;
+  });
+
+  //Muon trigs for run 2 and run 3, pT cut included
+  const NamedFunc trigs_mu_pT("trigs_mu_pT", [](const Baby &b)->NamedFunc::ScalarType{
+      bool res = false;
+      if (abs(b.SampleType()) == 2016){
+          res = trigs_pT_2016_mu.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2017){
+          res = trigs_pT_2017_mu.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2018){
+          res = trigs_pT_2018_mu.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2022){
+          res = trigs_pT_2022_mu.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2023){
+          res = trigs_pT_2023_mu.GetScalar(b);
+      };
+      return res;
+  });
+
+  const NamedFunc trigs_Run2_pT("trigs_Run2_pT", [](const Baby &b)->NamedFunc::ScalarType{
+      bool res = false;
+      if (abs(b.SampleType()) == 2016){
+          res = trigs_pT_2016.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2017){
+          res = trigs_pT_2017.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2018){
+          res = trigs_pT_2018.GetScalar(b);
+      };
+      return res;
+  });
+
+  const NamedFunc trigs_Run3_pT("trigs_Run3_pT", [](const Baby &b)->NamedFunc::ScalarType{
+      bool res = false;
+      if (abs(b.SampleType()) == 2022){
+          res = trigs_pT_2022.GetScalar(b);
+      } else if (abs(b.SampleType()) == 2023){
+          res = trigs_pT_2023.GetScalar(b);
+      };
+      return res;
+  });
 
 void constructCutflowTable(vector<TableRow> & tablerows, NamedFunc weight, int electron_or_muon, bool isMC = false) {
     NamedFunc current_cut = "1";
     if (isMC == true){
       current_cut = "use_event";
     }
-    NamedFunc el_trigger = "ll_lepid[0]==11 && (HLT_Ele27_WPTight_Gsf || HLT_Ele30_WPTight_Gsf || HLT_Ele35_WPTight_Gsf || HLT_Ele32_WPTight_Gsf || HLT_Ele32_WPTight_Gsf_L1DoubleEG || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL)"; //run 2 and run 3 e, ee triggers. Add in Run 3
-    NamedFunc mu_trigger = "ll_lepid[0]==13 && (HLT_IsoMu24 || HLT_IsoTkMu24 || HLT_IsoMu27 || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL || HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ || HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8)"; //run 2 and run 3 mu, mumu triggers. Add in Run 3
+    //NamedFunc el_trigger = "ll_lepid[0]==11 && (HLT_Ele27_WPTight_Gsf || HLT_Ele30_WPTight_Gsf || HLT_Ele35_WPTight_Gsf || HLT_Ele32_WPTight_Gsf || HLT_Ele32_WPTight_Gsf_L1DoubleEG || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL)"; //run 2 and run 3 e, ee triggers. Add in Run 3
+    //NamedFunc mu_trigger = "ll_lepid[0]==13 && (HLT_IsoMu24 || HLT_IsoTkMu24 || HLT_IsoMu27 || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL || HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ || HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8)"; //run 2 and run 3 mu, mumu triggers. Add in Run 3
     if (electron_or_muon == 0) { // el
       tablerows = vector<TableRow>{
-        TableRow("No selection", add_cut(current_cut,"1"),0,0, weight),
+        TableRow("Initial events", add_cut(current_cut,"1"),0,0, weight),
         TableRow("$N_e \\geq 2$", add_cut(current_cut, "nel>=2 && ll_lepid[0]==11"),0,0, weight),
-        TableRow("e, ee trigger", add_cut(current_cut, el_trigger),0,0, weight),
-        TableRow("$p_{T}^{\\text{lead }e} \\geq 25\\text{ GeV}$", add_cut(current_cut, signal_lead_electron_pt > 25),0,0, weight),
-        TableRow("$p_{T}^{\\text{sublead }e} \\geq 15\\text{ GeV}$", add_cut(current_cut, signal_sublead_electron_pt > 15),0,1, weight),
+        TableRow("e, ee trigger", add_cut(current_cut, trigs_el),0,0, weight),
+        TableRow("el trigger $p_{T}$ cuts", add_cut(current_cut, trigs_el_pT),0,0, weight),
         TableRow("$N_{\\gamma} \\geq 1$", add_cut(current_cut, "nphoton>=1"),0,0, weight),
-        TableRow("$Charge_{ll} = 0$", add_cut(current_cut,"ll_charge[0] == 0"),0,0, weight),
-        TableRow("$80 \\text{ GeV} \\leq m_{ee} \\leq 100 \\text{ GeV}$", add_cut(current_cut, "ll_m[0] > 80 && ll_m[0]<100"),0,0, weight),
+        TableRow("$80 \\text{ GeV} < m_{ee} < 100 \\text{ GeV}$", add_cut(current_cut, "ll_m[0] > 80 && ll_m[0]<100"),0,0, weight),
         TableRow("$p_{T}^{\\gamma}/m_{ee\\gamma} > 15./110$", add_cut(current_cut, "(photon_pt[0]/llphoton_m[0])>(15./110)"),0,0, weight),
         TableRow("$m_{ee} + m_{ee\\gamma} > 185 \\text{ GeV}$", add_cut(current_cut, "(llphoton_m[0] + ll_m[0]) > 185"),0,0, weight),
         TableRow("$100 < m_{ee\\gamma} < 180 \\text{ GeV}$", add_cut(current_cut, "llphoton_m[0] > 100 && llphoton_m[0] < 180"),0,0, weight),
+        TableRow("ggF cat",current_cut && "nlep == 2 && njet <= 1 && met < 90",0,0,weight),
+        TableRow("VBF cat",current_cut && "nlep == 2 && njet >= 2 && nbdfm == 0",0,0,weight),
+        TableRow("ZH/WH cat",current_cut && "nlep >= 3 && nbdfm == 0",0,0,weight),
+        TableRow("ZH pt miss",current_cut && "nlep == 2 && njet <= 1 && met > 90",0,0,weight),
+        TableRow("ttH hadronic",current_cut && "nlep == 2 && njet >= 5 && nbdfm >=1",0,0,weight),
+        TableRow("ttH leptonic",current_cut && "(nlep == 3 && njet >=3 && nbdfm >=1) || (nlep>=4 && njet >=1 && nbdfm>=1)",0,0,weight),
       };
     } else if (electron_or_muon == 1) { // mu
       tablerows = vector<TableRow>{
-        TableRow("No selection", add_cut(current_cut,"1"),0,0, weight),
+        TableRow("Initial events", add_cut(current_cut,"1"),0,0, weight),
         TableRow("$N_{\\mu} \\geq 2 $", add_cut(current_cut, "nmu>=2 && ll_lepid[0]==13"),0,0, weight),
-        TableRow("$\\mu, \\mu\\mu$ trigger", add_cut(current_cut, mu_trigger),0,0, weight),
-        TableRow("$p_{T}^{\\text{lead }\\mu} \\geq 20\\text{ GeV}$", add_cut(current_cut, signal_lead_muon_pt > 20),0,0, weight),
-        TableRow("$p_{T}^{\\text{sublead }\\mu} \\geq 10\\text{ GeV}$", add_cut(current_cut, signal_sublead_muon_pt > 10),0,1, weight),
+        TableRow("$\\mu, \\mu\\mu$ trigger", add_cut(current_cut, trigs_mu),0,0, weight),
+        TableRow("mu trigger $p_{T}$ cuts", add_cut(current_cut, trigs_mu_pT),0,0, weight),
         TableRow("$N_{\\gamma} \\geq 1$", add_cut(current_cut, "nphoton>=1"),0,0, weight),
-        TableRow("$Charge_{ll} = 0$", add_cut(current_cut,"ll_charge[0] == 0"),0,0, weight),
-        TableRow("$80 \\text{ GeV} \\leq m_{\\mu\\mu} \\leq 100 \\text{ GeV}$", add_cut(current_cut, "ll_m[0] > 80 && ll_m[0]<100"),0,0, weight),
-        TableRow("$p_{T}^{\\gamma}/m_{\\mu\\mu\\gamma} > 15./110$", add_cut(current_cut, "(photon_pt[0]/llphoton_m[0])>(15./110)"),0,0, weight),
-        TableRow("$m_{\\mu\\mu\\gamma}+m_{\\mu\\mu} > 185 \\text{ GeV}$", add_cut(current_cut, "(llphoton_m[0]+ll_m[0]) > 185"),0,0, weight),
-        TableRow("$100 < m_{\\mu\\mu\\gamma} < 180 \\text{ GeV}$", add_cut(current_cut, "llphoton_m[0] > 100 && llphoton_m[0] < 180"),0,0, weight),
+        TableRow("$80 \\text{ GeV} < m_{ee} < 100 \\text{ GeV}$", add_cut(current_cut, "ll_m[0] > 80 && ll_m[0]<100"),0,0, weight),
+        TableRow("$p_{T}^{\\gamma}/m_{ee\\gamma} > 15./110$", add_cut(current_cut, "(photon_pt[0]/llphoton_m[0])>(15./110)"),0,0, weight),
+        TableRow("$m_{ee} + m_{ee\\gamma} > 185 \\text{ GeV}$", add_cut(current_cut, "(llphoton_m[0] + ll_m[0]) > 185"),0,0, weight),
+        TableRow("$100 < m_{ee\\gamma} < 180 \\text{ GeV}$", add_cut(current_cut, "llphoton_m[0] > 100 && llphoton_m[0] < 180"),0,0, weight),
+        TableRow("ggF cat",current_cut && "nlep == 2 && njet <= 1 && met < 90",0,0,weight),
+        TableRow("VBF cat",current_cut && "nlep == 2 && njet >= 2 && nbdfm == 0",0,0,weight),
+        TableRow("ZH/WH cat",current_cut && "nlep >= 3 && nbdfm == 0",0,0,weight),
+        TableRow("ZH pt miss",current_cut && "nlep == 2 && njet <= 1 && met > 90",0,0,weight),
+        TableRow("ttH hadronic",current_cut && "nlep == 2 && njet >= 5 && nbdfm >=1",0,0,weight),
+        TableRow("ttH leptonic",current_cut && "(nlep == 3 && njet >=3 && nbdfm >=1) || (nlep>=4 && njet >=1 && nbdfm>=1)",0,0,weight),
+
       };
     } else { // mu + el
       tablerows = vector<TableRow>{
-        TableRow("No selection", add_cut(current_cut,"1"),0,0, weight),
+        TableRow("Initial events", add_cut(current_cut,"1"),0,0, weight),
         TableRow("$N_e \\geq 2 || N_{\\mu} \\geq 2 $", add_cut(current_cut, "(nel>=2 && ll_lepid[0]==11) || (nmu>=2 && ll_lepid[0]==13)"),0,0, weight),
-        TableRow("e, ee trigger $||$ $\\mu, \\mu\\mu$ trigger", add_cut(current_cut, el_trigger || mu_trigger),0,0, weight),
-        TableRow("$p_{T}^{\\text{lead }l} \\geq 25 (20)\\text{ GeV}$", add_cut(current_cut, ("ll_lepid[0]==13"&&signal_lead_muon_pt > 20) || ("ll_lepid[0]==11"&&signal_lead_electron_pt > 25)),0,0, weight),
-        TableRow("$p_{T}^{\\text{sublead }l} \\geq 15 (10)\\text{ GeV} $", add_cut(current_cut, ("ll_lepid[0]==13"&&signal_sublead_muon_pt > 10) || ("ll_lepid[0]==11"&&signal_sublead_electron_pt > 15)),0,1, weight),
+        TableRow("e, ee trigger $||$ $\\mu, \\mu\\mu$ trigger", add_cut(current_cut, trigs_mu || trigs_el),0,0, weight),
+        TableRow("mu and el trigger $p_{T}$ cuts", add_cut(current_cut, (trigs_mu_pT || trigs_el_pT)),0,0, weight),
         TableRow("$N_{\\gamma} \\geq 1$", add_cut(current_cut, "nphoton>=1"),0,0, weight),
-        TableRow("$Charge_{ll} = 0$", add_cut(current_cut,"ll_charge[0] == 0"),0,0, weight),
-        TableRow("$80 \\text{ GeV} \\leq m_{ll} \\leq 100 \\text{ GeV}$", add_cut(current_cut, "ll_m[0] > 80 && ll_m[0]<100"),0,0, weight),
-        TableRow("$p_{T}^{\\gamma}/m_{ll\\gamma} > 15./110$", add_cut(current_cut, "(photon_pt[0]/llphoton_m[0])>(15./110)"),0,0, weight),
-        TableRow("$m_{ll\\gamma}+m_{ll} > 185 \\text{ GeV}$", add_cut(current_cut, "(llphoton_m[0]+ll_m[0]) > 185"),0,0, weight),
-        TableRow("$100 < m_{ll\\gamma} < 180 \\text{ GeV}$", add_cut(current_cut, "llphoton_m[0] > 100 && llphoton_m[0] < 180"),0,0, weight),
+        TableRow("$80 \\text{ GeV} < m_{ee} < 100 \\text{ GeV}$", add_cut(current_cut, "ll_m[0] > 80 && ll_m[0]<100"),0,0, weight),
+        TableRow("$p_{T}^{\\gamma}/m_{ee\\gamma} > 15./110$", add_cut(current_cut, "(photon_pt[0]/llphoton_m[0])>(15./110)"),0,0, weight),
+        TableRow("$m_{ee} + m_{ee\\gamma} > 185 \\text{ GeV}$", add_cut(current_cut, "(llphoton_m[0] + ll_m[0]) > 185"),0,0, weight),
+        TableRow("$100 < m_{ee\\gamma} < 180 \\text{ GeV}$", add_cut(current_cut, "llphoton_m[0] > 100 && llphoton_m[0] < 180"),0,0, weight),
+        TableRow("ggF cat",current_cut && "nlep == 2 && njet <= 1 && met < 90",0,0,weight),
+        TableRow("VBF cat",current_cut && "nlep == 2 && njet >= 2 && nbdfm == 0",0,0,weight),
+        TableRow("ZH/WH cat",current_cut && "nlep >= 3 && nbdfm == 0",0,0,weight),
+        TableRow("ZH pt miss",current_cut && "nlep == 2 && njet <= 1 && met > 90",0,0,weight),
+        TableRow("ttH hadronic",current_cut && "nlep == 2 && njet >= 5 && nbdfm >=1",0,0,weight),
+        TableRow("ttH leptonic",current_cut && "(nlep == 3 && njet >=3 && nbdfm >=1) || (nlep>=4 && njet >=1 && nbdfm>=1)",0,0,weight),
+
       };
     }
 }
@@ -209,7 +436,8 @@ void generateTable(int run_no, PlotMaker& pm, Palette colors, set<string> year_t
 
 
   if(isMC == true && isSig == false){
-    filenames = {"*DYJetsToLL*amcatnloFXFX*.root", "*ZGToLLG_01J_5f_TuneCP5_13TeV-amcatnloFXFX*.root"}; //Check on ZGToLLG
+    filenames = {"*DYJetsToLL*amcatnloFXFX*.root", "*ZGToLLG_01J_5f_lowMLL_lowGPt_TuneCP5_13TeV-amcatnloFXFX-pythia8*.root"}; //Check on ZGToLLG
+    //filenames = {"*ZGamma2JToGamma2L2J_EWK_MLL-50_MJJ-120_TuneCP5_13TeV-madgraph-pythia8*.root"}; //Check on ZGToLLG
     if(run_no == 3){ //Change how this check is done
       filenames = {"*DYto2L*amcatnloFXFX*.root", "*DYGto2LG-1Jets_MLL-50*.root"}; //Double check on these
     }
@@ -218,12 +446,13 @@ void generateTable(int run_no, PlotMaker& pm, Palette colors, set<string> year_t
     procs_dat_a.push_back(Process::MakeShared<Baby_pico>(label, Process::Type::signal, colors(color), pathNames, "1")); //In if statement because I could not find way to dynamically choose the process type.
   } else if(isMC == true && isSig == true){
     //filenames = {"*GluGlu*HToZG*ZToLL_M-125_*.root","VBF*HToZG*ZToLL_M-125_*.root","*WplusH*HToZG*ZToLL_M-125_*.root", "*WminusH*HToZG*ZToLL_M-125_*.root", "*tt*HToZG*ZToLL_M-125_*.root", "*ZH*HToZG_ZToAll_M-125_*.root"};
-    filenames = {"*GluGlu*HToZG*ZToLL_M-125_*.root","VBF*HToZG*ZToLL_M-125_*.root", "*tt*HToZG*ZToLL_M-125_*.root", "*ZH*HToZG_ZToAll_M-125_*.root"};//Add back in WplusH and WminusH later
+    filenames = {"*GluGlu*HToZG*ZToLL_M-125_*.root","*VBFHToZG_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8*.root", "*tt*HToZG*ZToLL_M-125_*.root", "*ZH*HToZG_ZToAll_M-125_*.root"};//Add back in WplusH and WminusH later
+    //filenames = {"*GluGluHToZG_ZToLL_M-125_TuneCP5_13TeV*.root"};
     type = "mc/"; label = "Signal MC"; color = "dy"; print_uncertainty = true;
     pathNames = attach_folder(path_to_production_base, year_t, type + skim_a, filenames); 
     procs_dat_a.push_back(Process::MakeShared<Baby_pico>(label, Process::Type::background, colors(color), pathNames, "1"));
   } else if(isMC == false){
-    filenames = {"*.root"};
+    filenames = {"*MuonEG*.root", "*_Muon_*.root", "*SingleElectron*.root", "*DoubleEG*.root", "*SingleMuon*.root", "*DoubleMuon*.root", "*EGamma*.root"};
     type = "data/"; label = "Data"; color = "data"; print_uncertainty = false;
     pathNames = attach_folder(path_to_production_base, year_t, type + skim_a, filenames); 
     procs_dat_a.push_back(Process::MakeShared<Baby_pico>(label, Process::Type::data, colors(color), pathNames, "1"));
@@ -269,22 +498,63 @@ int main(){
 
   //    Generate run2 data cutflow table
   //--------------------------------------------------
-  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_data";
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_data_electron";
+  weight_a = "1";
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 0, false, false);
+
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_data_muon";
+  weight_a = "1";
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 1, false, false);
+
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_data_lep";
   weight_a = "1";
   generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 2, false, false);
 
   //    Generate run2 background MC (w/ SF) cutflow table
   //--------------------------------------------------
-  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_backmc_sf";
-  weight_a = wgt*w_years;
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_backmc_sf_electron";
+  weight_a = wgt*w_years;//w_lumi can also be used
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 0, true, false);
+
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_backmc_sf_muon";
+  weight_a = wgt*w_years;//w_lumi can also be used
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 1, true, false);
+
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_backmc_sf_lep";
+  weight_a = wgt*w_years;//w_lumi can also be used
   generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 2, true, false);
+
+  //    Generate run2 background MC (w/out SF) cutflow table
+  //--------------------------------------------------
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_backmc_electron";
+  weight_a = "1";
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 0, true, false);
+  
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_backmc_muon";
+  weight_a = "1";
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 1, true, false);
+  
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_backmc_lep";
+  weight_a = "1";
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 2, true, false);
+
 
   //    Generate run2 signal MC (w/ SF) cutflow table
   //--------------------------------------------------
-  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_sigmc";
-  weight_a = wgt*w_years;
-  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 2, true, true);
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_sigmc_sf_electron";
+  weight_a = wgt*w_years;//w_lumi can also be used
+  //weight_a = "1";
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 0, true, true);
 
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_sigmc_sf_muon";
+  weight_a = wgt*w_years;//w_lumi can also be used
+  //weight_a = "1";
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 1, true, true);
+
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run2"+"_sigmc_sf_lep";
+  weight_a = wgt*w_years;//w_lumi can also be used
+  //weight_a = "1";
+  generateTable(2, pm, colors, run2_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 2, true, true);
 
 
   total_luminosity_string_a = getLuminosityString(run3_years);
@@ -298,6 +568,12 @@ int main(){
   //--------------------------------------------------
   tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run3"+"_backmc_sf";
   weight_a = wgt*w_years;
+  generateTable(3, pm, colors, run3_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 2, true, false);
+
+  //    Generate run3 background MC (w/out SF) cutflow table
+  //--------------------------------------------------
+  tablename_a = "FixName:validation_table_"+tag_a+lep_tag+"_"+"run3"+"_backmc";
+  weight_a = "1";
   generateTable(3, pm, colors, run3_year_paths, skim_a, weight_a, tablename_a, total_luminosity_string_a, lumi, 2, true, false);
 
   //    Generate run3 signal MC (w/ SF) cutflow table
