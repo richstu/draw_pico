@@ -146,6 +146,113 @@ namespace ZgFunctions {
   //pT/m of Higgs candidate
   const NamedFunc llphoton_rel_pt = NamedFunc("llphoton_pt[0]/llphoton_m[0]").Name("llphoton_rel_pt");
 
+
+  //Turns a vector<NamedFunc> into one usable for a cutflow table
+  std::vector<NamedFunc> progressive_cuts(std::vector<NamedFunc> vector_NamedFunc){
+    for(unsigned int idx = 1; idx<vector_NamedFunc.size(); idx++){ vector_NamedFunc[idx] = vector_NamedFunc[idx-1] && vector_NamedFunc[idx];}
+    return vector_NamedFunc;
+  }
+
+  //This function adds all selections and reverses the selection at reverse
+  NamedFunc Nreverse1(std::vector<NamedFunc> vector_NamedFunc, unsigned int reverse){
+    NamedFunc return_NamedFunc = "1";
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==reverse){return_NamedFunc = return_NamedFunc && !(vector_NamedFunc[idx]); continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+  //Returns a NamedFunc replacing one selection (marked by skip)
+  NamedFunc Nreplace1(std::vector<NamedFunc> vector_NamedFunc, NamedFunc replace, unsigned int skip){
+    NamedFunc return_NamedFunc = "1";//vector_NamedFunc[start];
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==skip){return_NamedFunc = return_NamedFunc && replace;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+  //Returns a NamedFunc with all but one selection (marked by skip)
+  NamedFunc Nminus1(std::vector<NamedFunc> vector_NamedFunc, unsigned int skip){
+//    NamedFunc return_NamedFunc = "1";
+//    unsigned int start = skip!=0 ?  0 : 1;
+    NamedFunc return_NamedFunc = "1";//vector_NamedFunc[start];
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==skip){continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+
+  //Returns a NamedFunc without all selections in the vector skip
+  NamedFunc Nminusk(std::vector<NamedFunc> vector_NamedFunc, std::vector<unsigned int> skip){
+    unsigned int idx_s = 0;
+    NamedFunc return_NamedFunc = "1";
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx_s < skip.size() && idx==skip[idx_s]){idx_s++; continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+  //Below two functions are those that check if the triggers/trigger pT cuts are passed
+  const NamedFunc pass_trigs = "trig_double_el||trig_double_mu||trig_single_el||trig_single_mu";
+  const NamedFunc pass_singlelepton_trigs_and_pt("pass_singlelepton_trigs_and_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+    bool pass_pt_sel = false;
+    if(b.trig_single_mu()){
+      if(!(b.SampleTypeString().Contains("2017")) && b.nmu()>0 && b.mu_pt() -> at(0) > 25){ pass_pt_sel = true; }
+      if(b.SampleTypeString().Contains("2017") && b.nmu()>0 && b.mu_pt() -> at(0) > 30){ pass_pt_sel = true; }
+    }
+    if(b.trig_single_el()){
+      if(!(b.SampleTypeString().Contains("2016")) && b.nel()>0 && b.el_pt() -> at(0) > 35){ pass_pt_sel = true; }
+      if(b.SampleTypeString().Contains("2016") && b.nel()>0 && b.el_pt() -> at(0) > 30){ pass_pt_sel = true; }
+    }
+    return pass_pt_sel;
+  });
+
+  const NamedFunc pass_dilepton_trigs_and_pt = "(trig_double_mu && nmu > 1 && mu_pt[0] > 20 && mu_pt[1] > 10) || (trig_double_el && nel > 1 && el_pt[0] > 25 && el_pt[1] > 15)";
+  const NamedFunc pass_trigs_and_pt = pass_dilepton_trigs_and_pt || pass_singlelepton_trigs_and_pt;
+
+  //This version of llgamma mass is used when nphoton can be 0. This defaults to llphoton_m[0] otherwise
+  const NamedFunc mlly("mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return ZgUtilities::AssignH(b).M(); });
+  const NamedFunc pTy_mlly("pTy_mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.photon_pt()->at(0))/(ZgUtilities::AssignH(b).M()); });
+  const NamedFunc mll_mlly("mll_mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.ll_m() ->at(0)) + ZgUtilities::AssignH(b).M(); });
+
+
+  //This is a vector that gives the individual selections in the baseline selection
+  const std::vector<NamedFunc> vector_run2_baseline      = {"nll>0", pass_dilepton_trigs_and_pt, "ll_m[0] > 50", "nphoton > 0",  pTy_mlly > 15.0/110, mll_mlly > 185, mlly > 100 && mlly < 180};
+  const std::vector<NamedFunc> vector_tightened_baseline = {"nll>0", pass_trigs_and_pt, "ll_m[0] > 50", "nphoton > 0 && photon_id80[0]",  pTy_mlly > 15.0/110, "ll_m[0] > 80 && ll_m[0] < 100",
+                                                            mlly > 100 && mlly < 180};
+
+  //Below is the baseline used by HIG-19-014
+  const NamedFunc run2_baseline     = "nllphoton>0" && pass_dilepton_trigs_and_pt && "ll_m[0] > 50 && photon_pt[0]/llphoton_m[0] > 15.0/110 && ll_m[0] + llphoton_m[0] > 185 && llphoton_m[0] > 100 && llphoton_m[0] < 180";
+
+  //Below is the tightened baseline with the photon wp80 and the 80 GeV < mll < 100 GeV selection
+  const NamedFunc tightened_baseline= "nllphoton>0" && pass_trigs_and_pt && "ll_m[0] > 50 && photon_id80[0] && photon_pt[0]/llphoton_m[0] > 15.0/110 && ll_m[0] > 80 && ll_m[0] < 100 && llphoton_m[0] > 100 && llphoton_m[0] < 180";
+
+
+
+
+  const NamedFunc wgt("wgt",[](const Baby &b) -> NamedFunc::ScalarType{ 
+    if(b.SampleTypeString().Contains("-")) {
+      return 1;
+    }
+
+    double w_year = w_years.GetScalar(b);
+    int SampleTypeInt = b.type();
+    if( SampleTypeInt == 30000){ w_year=w_year*10;}
+    double weight_fix = b.w_lumi()*b.w_lep()*b.w_fs_lep()*b.w_bhig_df()*b.w_isr()*b.w_pu()*b.w_prefire()*b.w_photon();
+    return weight_fix*w_year;
+  });
+
+
+  const NamedFunc testing_sample    = "event%314159%3==0";
+  const NamedFunc training_sample   = "event%314159%3==1";
+  const NamedFunc validation_sample = "event%314159%3==2";
+
+
 }
 
 
