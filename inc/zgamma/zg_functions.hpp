@@ -2,6 +2,7 @@
 #define H_ZG_FUNCTIONS
 
 #include "core/named_func.hpp"
+#include "core/table_row.hpp"
 
 namespace ZgFunctions {
   //isolated dielectron triggers for run 2
@@ -68,10 +69,13 @@ namespace ZgFunctions {
 
   //Below functions are related to weighting of samples or naming based off of weighting
   extern const NamedFunc wgt;
+  extern const NamedFunc wgt_nodiff;
   extern const NamedFunc testing_sample;
   extern const NamedFunc training_sample;
   extern const NamedFunc validation_sample;
-
+  
+  NamedFunc add_cut(NamedFunc & current_cut, NamedFunc additional_cut);
+  void constructCutflowTable(std::vector<TableRow> & tablerows, NamedFunc weight, int electron_or_muon, bool isMC = false);
 }
 
 #endif

@@ -54,6 +54,11 @@ namespace CatUtilities {
   double ZZ_dR_d(const Baby &b);
   double bjetl_drmin3_d(const Baby &b);
   double m_top(const Baby &b);
+  bool checkBit(int i, int n);
+
+  size_t idx_j1(const Baby &b);
+  size_t idx_j2(const Baby &b);
+  size_t idx_jN(const Baby &b, int num_jet);
 
   extern const NamedFunc mbb;
   extern const NamedFunc mtop;
@@ -87,6 +92,7 @@ namespace CatUtilities {
   extern const NamedFunc HxZmG_norm;
   extern const NamedFunc HxZmG_ZmGnorm;
   extern const NamedFunc HxZmG_cms;
+  extern const NamedFunc llgamma_pTt;
   extern const NamedFunc ZH_4l_eptcuts;
   extern const NamedFunc ZH_4l_muptcuts;
   extern const NamedFunc ptj_m5j;
@@ -97,6 +103,26 @@ namespace CatUtilities {
   extern const NamedFunc eta_lly;
   extern const NamedFunc phi_lly;
   extern const NamedFunc sigy_pTy;
+
+  extern const NamedFunc j1_pt;
+  extern const NamedFunc j2_pt;
+  extern const NamedFunc j3_pt;
+  extern const NamedFunc j4_pt;
+
+  extern const NamedFunc j1_eta;
+  extern const NamedFunc j2_eta;
+  extern const NamedFunc j3_eta;
+  extern const NamedFunc j4_eta;
+
+  extern const NamedFunc j1_phi;
+  extern const NamedFunc j2_phi;
+  extern const NamedFunc j3_phi;
+  extern const NamedFunc j4_phi;
+
+  extern const NamedFunc j1_m;
+  extern const NamedFunc j2_m;
+  extern const NamedFunc j3_m;
+  extern const NamedFunc j4_m;
 
   //functions of categories' object selections
   int R2_Cats(const Baby &b);
@@ -139,6 +165,7 @@ namespace CatUtilities {
   extern const std::vector<NamedFunc>   run3_catwsel_vector;
   extern const std::vector<NamedFunc>   run3_catwsel_nomll_vector;
   extern const std::vector<std::string> run3_category_labels;
+  extern const std::vector<std::vector<NamedFunc>> categories_selections_vector; 
 
   //Each category's sample plots
   void ttH_lep_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);

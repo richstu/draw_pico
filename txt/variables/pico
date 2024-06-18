@@ -374,6 +374,11 @@ bool pass_badcalib
 bool pass_boosted
 bool pass
 
+#Untested filters in picos
+bool pass_badpfmudz
+bool pass_hfnoisyhits
+
+
 ################  Truth   ##################
 std::vector<float> mc_pt
 std::vector<float> mc_eta
@@ -594,3 +599,7 @@ std::vector<float> sys_met_phi
 std::vector<float> sys_hig_cand_am
 std::vector<float> sys_hig_cand_dm
 std::vector<float> sys_hig_cand_drmax
+std::vector<float> sys_jet_pt_jerup
+std::vector<float> sys_jet_pt_jerdn
+std::vector<float> sys_jet_pt_jesup
+std::vector<float> sys_jet_pt_jesdn
