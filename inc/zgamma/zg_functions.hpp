@@ -66,9 +66,12 @@ namespace ZgFunctions {
 
   //Below is the tightened baseline with the photon wp80 and the 80 GeV < mll < 100 GeV selection
   extern const NamedFunc tightened_baseline;
+  extern const NamedFunc tightened_baseline_refit;
+
 
   //Below functions are related to weighting of samples or naming based off of weighting
   extern const NamedFunc wgt;
+  extern const NamedFunc wgt_wlumi;
   extern const NamedFunc wgt_nodiff;
   extern const NamedFunc testing_sample;
   extern const NamedFunc training_sample;

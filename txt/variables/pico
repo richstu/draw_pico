@@ -100,7 +100,6 @@ float llphoton_refit_dijet_balance
 float llphoton_refit_dijet_dr
 float llphoton_refit_pTt
 
-
 bool trig_single_el
 bool trig_double_el
 bool trig_single_mu
@@ -166,6 +165,8 @@ std::vector<float> jet_breg_corr
 std::vector<float> jet_breg_res
 std::vector<float> jet_deepcsv
 std::vector<float> jet_deepflav
+std::vector<float> jet_btagpnetb
+std::vector<float> jet_btagak4b
 std::vector<int>   jet_puid
 std::vector<float> jet_puid_disc
 std::vector<float> jet_ne_emef

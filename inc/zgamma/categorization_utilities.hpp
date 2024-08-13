@@ -79,6 +79,10 @@ namespace CatUtilities {
   extern const NamedFunc l3_Z_DR;
   extern const NamedFunc N_OSSF_lpairs;
   extern const NamedFunc N_SF_lpairs;
+  extern const NamedFunc mT_l3;
+  extern const NamedFunc mT_ZH;
+  extern const NamedFunc mall_jet_ttH_had;
+  extern const NamedFunc mall_ttH_had;
 
   extern const NamedFunc ptj_m4j;
   extern const NamedFunc max_deepflav;
@@ -163,20 +167,26 @@ namespace CatUtilities {
   //Vector returning all the categories used for Run 3
   extern const std::vector<NamedFunc>   run3_category_vector;
   extern const std::vector<NamedFunc>   run3_catwsel_vector;
+  extern const std::vector<NamedFunc>   run3_refit_catwsel_vector;
   extern const std::vector<NamedFunc>   run3_catwsel_nomll_vector;
   extern const std::vector<std::string> run3_category_labels;
   extern const std::vector<std::vector<NamedFunc>> categories_selections_vector; 
 
   //Each category's sample plots
-  void ttH_lep_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
+  void ttH_lep_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, bool run3=false);
   void   ZH_4l_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void   WH_3l_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
-  void ttH_had_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
+  void ttH_had_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, bool run3=false);
   void  ZH_2bl_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void  ZH_MET_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void     ggF_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void     VBF_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void     Lep_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
+  void       sample_kinrefit_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
+
+  //MVP plots
+  void                 mvp_objects(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
+  void   mvp_procs_and_corrections(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
 
 }
 #endif

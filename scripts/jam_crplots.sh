@@ -1,4 +1,6 @@
-plot_folder="./plots/an_cr_full_plots"
+#plot_folder="./plots/an_cr_full_plots"
+plot_folder="./plots/lassen_v0_cr"
+#plot_folder="./plots/kingscanyon_v1_sideband"
 
 cr_regions=("sideband" "ptyrat_l15o110" "Zfsrpeak" "lowIDMVA")
 flavor=("ee" "mumu" "ll")
@@ -9,13 +11,13 @@ do
   for lep in ${flavor[@]}
   do
     control_region_mlly_plots="\
-      ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${cr}_ttH_lep__lly_m__mlly__wgt__lumi_lin.pdf \
-      ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${cr}_ttH_had__lly_m__mlly__wgt__lumi_lin.pdf \
-      ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${cr}_ZH_MET__lly_m__mlly__wgt__lumi_lin.pdf \
-      ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${cr}_WH_3l__lly_m__mlly__wgt__lumi_lin.pdf \
-      ${plot_folder}/an_controlregions_cat_VBF_${lep}_${cr}_VBF__lly_m__mlly__wgt__lumi_lin.pdf \
       ${plot_folder}/an_controlregions_cat_ggF_${lep}_${cr}_ggF__lly_m__mlly__wgt__lumi_lin.pdf \
-    "
+      ${plot_folder}/an_controlregions_cat_VBF_${lep}_${cr}_VBF__lly_m__mlly__wgt__lumi_lin.pdf \
+      ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${cr}_ttH_lep__lly_m__mlly__wgt__lumi_lin.pdf \
+      ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${cr}_WH_3l__lly_m__mlly__wgt__lumi_lin.pdf \
+      ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${cr}_ZH_MET__lly_m__mlly__wgt__lumi_lin.pdf \
+      ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${cr}_ttH_had__lly_m__mlly__wgt__lumi_lin.pdf \
+      "
 
     ./scripts/pdf_combine.py -i $control_region_mlly_plots   -o plots/${cr}_${lep}_mlly_plots.pdf -x 3 -y 2 -f
 
@@ -47,11 +49,12 @@ for control_region in ${ggF_cr_regions[@]}
 do
   for lep in ${flavor[@]}
   do
+
     ggF_control_regions_plots1_ee="\
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
@@ -62,10 +65,10 @@ do
     "
 
     ggF_control_regions_plots1_mumu="\
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
@@ -76,14 +79,14 @@ do
     "
 
     ggF_control_regions_plots1_ll="\
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
@@ -96,9 +99,9 @@ do
     ggF_control_regions_plots2="\
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__lly_m__mlly__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__gamma_IDMVA__photon_idmva0__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_cTHETA__llphoton_cosTheta__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ctheta__llphoton_costheta__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_phi__llphoton_psi__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF_cTHETA__lly_cosTheta__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF_ctheta__lly_costheta__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF_phi__lly_angphi__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__gamma_maxDR__photon_drmax0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__gamma_minDR__photon_drmin0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__gamma_relunc__photon_energyErr0dphoton_pt0__wgt__lumi_lin.pdf \
@@ -110,10 +113,11 @@ do
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__lly_eta__rap_lly__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ggF_${lep}_${control_region}_ggF__lly_phi__phi_lly__wgt__lumi_lin.pdf \
     "
- 
-    if [["${lep}"=="ee"]]; then
+
+
+    if [ "$lep"=="ee" ]; then
       ./scripts/pdf_combine.py -i $ggF_control_regions_plots1_ee -o plots/ggF_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
-    elif[["${lep}"=="mumu"]]; then
+    elif [ "$lep"=="mumu" ]; then
       ./scripts/pdf_combine.py -i $ggF_control_regions_plots1_mumu -o plots/ggF_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
     else
       ./scripts/pdf_combine.py -i $ggF_control_regions_plots1_ll -o plots/ggF_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 4 -f
@@ -128,9 +132,7 @@ done
 ##########################################################################################################################
 
 ########################################################################################################################
-VBF_cr_regions=("sideband")
-#"ptyrat_l15o110" "Zfsrpeak" "lowIDMVA")
-
+VBF_cr_regions=("sideband" "ptyrat_l15o110" "Zfsrpeak" "lowIDMVA" "Zfsrpeak_NOT_dijet_m_g800" "Zfsrpeakdijet_m_g800" "sideband_NOT_dijet_m_g800" "sidebanddijet_m_g800")
 
 for control_region in ${VBF_cr_regions[@]}
 do
@@ -138,10 +140,10 @@ do
   do
 
     VBF_control_regions_plots1_ee="\
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
@@ -152,10 +154,10 @@ do
     "
 
     VBF_control_regions_plots1_mumu="\
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
@@ -166,14 +168,14 @@ do
     "
 
     VBF_control_regions_plots1_ll="\
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__gamma_pT__photon_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__gamma_eta__photon_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_VBF_${lep}_${control_region}_VBF__gamma_phi__photon_phi0__wgt__lumi_lin.pdf \
@@ -215,9 +217,9 @@ do
     "
 
 
-    if [["${lep}"=="ee"]]; then
+    if [ "$lep"=="ee" ]; then
       ./scripts/pdf_combine.py -i $VBF_control_regions_plots1_ee -o plots/VBF_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
-    elif[["${lep}"=="mumu"]]; then
+    elif [ "$lep"=="mumu" ]; then
       ./scripts/pdf_combine.py -i $VBF_control_regions_plots1_mumu -o plots/VBF_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
     else
       ./scripts/pdf_combine.py -i $VBF_control_regions_plots1_ll -o plots/VBF_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 4 -f
@@ -259,8 +261,7 @@ ${plot_folder}/an_controlregions_cat_VBF_ll_lowIDMVA_VBF__lly_m__mlly__wgt__lumi
 ##########################################################################################################################
 
 ########################################################################################################################
-WH_3l_cr_regions=("sideband")
-#"ptyrat_l15o110" "Zfsrpeak" "lowIDMVA")
+WH_3l_cr_regions=("sideband" "ptyrat_l15o110" "Zfsrpeak" "lowIDMVA")
 
 for control_region in ${WH_3l_cr_regions[@]}
 do
@@ -268,32 +269,32 @@ do
   do
 
     WH_3l_control_regions_plots1_ee="\
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l_e3_pt__l3_pt__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l_mu3_pt__l3_pt__wgt__lumi_lin.pdf \
     "
 
     WH_3l_control_regions_plots1_mumu="\
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l_e3_pt__l3_pt__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l_mu3_pt__l3_pt__wgt__lumi_lin.pdf \
     "
 
     WH_3l_control_regions_plots1_ll="\
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l_e3_pt__l3_pt__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_WH_3l_${lep}_${control_region}_WH_3l_mu3_pt__l3_pt__wgt__lumi_lin.pdf \
     "
@@ -330,9 +331,9 @@ do
     "
 
 
-    if [["${lep}"=="ee"]]; then
+    if [ "$lep"=="ee" ]; then
       ./scripts/pdf_combine.py -i $WH_3l_control_regions_plots1_ee -o plots/WH_3l_cr_${control_region}_${lep}_plots_part1.pdf -x 3 -y 2 -f
-    elif[["${lep}"=="mumu"]]; then
+    elif [ "$lep"=="mumu" ]; then
       ./scripts/pdf_combine.py -i $WH_3l_control_regions_plots1_mumu -o plots/WH_3l_cr_${control_region}_${lep}_plots_part1.pdf -x 3 -y 2 -f
     else
       ./scripts/pdf_combine.py -i $WH_3l_control_regions_plots1_ll -o plots/WH_3l_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
@@ -373,8 +374,7 @@ ${plot_folder}/an_controlregions_cat_WH_3l_ll_lowIDMVA_WH_3l__lly_m__mlly__wgt__
 ########################################################################################################################
 #ZH_MET only control region plots
 
-ZH_MET_cr_regions=("sideband")
-#"ptyrat_l15o110" "Zfsrpeak" "lowIDMVA")
+ZH_MET_cr_regions=("sideband" "ptyrat_l15o110" "Zfsrpeak" "lowIDMVA")
 
 for control_region in ${ZH_MET_cr_regions[@]}
 do
@@ -382,10 +382,10 @@ do
   do
 
     ZH_MET_control_regions_plots1_ee="\
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
@@ -393,10 +393,10 @@ do
     "
 
     ZH_MET_control_regions_plots1_mumu="\
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
@@ -404,14 +404,14 @@ do
     "
 
     ZH_MET_control_regions_plots1_ll="\
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
@@ -446,10 +446,10 @@ do
     ${plot_folder}/an_controlregions_cat_ZH_MET_${lep}_${control_region}_ZH_MET_pTt__llgamma_pTt__wgt__lumi_lin.pdf \
     "
 
-    if [["${lep}"=="ee"]]; then
-      ./scripts/pdf_combine.py -i $ZH_MET_control_regions_plots1_ee -o plots/ZH_MET_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
-    elif[["${lep}"=="mumu"]]; then
-      ./scripts/pdf_combine.py -i $ZH_MET_control_regions_plots1_mumu -o plots/ZH_MET_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
+    if [ "$lep"=="ee" ]; then
+      ./scripts/pdf_combine.py -i $ZH_MET_control_regions_plots1_ee -o plots/ZH_MET_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 2 -f
+    elif [ "$lep"=="mumu" ]; then
+      ./scripts/pdf_combine.py -i $ZH_MET_control_regions_plots1_mumu -o plots/ZH_MET_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 2 -f
     else
       ./scripts/pdf_combine.py -i $ZH_MET_control_regions_plots1_ll -o plots/ZH_MET_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
     fi
@@ -489,8 +489,7 @@ ${plot_folder}/an_controlregions_cat_ZH_MET_ll_lowIDMVA_ZH_MET__lly_m__mlly__wgt
 
 ########################################################################################################################
 #ttH_had only control region plots
-ttH_had_cr_regions=("sideband")
-#"ptyrat_l15o110" "Zfsrpeak" "lowIDMVA")
+ttH_had_cr_regions=("sideband" "ptyrat_l15o110" "Zfsrpeak" "lowIDMVA" "Zfsrpeak_NOT_metg50" "Zfsrpeakmetg50")
 
 for control_region in ${ttH_had_cr_regions[@]}
 do
@@ -498,10 +497,10 @@ do
   do
 
     ttH_had_control_regions_plots1_ee="\
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
@@ -509,10 +508,10 @@ do
     "
 
     ttH_had_control_regions_plots1_mumu="\
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
@@ -520,14 +519,14 @@ do
     "
 
     ttH_had_control_regions_plots1_ll="\
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
@@ -562,9 +561,9 @@ do
     ${plot_folder}/an_controlregions_cat_ttH_had_${lep}_${control_region}_ttH_had_ptj_m5j__ptj_m5j__wgt__lumi_lin.pdf \
     "
 
-    if [["${lep}"=="ee"]]; then
+    if [ "$lep"=="ee" ]; then
       ./scripts/pdf_combine.py -i $ttH_had_control_regions_plots1_ee -o plots/ttH_had_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 2 -f
-    elif[["${lep}"=="mumu"]]; then
+    elif [ "$lep"=="mumu" ]; then
       ./scripts/pdf_combine.py -i $ttH_had_control_regions_plots1_mumu -o plots/ttH_had_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 2 -f
     else
       ./scripts/pdf_combine.py -i $ttH_had_control_regions_plots1_ll -o plots/ttH_had_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f
@@ -604,18 +603,17 @@ ${plot_folder}/an_controlregions_cat_ttH_had_ll_lowIDMVA_ttH_had__lly_m__mlly__w
 
 ########################################################################################################################
 #ttH_lep only control region plots
-ttH_lep_cr_regions=("sideband")
-#"ptyrat_l15o110" "Zfsrpeak" "lowIDMVA")
+ttH_lep_cr_regions=("sideband" "ptyrat_l15o110" "Zfsrpeak" "lowIDMVA" "Zfsrpeak_NOT_metg50" "Zfsrpeakmetg50" "sideband_NOT_metg50" "sidebandmetg50")
 
 for control_region in ${ttH_lep_cr_regions[@]}
 do
   for lep in ${flavor[@]}
   do
     ttH_lep_control_regions_plots1_ee="\
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
@@ -623,10 +621,10 @@ do
     "
 
     ttH_lep_control_regions_plots1_mumu="\
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
@@ -634,14 +632,14 @@ do
     "
 
     ttH_lep_control_regions_plots1_ll="\
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__10_pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__10_pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__11_eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__11_eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__10_pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__10_pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__11_eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
-    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__11_eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__pt_el1__el_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__pt_el2__el_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__eta_el1__el_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__eta_el2__el_etall_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__pt_mu1__mu_ptll_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__pt_mu2__mu_ptll_i20__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__eta_mu1__mu_etall_i10__wgt__lumi_lin.pdf \
+    ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__eta_mu2__mu_etall_i20__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_pt__ll_pt0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_eta__ll_eta0__wgt__lumi_lin.pdf \
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep__ll_phi__ll_phi0__wgt__lumi_lin.pdf \
@@ -681,9 +679,9 @@ do
     ${plot_folder}/an_controlregions_cat_ttH_lep_${lep}_${control_region}_ttH_lep_H_Z_dR__H_Z_dR__wgt__lumi_lin.pdf \
     "
 
-    if [["${lep}"=="ee"]]; then
+    if [ "$lep"=="ee" ]; then
       ./scripts/pdf_combine.py -i $ttH_lep_control_regions_plots1 -o plots/ttH_lep_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 2 -f
-    elif[["${lep}"=="mumu"]]; then
+    elif [ "$lep"=="mumu" ]; then
       ./scripts/pdf_combine.py -i $ttH_lep_control_regions_plots1 -o plots/ttH_lep_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 2 -f
     else
       ./scripts/pdf_combine.py -i $ttH_lep_control_regions_plots1 -o plots/ttH_lep_cr_${control_region}_${lep}_plots_part1.pdf -x 4 -y 3 -f

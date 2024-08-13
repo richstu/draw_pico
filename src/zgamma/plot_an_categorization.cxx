@@ -62,7 +62,7 @@ int main() {
   vector<PlotOpt> ops = {lin_lumi()};
 
   //Uses txt/zg_samples.txt to define needed processes
-  vector<shared_ptr<Process>> procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsHmumu",10);
+  vector<shared_ptr<Process>> procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigs",10);
  // vector<shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","All");
 
 
@@ -97,6 +97,7 @@ int main() {
   PlotMaker pm;
   string plot_lab = "";
   NamedFunc sel_cat = "1";
+  int Ncategories = 6;
 
   //Makes plots with the tightened baseline selection
   for(unsigned int idx_plt = 0; idx_plt < NamedFunc_loop.size(); idx_plt++){
@@ -106,6 +107,13 @@ int main() {
 
     pm.Push<Hist1D>(Axis(70, 50, 120,  "ll_m[0]",       "m_{ll} [GeV]", {}),       sel_cat, procs, ops).Weight(wgt).Tag("ShortName:an_categorization_" + plot_lab + "_ll_m");
     pm.Push<Hist1D>(Axis(40, 100, 180, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}), sel_cat, procs, ops).Weight(wgt).Tag("ShortName:an_categorization_" + plot_lab + "_llphoton_m");
+ 
+    if(idx_plt%Ncategories==0){ CatUtilities::ttH_lep_controlregion_plots(pm,sel_cat,procs,ops,wgt,plot_lab); continue;}
+    if(idx_plt%Ncategories==1){ CatUtilities::ttH_had_controlregion_plots(pm,sel_cat,procs,ops,wgt,plot_lab); continue;}
+    if(idx_plt%Ncategories==2){  CatUtilities::ZH_MET_controlregion_plots(pm,sel_cat,procs,ops,wgt,plot_lab); continue;}
+    if(idx_plt%Ncategories==3){   CatUtilities::WH_3l_controlregion_plots(pm,sel_cat,procs,ops,wgt,plot_lab); continue;}
+    if(idx_plt%Ncategories==4){     CatUtilities::VBF_controlregion_plots(pm,sel_cat,procs,ops,wgt,plot_lab); continue;}
+    if(idx_plt%Ncategories==5){     CatUtilities::ggF_controlregion_plots(pm,sel_cat,procs,ops,wgt,plot_lab); continue;}
 
     pm.Push<Hist2D>(
       Axis(70,50,120,  "ll_m[0]", "m_{ll} [GeV]", {}),
@@ -124,6 +132,6 @@ int main() {
   pm.multithreaded_ = true;
 
   //Luminosity option for the plots
-  pm.SetLuminosityTag("200").MakePlots(1.0);
+  pm.SetLuminosityTag("137.61").MakePlots(1.0);
 
 }

@@ -8,3 +8,13 @@
  ttx      255 158 195
  vv        85   0 255
  fakelep    9 186   1
+ tthzg    193   0 255
+ zhzg       0 255 166
+ vhzg      65  85 255
+ vbfzg     36 198   0
+ blue       0   0 255
+ htomumu  255   0 172
+ htogg    221 255   5   
+ htott      7 208   2
+ htoWW      1  22 255
+ htoZZ    255 177   0 

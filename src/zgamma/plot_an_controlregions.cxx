@@ -45,21 +45,37 @@ int main(int argc, char *argv[]) {
   //Determines whether or not to plot all control regions. 
   //To plot all give the input of "all" as the first input argument
   bool   plot_all    = false;
+  bool   run3_plots  = false;
   string plot_option = "";
+  string year_select = "";
 
   if(argc > 1){
     plot_option = argv[1];
   }
+
+  //Parse input options
   if(plot_option == "all"){
     plot_all = true;
-    std::cout << "Selected option to plot all control regions. Note this will take longer than just plotting the sideband control region." << std::endl; 
+    std::cout << "Selected option to plot all control regions. Note this will take longer than just plotting the sideband control region." << std::endl;
+  } else if(plot_option == "year") {
+    if(argc < 2){std::cout <<  "Please provide a year as the second option." << std::endl;return -1; }
+    year_select = argv[2];
+    if(contains(year_select,"2022") || contains(year_select,"2023")){run3_plots = true;}
+    std::cout << "Selected the year option: " << year_select << endl;
+  } else if(plot_option == "sideband_r2"){
+    std::cout << "Selected default to print just sideband control region. Using skimmed picos." << std::endl; 
+  } else if(plot_option == "sideband_r3"){
+    run3_plots = true;
+    year_select = "run3";
+    std::cout << "Selected default to print just sideband control region for Run 3. Using skimmed picos." << std::endl;
   } else {
     std::cout << "Selected default to print just sideband control region. Using skimmed picos." << std::endl;
+    //return -1;
   }
 
   //Select a single category to run the plots over.
   int category = -1;
-  if(argc > 2){
+  if(argc > 2 && plot_option!="year"){
     category = atoi(argv[2]);
   }
 
@@ -67,8 +83,44 @@ int main(int argc, char *argv[]) {
   Palette colors("txt/colors.txt","default");
   NamedFunc type("rtype",  [](const Baby &b) -> NamedFunc::ScalarType{ return b.type(); });
 
+  string lumi_label = "137.61";
   //Declares the samples  
   vector<shared_ptr<Process>> procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData",10);
+  //vector<shared_ptr<Process>> procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigs",10);
+
+  if(year_select=="2016"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData2016",10);
+     lumi_label = "19.51";
+  } else if(year_select=="2016APV"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData2016APV",10);
+     lumi_label = "16.80";
+  } else if(year_select=="2017"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData2017",10);
+     lumi_label = "41.48";
+  } else if(year_select=="2018"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData2018",10);
+     lumi_label = "59.83";
+  } else if(year_select=="2022"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData2022",10);
+     lumi_label = "8.17";
+  } else if(year_select=="2022EE"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData2022EE",10);
+     lumi_label = "27.01";
+  } else if(year_select=="2023"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData2023",10);
+     lumi_label = "17.61";
+  } else if(year_select=="2023BPix"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData2023BPix",10);
+     lumi_label = "9.53";
+  } else if(year_select=="run3"){
+     procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsDataRunThree",10);
+     lumi_label = "62.32";
+  } else if(plot_option=="year"){
+     std::cout << "Please enter a valid year (2016,2016APV,2017,2018)" << std::endl;
+     return -1;
+  } else {
+    cout << "Using Run 2 samples" << endl; 
+  }
   //vector<shared_ptr<Process>> procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","MinimalMoreTrigsData",10);
 
   if(plot_all){
@@ -78,7 +130,6 @@ int main(int argc, char *argv[]) {
   PlotOpt lin_lumi("txt/plot_styles.txt","Std1D");
   lin_lumi.Title(TitleType::info)
           .YAxis(YAxisType::linear)
-          .Stack(StackType::data_norm)
           .Overflow(OverflowType::both)
           .YTitleOffset(1.)
           .LogMinimum(0.001)
@@ -88,8 +139,9 @@ int main(int argc, char *argv[]) {
           .LegendColumns(1)
           .CanvasWidth(1077)
           .CanvasWidth(900)
-          .FileExtensions({"pdf"})
-          .Bottom(BottomType::ratio);
+          .FileExtensions({"pdf"});
+
+  if(!contains(year_select,"2023")){ lin_lumi.Bottom(BottomType::ratio).Stack(StackType::data_norm); }
 
   PlotOpt style("txt/plot_styles.txt","Eff2D");
   vector<PlotOpt> bkg_hist = {style().Stack(StackType::data_norm)
@@ -107,9 +159,11 @@ int main(int argc, char *argv[]) {
 
   NamedFunc tightbase  = ZgFunctions::tightened_baseline && "llphoton_m[0] < 122 || llphoton_m[0] > 128";
   NamedFunc Nllgamma_g0_minsel = hasNll && hasNanoPhoton;
+
   //Various control regions. Default option only plots the sideband region
   vector<NamedFunc> controlregions_vec = { tightbase };
   vector<string> cr_str_vec        = {"_sideband"};
+
   if(plot_all==true){
     controlregions_vec = {tightbase, Nllgamma_g0_minsel && Nreverse1(ZgFunctions::vector_tightened_baseline, 4), 
                       Nllgamma_g0_minsel && Nminusk(ZgFunctions::vector_tightened_baseline,{5,6,7}) && "ll_m[0] < 80 && llphoton_m[0] < 100",
@@ -118,22 +172,21 @@ int main(int argc, char *argv[]) {
 
   }
 
+  if(plot_option=="year"){
+    for(unsigned int idx_str = 0; idx_str < cr_str_vec.size(); idx_str++){
+      cr_str_vec[idx_str] = cr_str_vec[idx_str] + "_" + year_select;  
+    }
+  }
 
   //Map is used to see if a category has a specific control region binning. The keys here are 10*category + idx_of_control_region
   //The map itself does not contain the selections because a map<int,NamedFunc> was complaining about trying to access a private contructor
-
   std::vector<NamedFunc> map_pair_selections = {"met > 50", (pTlly_mlly < 0.4), (l3_mini > 0.15), "dijet_m > 800"};
 
   //move this to tuple
   std::unordered_map<int,int>    category_specific_control_regions = {{2, 0}, {0, 0}, {12, 0}, {22, 1}, {32, 2}, {42, 3}, {40, 3}};
   std::unordered_map<int,int>    category_specific_control_regions_whbs = {{2, -1}, {0, -1}, {12, -1}, {22, 0}, {32, 0}, {42, -1}, {40, -1}};
-  std::unordered_map<int,string> category_specific_control_regions_names = {{2, "metg50"},
-                                                             {0,  "metg50"},
-                                                             {12, "metg50"},
-                                                             {22, "pTlly_mlly_l0p4"},
-                                                             {32, "l3_mini_g0p15"},
-                                                             {42, "dijet_m_g800"},
-                                                             {40, "dijet_m_g800"}};
+  std::unordered_map<int,string> category_specific_control_regions_names = {{2, "metg50"},         {0,  "metg50"},       {12, "metg50"},       {22, "pTlly_mlly_l0p4"}, 
+                                                                            {32, "l3_mini_g0p15"}, {42, "dijet_m_g800"}, {40, "dijet_m_g800"}, {10, "metg50"}};
  
 
   //Standard lepton flavor splits and string for each split
@@ -176,7 +229,8 @@ int main(int argc, char *argv[]) {
             control_region_selection = control_region_selection && CatUtilities::run3_catwsel_nomll_vector[idx_cat];
           //Otherwise set the selection to the full category specific selection
           } else {
-            control_region_selection = control_region_selection && CatUtilities::run3_catwsel_vector[idx_cat]; 
+            //control_region_selection = control_region_selection && CatUtilities::run3_catwsel_vector[idx_cat];
+            control_region_selection = control_region_selection && CatUtilities::run3_category_vector[idx_cat]; 
           }
 
           //Adding this control region to the ones that we want to plot
@@ -265,8 +319,8 @@ int main(int argc, char *argv[]) {
       selection = NamedFunc_vector[idx_sel];
       labels = string_vector[idx_sel];
  
-      if(idx_sel%Ncategories==0){ CatUtilities::ttH_lep_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
-      if(idx_sel%Ncategories==1){ CatUtilities::ttH_had_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
+      if(idx_sel%Ncategories==0){ CatUtilities::ttH_lep_controlregion_plots(pm,selection,procs,ops,wgt,labels,run3_plots); continue;}
+      if(idx_sel%Ncategories==1){ CatUtilities::ttH_had_controlregion_plots(pm,selection,procs,ops,wgt,labels,run3_plots); continue;}
       if(idx_sel%Ncategories==2){  CatUtilities::ZH_MET_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
       if(idx_sel%Ncategories==3){   CatUtilities::WH_3l_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
       if(idx_sel%Ncategories==4){     CatUtilities::VBF_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
@@ -277,8 +331,8 @@ int main(int argc, char *argv[]) {
       selection = NamedFunc_vector[idx_sel];
       labels = string_vector[idx_sel];
  
-      if(category==0){ CatUtilities::ttH_lep_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
-      if(category==1){ CatUtilities::ttH_had_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
+      if(category==0){ CatUtilities::ttH_lep_controlregion_plots(pm,selection,procs,ops,wgt,labels,run3_plots); continue;}
+      if(category==1){ CatUtilities::ttH_had_controlregion_plots(pm,selection,procs,ops,wgt,labels,run3_plots); continue;}
       if(category==2){  CatUtilities::ZH_MET_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
       if(category==3){   CatUtilities::WH_3l_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
       if(category==4){     CatUtilities::VBF_controlregion_plots(pm,selection,procs,ops,wgt,labels); continue;}
@@ -287,9 +341,9 @@ int main(int argc, char *argv[]) {
   }
   cout << "Running over event loop" << endl;
 
-  //Setting luminosity equal to Run 2. Right now this makes control regions only for inclusive Run 2 data
+  //Setting luminosity based on lumi_labels.
   pm.min_print_ = true;
-  pm.SetLuminosityTag("137.61").MakePlots(1);
+  pm.SetLuminosityTag(lumi_label).MakePlots(1);
 }
 
 

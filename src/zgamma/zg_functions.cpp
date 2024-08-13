@@ -257,6 +257,8 @@ namespace ZgFunctions {
 
   //Below is the tightened baseline with the photon wp80 and the 80 GeV < mll < 100 GeV selection
   const NamedFunc tightened_baseline= "nllphoton>0" && pass_trigs_and_pt && "photon_id80[0] && photon_pt[0]/llphoton_m[0] > 15.0/110 && ll_m[0] > 80 && ll_m[0] < 100 && llphoton_m[0] > 100 && llphoton_m[0] < 180 && ll_m[0] + llphoton_m[0] > 185";
+  const NamedFunc tightened_baseline_refit= "nllphoton>0" && pass_trigs_and_pt && "photon_id80[0] && photon_pt[0]/llphoton_refit_m > 15.0/110 && ll_refit_m > 80 && ll_refit_m < 100 && llphoton_refit_m > 100 && llphoton_refit_m < 180 && ll_refit_m + llphoton_refit_m > 185";
+
 
 
 
@@ -266,9 +268,19 @@ namespace ZgFunctions {
       return 1;
     }
     double w_year = w_years.GetScalar(b);
-    if( b.type() == 30000){ w_year=w_year*10;}
-    double weight_fix = b.w_lumi()*b.w_lep()*b.w_fs_lep()*b.w_bhig_df()*b.w_isr()*b.w_pu()*b.w_prefire()*b.w_photon();
-    return weight_fix*w_year;
+    if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
+    //double weight_fix = b.w_lumi()*b.w_lep()*b.w_fs_lep()*b.w_bhig_df()*b.w_isr()*b.w_pu()*b.w_prefire()*b.w_photon();
+    return b.weight()*w_year;
+  });
+
+  const NamedFunc wgt_wlumi("wgt_wlumi",[](const Baby &b) -> NamedFunc::ScalarType{ 
+    if(b.SampleTypeString().Contains("-")) {
+      return 1;
+    }
+    double w_year = w_years.GetScalar(b);
+    if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
+    //double weight_fix = b.w_lumi()*b.w_lep()*b.w_fs_lep()*b.w_bhig_df()*b.w_isr()*b.w_pu()*b.w_prefire()*b.w_photon();
+    return b.w_lumi()*w_year;
   });
 
   const NamedFunc wgt_nodiff("wgt_nodiff",[](const Baby &b) -> NamedFunc::ScalarType{ 
