@@ -34,19 +34,33 @@ using namespace CatUtilities;
 int main(int argc, char *argv[]) {
   cout << "Plotting kinematic fit plots" << endl;
 
-  bool plot_data = false;
-  string data_select = (argc > 1) ? argv[1] : ""; 
+  bool plot_data = false; bool era_select = true; 
+  string era_select_string  = (argc > 1) ? argv[1] : "";
+  string data_select_string = (argc > 2) ? argv[2] : ""; 
 
-  if(data_select=="data"){
-    plot_data = true;
+  if(era_select_string=="run3"){  era_select = true; }
+  if(data_select_string=="data"){ plot_data  = true; } 
+
+  //Uses txt/zg_samples.txt to define needed processes
+  vector<shared_ptr<Process>> procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData",10);
+  if(!plot_data && !era_select){
+    cout << "Plotting Run 2 MC only." << endl;
+    procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigs",10);
+  } else if(!plot_data && era_select){
+    cout << "Plotting Run 3 MC only." << endl;
+    procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsRun3",10);
+  } else if(plot_data && era_select){
+    cout << "Plotting Run 3 data and MC only." << endl;
+    procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsDataRun3",10);
+  } else {
+    cout << "Plotting data and MC." << endl;
   }
-  
 
   gErrorIgnoreLevel = 6000;
   Palette colors("txt/colors.txt","default");
 
   //Defines the plot options for 1D and 2D plots
-  PlotOpt lin_lumi("txt/plot_styles.txt","Std1D");
+  PlotOpt lin_lumi("txt/plot_styles.txt","CMSPaper");
   lin_lumi.Title(TitleType::info)
           .YAxis(YAxisType::linear)
           .Stack(StackType::data_norm)
@@ -57,7 +71,7 @@ int main(int argc, char *argv[]) {
           .LeftMargin(0.17)
           .LegendColumns(1)
           .CanvasWidth(1077)
-          .FileExtensions({"pdf"});
+          .FileExtensions({"pdf","root"});
 
   PlotOpt style("txt/plot_styles.txt","Eff2D");
   vector<PlotOpt> ops_2D = {style().Stack(StackType::data_norm)
@@ -75,15 +89,6 @@ int main(int argc, char *argv[]) {
   cout << "Adding samples." << endl;
 
 
-  //Uses txt/zg_samples.txt to define needed processes
-  vector<shared_ptr<Process>> procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData",10);
-  if(!plot_data){
-    cout << "Plotting MC only." << endl;
-    procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigs",10);
-  } else {
-    cout << "Plotting data and MC." << endl;
-  }
-
   //This defines the splits based on lepton flavor that will be plotted
   vector<NamedFunc> lep = {"ll_lepid[0]==11","ll_lepid[0]==13","1"};
   vector<string> lep_lab= {"_ee", "_mumu", "_ll"};
@@ -96,12 +101,6 @@ int main(int argc, char *argv[]) {
   //These are all the selections used as a part of the baseline selection from the zg_functions.cpp file
   NamedFunc tight_baseline = ZgFunctions::tightened_baseline;
   NamedFunc tight_baseline_minus_mll = Nminusk(ZgFunctions::vector_tightened_baseline,{5});
-
-  //If plotting data blind the signal region
-  //if(plot_data){
-  //  tight_baseline = tight_baseline && "llphoton_m[0] < 120 || llphoton_m[0] > 130";
-  //  tight_baseline_minus_mll = tight_baseline_minus_mll && "llphoton_m[0] < 120 || llphoton_m[0] > 130";
-  //}
 
   //This block of code loops through to create the NamedFuncs for each category
   //The purpose is to only require one loop while making plots
@@ -132,11 +131,12 @@ int main(int argc, char *argv[]) {
     pltNames = string_loop_label[idx_plt];
     if(plot_data){pltNames = pltNames + "_DATA"; }
 
+    NamedFunc not_hwin = "llphoton_m[0] < 120 || llphoton_m[0] > 130";
     sel_cat  = NamedFunc_loop_nomll[idx_plt];
     sel_cat_rf = sel_cat;
     if(plot_data){
-      sel_cat_rf = sel_cat && "llphoton_refit_m < 122 || llphoton_refit_m > 128";
-      sel_cat = sel_cat && "llphoton_m[0] < 122 || llphoton_m[0] > 128";
+      sel_cat_rf = sel_cat && not_hwin;
+      sel_cat = sel_cat && not_hwin;
     }
 
     //No refit no mll selection

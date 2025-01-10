@@ -37,7 +37,12 @@ namespace CatUtilities {
       {"2016", std::vector<float>({0.0614, 0.3093, 0.7221})},
       {"2016APV", std::vector<float>({0.0614, 0.3093, 0.7221})},
       {"2017", std::vector<float>({0.0521, 0.3033, 0.7489})},
-      {"2018", std::vector<float>({0.0494, 0.2770, 0.7264})}
+      {"2018", std::vector<float>({0.0494, 0.2770, 0.7264})},
+      {"2022", std::vector<float>({0.047,  0.245,  0.6734})},
+      {"2022EE", std::vector<float>({0.0499, 0.2605, 0.6915})},  
+      {"2023", std::vector<float>({0.0358, 0.1917, 0.6172})},
+      {"2023BPix", std::vector<float>({0.0359, 0.1919, 0.6133})}
+
     };
   
     if(deep_flav < btag_df_wpts[year][lmt]){return false;}
@@ -65,7 +70,7 @@ namespace CatUtilities {
 
     for(unsigned int idx = 0; idx < b.jet_pt() -> size(); idx++){
       if(!(b.jet_isgood() -> at(idx))){continue;}
-      if(!btag_DF_pass( b.SampleTypeString() , b.jet_deepflav()->at(idx),lmt ) ){continue;}
+      if(!btag_DF_pass( b.SampleTypeString() , b.jet_btagpnetb()->at(idx),lmt ) ){continue;}
       b_jet.SetPtEtaPhiM(b.jet_pt() -> at(idx), b.jet_eta() -> at(idx),b.jet_phi() -> at(idx),b.jet_m() -> at(idx));
       bb += b_jet;
       count++;
@@ -596,6 +601,19 @@ int N_OSSF_leppairs(const Baby &b){
     return l3.Pt();
   }
 
+  double l3_eta_d(const Baby &b){
+    TLorentzVector l3;
+    l3 = AssignL3(b);
+    return l3.Eta();
+  }
+
+  double l3_phi_d(const Baby &b){
+    TLorentzVector l3;
+    l3 = AssignL3(b);
+    return l3.Phi();
+  }
+
+
   //Returns the pT of the fourth lepton
   double l4_pt_d(const Baby &b){
     TLorentzVector l4;
@@ -907,21 +925,25 @@ int N_OSSF_leppairs(const Baby &b){
   const NamedFunc j2_pt("j2_pt",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_pt() -> at(idx_j2(b));});
   const NamedFunc j3_pt("j3_pt",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_pt() -> at(idx_jN(b,3));});
   const NamedFunc j4_pt("j4_pt",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_pt() -> at(idx_jN(b,4));});
+  const NamedFunc j5_pt("j5_pt",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_pt() -> at(idx_jN(b,5));});
 
   const NamedFunc j1_eta("j1_eta",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_eta() -> at(idx_j1(b));});
   const NamedFunc j2_eta("j2_eta",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_eta() -> at(idx_j2(b));});
   const NamedFunc j3_eta("j3_eta",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_eta() -> at(idx_jN(b,3));});
   const NamedFunc j4_eta("j4_eta",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_eta() -> at(idx_jN(b,4));});
+  const NamedFunc j5_eta("j5_eta",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_eta() -> at(idx_jN(b,5));});
 
   const NamedFunc j1_phi("j1_phi",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_phi() -> at(idx_j1(b));});
   const NamedFunc j2_phi("j2_phi",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_phi() -> at(idx_j2(b));});
   const NamedFunc j3_phi("j3_phi",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_phi() -> at(idx_jN(b,3));});
   const NamedFunc j4_phi("j4_phi",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_phi() -> at(idx_jN(b,4));});
+  const NamedFunc j5_phi("j5_phi",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_phi() -> at(idx_jN(b,5));});
 
   const NamedFunc j1_m("j1_m",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_m() -> at(idx_j1(b));});
   const NamedFunc j2_m("j2_m",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_m() -> at(idx_j2(b));});
   const NamedFunc j3_m("j3_m",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_m() -> at(idx_jN(b,3));});
   const NamedFunc j4_m("j4_m",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_m() -> at(idx_jN(b,4));});
+  const NamedFunc j5_m("j5_m",[](const Baby &b) -> NamedFunc::ScalarType{return b.jet_m() -> at(idx_jN(b,5));});
 
   const NamedFunc N_SF_lpairs("N_SF_lpairs",[](const Baby &b) -> NamedFunc::ScalarType{return N_SF_leppairs(b);});
   const NamedFunc N_OSSF_lpairs("N_OSSF_lpairs",[](const Baby &b) -> NamedFunc::ScalarType{return N_OSSF_leppairs(b);});
@@ -948,6 +970,10 @@ int N_OSSF_leppairs(const Baby &b){
   const NamedFunc pTlly_mlly_refit("pTlly_mlly_refit",[](const Baby &b) -> NamedFunc::ScalarType{return lly_refit_ptom_d(b);});
 
   const NamedFunc l3_pt("l3_pt",[](const Baby &b) -> NamedFunc::ScalarType{return l3_pt_d(b);});
+  const NamedFunc l3_eta("l3_eta",[](const Baby &b) -> NamedFunc::ScalarType{return l3_eta_d(b);});
+  const NamedFunc l3_phi("l3_phi",[](const Baby &b) -> NamedFunc::ScalarType{return l3_phi_d(b);});
+
+
   const NamedFunc l3_idmva("l3_idmva",[](const Baby &b) -> NamedFunc::ScalarType{return l3_idmva_d(b);});
   const NamedFunc l3_mini("l3_mini",[](const Baby &b) -> NamedFunc::ScalarType{return l3_Imini_d(b);});
   const NamedFunc l3_flav("l3_flav",[](const Baby &b) -> NamedFunc::ScalarType{return L3_flav_i(b);});
@@ -1018,6 +1044,11 @@ int N_OSSF_leppairs(const Baby &b){
 
   const NamedFunc ZH_4l_eptcuts  = l3_pt > 20 && l4_pt > 20 && l3_flav==11 && l4_flav==11;
   const NamedFunc ZH_4l_muptcuts = l3_pt > 15 && l4_pt > 15 && l3_flav==13 && l4_flav==13;
+  const NamedFunc cat_ZH_4l   = "(nlep>=4 && nbdfm==0)" && N_OSSF_lpairs;
+  const NamedFunc cat_ZH_2bl  = "(nlep==2 && nbdfm==2 && njet<=5)";
+
+  const NamedFunc baseline_ZH_4l   = "ll_m[0] > 85 && ll_m[0] < 95" && max_Imini < 0.15 && (ZH_4l_eptcuts || ZH_4l_muptcuts);
+  const NamedFunc baseline_ZH_2bl  = "met < 75" &&  max_particlenet > 0.5;//mbb > 50 && mbb < 130 &&
 
   const NamedFunc baseline_ttH_lep =  max_Imini < 0.1 && "ll_m[0] > 85 && ll_m[0] < 95";
   const NamedFunc baseline_ttH_had = "ll_m[0] > 85 && ll_m[0] < 95";
@@ -1063,6 +1094,9 @@ int N_OSSF_leppairs(const Baby &b){
 
   const std::vector<std::string> run3_category_labels = {"cat_ttH_lep","cat_ttH_had","cat_ZH_MET","cat_WH_3l","cat_VBF","cat_ggF"}; 
 
+  const std::vector<NamedFunc> run3_catbs_vector = {baseline_ttH_lep, baseline_ttH_had, baseline_ZH_met, baseline_WH_3l, "1", "1"};
+  const std::vector<NamedFunc> run3_catbs_nomll_vector  = {baseline_nomll_ttH_lep, baseline_nomll_ttH_had, baseline_nomll_ZH_met, baseline_nomll_WH_3l, "1", "1"}; 
+
 
   //Some repeat functions not used outside of categorization utilities  
   const NamedFunc pTy_mlly("pTy_mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.photon_pt()->at(0))/ZgUtilities::Findlly(b); });
@@ -1072,6 +1106,9 @@ int N_OSSF_leppairs(const Baby &b){
   const NamedFunc rap_lly("rap_lly",[](const Baby &b) -> NamedFunc::ScalarType{   return AssignH(b).Rapidity(); });
   const NamedFunc phi_lly("phi_lly",[](const Baby &b) -> NamedFunc::ScalarType{   return AssignH(b).Phi(); });
   const NamedFunc sigy_pTy("sigy_pTy",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.photon_energyErr() -> at(0))/(b.photon_pt()->at(0)); });
+
+  const NamedFunc rap_ll("rap_ll",[](const Baby &b) -> NamedFunc::ScalarType{   return AssignZ(b).Rapidity(); });
+
 
   const NamedFunc dR_lly_dijet("dR_lly_dijet",[](const Baby &b) -> NamedFunc::ScalarType{ return llgamma_dijet_deltaR_d(b); });
   const NamedFunc dphi_lly_dijet("dphi_lly_dijet",[](const Baby &b) -> NamedFunc::ScalarType{ return llgamma_dijet_dphi_d(b); });
@@ -1119,33 +1156,73 @@ int N_OSSF_leppairs(const Baby &b){
     pm.Push<Hist1D>(Axis(40,0.01,0.25,  "photon_energyErr[0]/photon_pt[0]", "#sigma(#gamma)/E(#gamma)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_relunc_");
   }
 
+  //Photon plots added to each category's plotting function
+  void sample_photon_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, int nbins, std::string labels){
+    pm.Push<Hist1D>(Axis(nbins,0.0,1,      "photon_idmva[0]", "#gamma - IDMVA",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_IDMVA_");
+    pm.Push<Hist1D>(Axis(nbins,0,3.5,      "photon_drmin[0]", "min( #Delta R(#gamma,l) )", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_minDR_");
+    pm.Push<Hist1D>(Axis(nbins,0,6.0,      "photon_drmax[0]", "max( #Delta R(#gamma,l) )", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_maxDR_");
+    pm.Push<Hist1D>(Axis(nbins,10,60,      "photon_pt[0]",    "p_{T}(#gamma) [GeV]",       {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_pT_");
+    pm.Push<Hist1D>(Axis(nbins,-2.6,2.6,   "photon_eta[0]",   "#eta(#gamma)",              {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_eta_");
+    pm.Push<Hist1D>(Axis(nbins,-3.15,3.15, "photon_phi[0]",   "#phi(#gamma)",              {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_phi_");
+    pm.Push<Hist1D>(Axis(nbins,0.01,0.25,  "photon_energyErr[0]/photon_pt[0]", "#sigma(#gamma)/E(#gamma)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_relunc_");
+  }
 
   //ll and llphoton plots added to each category's photon plots
   void sample_llphoton_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels){
     //checks for a specific case for control regions where we want 50 < mlly < 100
     if(contains(labels,"Zfsrpeak")){
-      pm.Push<Hist1D>(Axis(50,50,100,    mlly,          "m_{ll#gamma} [GeV]",     {122,128}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
+      pm.Push<Hist1D>(Axis(50,50,100,   mlly,        "m_{ll#gamma} [GeV]",     {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
     }else{
-      pm.Push<Hist1D>(Axis(40,100,180,    mlly,          "m_{ll#gamma} [GeV]",     {122,128}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
+      pm.Push<Hist1D>(Axis(40,100,180,  mlly,        "m_{ll#gamma} [GeV]",     {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
     }
-    pm.Push<Hist1D>(Axis(50,0,250,      pT_lly,        "p_{T}(ll#gamma) [GeV]",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_pt_");
-    pm.Push<Hist1D>(Axis(52,-5,5,       eta_lly,       "#eta(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_eta_");
-    pm.Push<Hist1D>(Axis(52,-5,5,       rap_lly,       "y(ll#gamma)",                   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_eta_");
-    pm.Push<Hist1D>(Axis(63,-3.15,3.15, phi_lly,       "#phi(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_phi_");
-    pm.Push<Hist1D>(Axis(40,0,2.5,      pTlly_mlly,    "p_{T}(ll#gamma)/m_{ll#gamma}", {1}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_ptom_");
-    pm.Push<Hist1D>(Axis(40,0,1.2,      pTy_mlly,      "p_{T}(#gamma)/m_{ll#gamma}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_y_ptom_");
-    pm.Push<Hist1D>(Axis(45,0,4.5,      lly_dR,        "#Delta R(ll,#gamma)",           {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_y_dR_");
+    pm.Push<Hist1D>(Axis(50,0,250,      pT_lly,      "p_{T}(ll#gamma) [GeV]",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_pt_");
+    pm.Push<Hist1D>(Axis(52,-5,5,       eta_lly,     "#eta(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_eta_");
+    pm.Push<Hist1D>(Axis(52,-3,3,       rap_lly,     "y(ll#gamma)",                   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_rap_");
+    pm.Push<Hist1D>(Axis(63,-3.15,3.15, phi_lly,     "#phi(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_phi_");
+    pm.Push<Hist1D>(Axis(40,0,2.5,      pTlly_mlly,  "p_{T}(ll#gamma)/m_{ll#gamma}", {1}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_ptom_");
+    pm.Push<Hist1D>(Axis(40,0,1.2,      pTy_mlly,    "p_{T}(#gamma)/m_{ll#gamma}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_y_ptom_");
+    pm.Push<Hist1D>(Axis(45,0,4.5,      lly_dR,      "#Delta R(ll,#gamma)",           {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_y_dR_");
 
-    pm.Push<Hist1D>(Axis(50,0,150,      "ll_pt[0]",  "p_{T}(ll) [GeV]",{}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_pt_");
-    pm.Push<Hist1D>(Axis(50,-5, 5,      "ll_eta[0]", "#eta(ll)",       {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_eta_");
-    pm.Push<Hist1D>(Axis(63,-3.15,3.15, "ll_phi[0]", "#phi(ll)",       {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_phi_");
-    pm.Push<Hist1D>(Axis(50,80,100,     "ll_m[0]",   "m_{ll} [GeV]",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_m_");
+    pm.Push<Hist1D>(Axis(50,0,150,      "ll_pt[0]",  "p_{T}(ll) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_pt_");
+    pm.Push<Hist1D>(Axis(50,-5, 5,      "ll_eta[0]", "#eta(ll)",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_eta_");
+    pm.Push<Hist1D>(Axis(52,-3,3,       rap_ll,     "y(ll)",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_rap_");
+    pm.Push<Hist1D>(Axis(63,-3.15,3.15, "ll_phi[0]", "#phi(ll)",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_phi_");
+    pm.Push<Hist1D>(Axis(50,80,100,     "ll_m[0]",   "m_{ll} [GeV]",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_m_");
+  }
+
+  void sample_llphoton_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, int nbins, std::string labels){
+    //checks for a specific case for control regions where we want 50 < mlly < 100
+    if(contains(labels,"Zfsrpeak")){
+      pm.Push<Hist1D>(Axis(nbins, 50, 100,   mlly,        "m_{ll#gamma} [GeV]", {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
+      pm.Push<Hist1D>(Axis(nbins, 50,  80,   "ll_m[0]",   "m_{ll} [GeV]",       {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_m_");
+    }else{
+      int nbins_mlly = nbins;
+      if(nbins < 16){ nbins_mlly = 8; 
+      } else if(nbins < 20){ nbins_mlly=16; 
+      }else if(nbins < 40){ nbins_mlly=20; }
+
+      pm.Push<Hist1D>(Axis(nbins_mlly, 100, 180,  mlly,      "m_{ll#gamma} [GeV]", {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
+      pm.Push<Hist1D>(Axis(nbins,       80, 100,  "ll_m[0]", "m_{ll} [GeV]",       {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_m_");
+    }
+    pm.Push<Hist1D>(Axis(nbins,0,250,      pT_lly,      "p_{T}(ll#gamma) [GeV]",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_pt_");
+    pm.Push<Hist1D>(Axis(nbins,-5,5,       eta_lly,     "#eta(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_eta_");
+    pm.Push<Hist1D>(Axis(nbins,-3,3,       rap_lly,     "y(ll#gamma)",                   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_rap_");
+    pm.Push<Hist1D>(Axis(nbins,-3.15,3.15, phi_lly,     "#phi(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_phi_");
+    pm.Push<Hist1D>(Axis(nbins,0,2.5,      pTlly_mlly,  "p_{T}(ll#gamma)/m_{ll#gamma}", {1}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_ptom_");
+    pm.Push<Hist1D>(Axis(nbins,0,1.2,      pTy_mlly,    "p_{T}(#gamma)/m_{ll#gamma}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_y_ptom_");
+    pm.Push<Hist1D>(Axis(nbins,0,4.5,      lly_dR,      "#Delta R(ll,#gamma)",           {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_y_dR_");
+
+    pm.Push<Hist1D>(Axis(nbins,0,150,      "ll_pt[0]",  "p_{T}(ll) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_pt_");
+    pm.Push<Hist1D>(Axis(nbins,-5, 5,      "ll_eta[0]", "#eta(ll)",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_eta_");
+    pm.Push<Hist1D>(Axis(nbins,-3,3,       rap_ll,     "y(ll)",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_rap_");
+    pm.Push<Hist1D>(Axis(nbins,-3.15,3.15, "ll_phi[0]", "#phi(ll)",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_phi_");
 
   }
 
+
   void sample_kinrefit_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels){
     //checks for a specific case for control regions where we want 50 < mlly < 100
-    pm.Push<Hist1D>(Axis(80,100,180,   "llphoton_refit_m",                   "m_{ll#gamma} [GeV]",     {122,128}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_m_");
+    pm.Push<Hist1D>(Axis(80,100,180,   "llphoton_refit_m",                   "m_{ll#gamma} [GeV]",     {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_m_");
     pm.Push<Hist1D>(Axis(50,0,250,     "llphoton_refit_pt",                  "p_{T}(ll#gamma) [GeV]",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_pt_");
     pm.Push<Hist1D>(Axis(52,-5,5,      "llphoton_refit_eta",                 "#eta(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_eta_");
     pm.Push<Hist1D>(Axis(52,-2.5,2.5,  rap_lly_refit,                        "y(ll#gamma)",                   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_eta_");
@@ -1167,74 +1244,279 @@ int N_OSSF_leppairs(const Baby &b){
 
   }
 
+  void sample_kinrefit_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, int nbins, std::string labels){
+    //checks for a specific case for control regions where we want 50 < mlly < 100
+    pm.Push<Hist1D>(Axis(nbins,100,180,   "llphoton_refit_m",                   "m_{ll#gamma} [GeV]",     {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_m_");
+    pm.Push<Hist1D>(Axis(nbins,0,250,     "llphoton_refit_pt",                  "p_{T}(ll#gamma) [GeV]",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_pt_");
+    pm.Push<Hist1D>(Axis(nbins,-5,5,      "llphoton_refit_eta",                 "#eta(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_eta_");
+    pm.Push<Hist1D>(Axis(nbins,-2.5,2.5,  rap_lly_refit,                        "y(ll#gamma)",                   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_eta_");
+    pm.Push<Hist1D>(Axis(nbins,-3.15,3.15,"llphoton_refit_phi",                 "#phi(ll#gamma)",                {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_phi_");
+    pm.Push<Hist1D>(Axis(nbins,0,2.5,     "llphoton_refit_pt/llphoton_refit_m", "p_{T}(ll#gamma)/m_{ll#gamma}", {1}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_lly_ptom_");
+    pm.Push<Hist1D>(Axis(nbins,0,1.2,     "photon_pt[0]/llphoton_refit_m",      "p_{T}(#gamma)/m_{ll#gamma}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_y_ptom_");
+    pm.Push<Hist1D>(Axis(nbins,0,4.5,     "llphoton_refit_dr",                  "#Delta R(ll,#gamma)",           {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_ll_y_dR_");
+    pm.Push<Hist1D>(Axis(nbins,-3.15,3.15,"llphoton_refit_dphi",                "#Delta R(ll,#gamma)",           {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_ll_y_dphi_");
+
+    pm.Push<Hist1D>(Axis(nbins,-1,1,      "llphoton_refit_cosTheta", "cos(#Theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_cTHETA_");
+    pm.Push<Hist1D>(Axis(nbins,-1,1,      "llphoton_refit_costheta", "cos(#theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_ctheta_");
+    pm.Push<Hist1D>(Axis(nbins,-3.2,3.2,  "llphoton_refit_psi",      "#phi",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_phi_");
+    pm.Push<Hist1D>(Axis(nbins,0,140,     "llphoton_refit_pTt",      "p^{t}_{T}",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_pTt_");
+
+    pm.Push<Hist1D>(Axis(nbins,0,150,      "ll_refit_pt",  "p_{T}(ll) [GeV]",{}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_ll_pt_");
+    pm.Push<Hist1D>(Axis(nbins,-5, 5,      "ll_refit_eta", "#eta(ll)",       {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_ll_eta_");
+    pm.Push<Hist1D>(Axis(nbins,-3.15,3.15, "ll_refit_phi", "#phi(ll)",       {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_ll_phi_");
+    pm.Push<Hist1D>(Axis(nbins,80,100,     "ll_refit_m",   "m_{ll} [GeV]",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_refit_ll_m_");
+
+  }
 
   //Basic lepton kinematics plots
   void sample_lepton_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels){
-    pm.Push<Hist1D>(Axis(50,5,100,     "el_pt[ll_i1[0]]",  "p_{T}(e_{1})",   {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_el1_");
-    pm.Push<Hist1D>(Axis(40,5,65,     "el_pt[ll_i2[0]]",  "p_{T}(e_{2})",   {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_el2_");
-    pm.Push<Hist1D>(Axis(40,-2.6,2.6, "el_eta[ll_i1[0]]", "#eta(e_{1})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_el1_");
-    pm.Push<Hist1D>(Axis(40,-2.6,2.6, "el_eta[ll_i2[0]]", "#eta(e_{2})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_el2_");
-    pm.Push<Hist1D>(Axis(65,0,110,     "mu_pt[ll_i1[0]]",  "p_{T}(#mu_{1})", {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_mu1_");
-    pm.Push<Hist1D>(Axis(40,0,75,     "mu_pt[ll_i2[0]]",  "p_{T}(#mu_{2})", {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_mu2_");
-    pm.Push<Hist1D>(Axis(40,-2.6,2.6, "mu_eta[ll_i1[0]]", "#eta(#mu_{1})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_mu1_");
-    pm.Push<Hist1D>(Axis(40,-2.6,2.6, "mu_eta[ll_i2[0]]", "#eta(#mu_{2})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_mu2_");
+    pm.Push<Hist1D>(Axis(50,     5,  100, "el_pt[ll_i1[0]]",  "p_{T}(e_{1})",   {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_el1_");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, "el_eta[ll_i1[0]]", "#eta(e_{1})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_el1_");
+    pm.Push<Hist1D>(Axis(62, -3.15, 3.15, "el_phi[ll_i1[0]]", "#phi(e_{1})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_phi_el1_");
+
+    pm.Push<Hist1D>(Axis(40,     5,   65, "el_pt[ll_i2[0]]",  "p_{T}(e_{2})",   {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_el2_");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, "el_eta[ll_i2[0]]", "#eta(e_{2})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_el2_");
+    pm.Push<Hist1D>(Axis(62, -3.15, 3.15, "el_phi[ll_i2[0]]", "#phi(e_{2})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_phi_el2_");
+
+    pm.Push<Hist1D>(Axis(65,     0,  110, "mu_pt[ll_i1[0]]",  "p_{T}(#mu_{1})", {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_mu1_");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, "mu_eta[ll_i1[0]]", "#eta(#mu_{1})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_mu1_");
+    pm.Push<Hist1D>(Axis(62, -3.15, 3.15, "mu_phi[ll_i1[0]]", "#phi(#mu_{1})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_phi_mu1_");
+
+    pm.Push<Hist1D>(Axis(40,     0,   75, "mu_pt[ll_i2[0]]",  "p_{T}(#mu_{2})", {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_mu2_");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, "mu_eta[ll_i2[0]]", "#eta(#mu_{2})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_mu2_");
+    pm.Push<Hist1D>(Axis(62, -3.15, 3.15, "mu_phi[ll_i2[0]]", "#phi(#mu_{2})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_phi_mu2_");
   }
+
+  void sample_lepton_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, int nbins, std::string labels){
+    pm.Push<Hist1D>(Axis(nbins,     5,  100, "el_pt[ll_i1[0]]",  "p_{T}(e_{1})",   {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_el1_");
+    pm.Push<Hist1D>(Axis(nbins,  -2.6,  2.6, "el_eta[ll_i1[0]]", "#eta(e_{1})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_el1_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, "el_phi[ll_i1[0]]", "#phi(e_{1})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_phi_el1_");
+
+    pm.Push<Hist1D>(Axis(nbins,     5,   65, "el_pt[ll_i2[0]]",  "p_{T}(e_{2})",   {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_el2_");
+    pm.Push<Hist1D>(Axis(nbins,  -2.6,  2.6, "el_eta[ll_i2[0]]", "#eta(e_{2})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_el2_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, "el_phi[ll_i2[0]]", "#phi(e_{2})",    {}), selection && "ll_lepid[0]==11", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_phi_el2_");
+
+    pm.Push<Hist1D>(Axis(nbins,     0,  110, "mu_pt[ll_i1[0]]",  "p_{T}(#mu_{1})", {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_mu1_");
+    pm.Push<Hist1D>(Axis(nbins,  -2.6,  2.6, "mu_eta[ll_i1[0]]", "#eta(#mu_{1})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_mu1_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, "mu_phi[ll_i1[0]]", "#phi(#mu_{1})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_phi_mu1_");
+
+    pm.Push<Hist1D>(Axis(nbins,     0,   75, "mu_pt[ll_i2[0]]",  "p_{T}(#mu_{2})", {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_pt_mu2_");
+    pm.Push<Hist1D>(Axis(nbins,  -2.6,  2.6, "mu_eta[ll_i2[0]]", "#eta(#mu_{2})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_mu2_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, "mu_phi[ll_i2[0]]", "#phi(#mu_{2})",  {}), selection && "ll_lepid[0]==13", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_phi_mu2_");
+  }
+
 
   //Sample ttH leptonic category plots
   void ttH_lep_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, bool run3){
     sample_photon_plots(  pm, selection, processes, ops, wgt, labels + "_ttH_lep_");
     sample_lepton_plots(  pm, selection, processes, ops, wgt, labels + "_ttH_lep_");
     sample_llphoton_plots(pm, selection, processes, ops, wgt, labels + "_ttH_lep_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, labels + "_ttH_lep_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_ttH_lep_");
 
-    pm.Push<Hist1D>(Axis(80,0,500, "ht",    "H_{T} [GeV]", {120}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_HT_"); 
-    pm.Push<Hist1D>(Axis(75,0,200, "met",   "MET [GeV]",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_MET_");
-    pm.Push<Hist1D>(Axis(10,0,10,  "njet",  "N_{jet}",       {3}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_Njet_");
-    pm.Push<Hist1D>(Axis(6,0,6,    "nlep",  "N_{lep}",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_Nlep_");
-    pm.Push<Hist1D>(Axis(6,0,6 ,   "nbdfm", "N_{b,med}",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_Nbdfm");
-    pm.Push<Hist1D>(Axis(6,0,6 ,   "ntruel","N_{e,truth}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_Ntruel");
-    pm.Push<Hist1D>(Axis(6,0,6 ,   "ntrumu","N_{#mu,truth}",  {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_Ntrumu");
-    //pm.Push<Hist1D>(Axis(6,0,6 ,   Ntrub,   "N_{b,truth}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_Ntrub");
-    //pm.Push<Hist1D>(Axis(6,0,6 ,   Ntruel_NF,"N_{e,truth}",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_Ntruel_NF");
+    pm.Push<Hist1D>(Axis(80,0,500, "ht",    "H_{T} [GeV]", {120}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_HT_"); 
+    pm.Push<Hist1D>(Axis(75,0,200, "met",   "MET [GeV]",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_MET_");
+    pm.Push<Hist1D>(Axis(10,0,10,  "njet",  "N_{jet}",       {3}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Njet_");
+    pm.Push<Hist1D>(Axis(6,0,6,    "nlep",  "N_{lep}",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Nlep_");
+    pm.Push<Hist1D>(Axis(6,0,6 ,   "nbdfm", "N_{b,med}",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Nbdfm");
+
     if(run3==true){
-      pm.Push<Hist1D>(Axis(40,0,1,   max_particlenet, "Particle Net - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_pnet_BASE_MAX");
+      pm.Push<Hist1D>(Axis(40,0,1,   max_particlenet, "Particle Net - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_pnet_BASE_MAX");
     } else {
-      pm.Push<Hist1D>(Axis(40,0,1,   max_deepflav, "Deep Flavor - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_deepflav_BASE_MAX");
+      pm.Push<Hist1D>(Axis(40,0,1,   max_deepflav, "Deep Flavor - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_deepflav_BASE_MAX");
     }
 
-    //pm.Push<Hist1D>(Axis(50,100,300, mtop_l3,   "cand. m_{t} [GeV]", {130,220}), selection && "nlep==3",   processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_mtop");
-    pm.Push<Hist1D>(Axis(50,0,1,     l3_mini,   "I_{mini} - l3",            {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_l3_Imini");
-    pm.Push<Hist1D>(Axis(55,-0.1,1,  l3_idmva,  "l_{3} - e IDMVA ",         {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_e3idmva"); 
-    pm.Push<Hist1D>(Axis(35,5,75,    l3_pt,     "p_{T}(l_{3}) [GeV]",       {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_e3_pt");
-    pm.Push<Hist1D>(Axis(35,5,75,    l3_pt,     "p_{T}(l_{3}) [GeV]",       {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_mu3_pt");
-    pm.Push<Hist1D>(Axis(45,0,4.5,   H_Z_dR,    "#Delta R(ll,#gamma)",      {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_H_Z_dR_");
-    pm.Push<Hist1D>(Axis(50,0,1,     max_Imini, "max. I_{mini}",            {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_max_Imini");
+    //pm.Push<Hist1D>(Axis(50,100,300, mtop_l3,   "cand. m_{t} [GeV]", {130,220}), selection && "nlep==3",   processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_mtop");
+    pm.Push<Hist1D>(Axis(50,0,1,     l3_mini,   "I_{mini} - l3",            {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_l3_Imini");
+    pm.Push<Hist1D>(Axis(55,-0.1,1,  l3_idmva,  "l_{3} - e IDMVA ",         {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_e3idmva"); 
 
+    pm.Push<Hist1D>(Axis(35,     5,   75, l3_pt,  "p_{T}(e_{3}) [GeV]", {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_e3_pt");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, l3_eta, "#eta(e_{3})",        {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_e3_eta");
+    pm.Push<Hist1D>(Axis(62, -3.15, 3.15, l3_phi, "#phi(e_{3})",        {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_e3_phi");
+
+    pm.Push<Hist1D>(Axis(35,     5,   75, l3_pt,  "p_{T}(#mu_{3}) [GeV]", {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_mu3_pt");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, l3_eta, "#eta(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_mu3_eta");
+    pm.Push<Hist1D>(Axis(62, -3.15, 3.15, l3_phi, "#phi(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_mu3_phi");
+
+    pm.Push<Hist1D>(Axis(35,     5,   75, l3_pt,  "p_{T}(l_{3}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_l3_pt");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, l3_eta, "#eta(l_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_l3_eta");
+    pm.Push<Hist1D>(Axis(62, -3.15, 3.15, l3_phi, "#phi(l_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_l3_phi");
+
+    pm.Push<Hist1D>(Axis(60,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j1_pt");
+    pm.Push<Hist1D>(Axis(50, -5.0,  5.0,  j1_eta, "#eta(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j1_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j1_phi_");
+    pm.Push<Hist1D>(Axis(40,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j1_m");
+
+    pm.Push<Hist1D>(Axis(60,    30,  150, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j2_pt");
+    pm.Push<Hist1D>(Axis(50,  -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j2_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j2_phi_");
+    pm.Push<Hist1D>(Axis(40,     0,   40, j2_m,   "m(j_{2}) [GeV]",     {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j2_m");
+
+    pm.Push<Hist1D>(Axis(60,    30,  150, j3_pt,  "p_{T}(j_{3}) [GeV]", {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j3_pt");
+    pm.Push<Hist1D>(Axis(50,  -5.0,  5.0, j3_eta, "#eta(j_{3})",        {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j3_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j3_phi, "#phi(j_{3})",        {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j3_phi_");
+    pm.Push<Hist1D>(Axis(40,     0,   40, j3_m,   "m(j_{3}) [GeV]",     {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j3_m");
+
+    pm.Push<Hist1D>(Axis(45,0,4.5,   H_Z_dR,    "#Delta R(ll,#gamma)",      {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_H_Z_dR_");
+    pm.Push<Hist1D>(Axis(50,0,1,     max_Imini, "max. I_{mini}",            {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_max_Imini");
+
+    //pm.Push<Hist1D>(Axis(6,0,6 ,   "ntruel","N_{e,truth}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Ntruel");
+    //pm.Push<Hist1D>(Axis(6,0,6 ,   "ntrumu","N_{#mu,truth}",  {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Ntrumu");
+    //pm.Push<Hist1D>(Axis(6,0,6 ,   Ntrub,   "N_{b,truth}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Ntrub");
+    //pm.Push<Hist1D>(Axis(6,0,6 ,   Ntruel_NF,"N_{e,truth}",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Ntruel_NF");
   }
+
+  void ttH_lep_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, int nbins, bool run3){
+    sample_photon_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ttH_lep_");
+    sample_lepton_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ttH_lep_");
+    sample_llphoton_plots(pm, selection, processes, ops, wgt, nbins, labels + "_ttH_lep_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, nbins, labels + "_ttH_lep_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_ttH_lep_");
+
+    pm.Push<Hist1D>(Axis(nbins,0,500, "ht",    "H_{T} [GeV]", {120}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_HT_"); 
+    pm.Push<Hist1D>(Axis(nbins,0,200, "met",   "MET [GeV]",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_MET_");
+    pm.Push<Hist1D>(Axis(10,0,10,  "njet",  "N_{jet}",       {3}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Njet_");
+    pm.Push<Hist1D>(Axis(6,0,6,    "nlep",  "N_{lep}",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Nlep_");
+    pm.Push<Hist1D>(Axis(6,0,6 ,   "nbdfm", "N_{b,med}",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_Nbdfm");
+
+    if(run3==true){
+      pm.Push<Hist1D>(Axis(nbins,0,1,   max_particlenet, "Particle Net - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_pnet_BASE_MAX");
+    } else {
+      pm.Push<Hist1D>(Axis(nbins,0,1,   max_deepflav, "Deep Flavor - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_deepflav_BASE_MAX");
+    }
+
+    pm.Push<Hist1D>(Axis(nbins,0,1,     l3_mini,   "I_{mini} - l3",            {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_l3_Imini");
+    pm.Push<Hist1D>(Axis(nbins,-0.1,1,  l3_idmva,  "l_{3} - e IDMVA ",         {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_e3idmva"); 
+
+    pm.Push<Hist1D>(Axis(nbins,     5,   75, l3_pt,  "p_{T}(e_{3}) [GeV]", {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_e3_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -2.6,  2.6, l3_eta, "#eta(e_{3})",        {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_e3_eta");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, l3_phi, "#phi(e_{3})",        {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_e3_phi");
+
+    pm.Push<Hist1D>(Axis(nbins,    5,   75, l3_pt,  "p_{T}(#mu_{3}) [GeV]", {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_mu3_pt");
+    pm.Push<Hist1D>(Axis(nbins, -2.6,  2.6, l3_eta, "#eta(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_mu3_eta");
+    pm.Push<Hist1D>(Axis(nbins,-3.15, 3.15, l3_phi, "#phi(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_mu3_phi");
+
+    pm.Push<Hist1D>(Axis(nbins,     5,   75, l3_pt,  "p_{T}(l_{3}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_l3_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -2.6,  2.6, l3_eta, "#eta(l_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_l3_eta");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, l3_phi, "#phi(l_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_l3_phi");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j1_pt");
+    pm.Push<Hist1D>(Axis(nbins, -5.0,  5.0,  j1_eta, "#eta(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j1_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j1_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j1_m");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  150, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j2_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j2_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j2_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j2_m,   "m(j_{2}) [GeV]",     {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j2_m");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  150, j3_pt,  "p_{T}(j_{3}) [GeV]", {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j3_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -5.0,  5.0, j3_eta, "#eta(j_{3})",        {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j3_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j3_phi, "#phi(j_{3})",        {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j3_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j3_m,   "m(j_{3}) [GeV]",     {}), selection && "nlep==3", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_j3_m");
+
+    pm.Push<Hist1D>(Axis(nbins,0,4.5,   H_Z_dR,    "#Delta R(ll,#gamma)",      {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_H_Z_dR_");
+    pm.Push<Hist1D>(Axis(nbins,0,1,     max_Imini, "max. I_{mini}",            {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_max_Imini");
+  }
+
 
   //Sample ttH had category plots
   void ttH_had_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, bool run3){
     sample_photon_plots(  pm, selection, processes, ops, wgt, labels + "_ttH_had_");
     sample_lepton_plots(  pm, selection, processes, ops, wgt, labels + "_ttH_had_");
     sample_llphoton_plots(pm, selection, processes, ops, wgt, labels + "_ttH_had_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, labels + "_ttH_had_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_ttH_had_");
 
-    pm.Push<Hist1D>(Axis(10,0,10,    "njet",       "N_{jet}",                             {4}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_Njet_");
-    pm.Push<Hist1D>(Axis(75,0,200,   "met",        "MET",                                  {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_MET");
-    pm.Push<Hist1D>(Axis(80,150,1000, "ht",        "H_{T}",                             {150}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_HT_");
+    pm.Push<Hist1D>(Axis(60,    30,  250, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j1_pt");
+    pm.Push<Hist1D>(Axis(100, -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j1_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j1_phi_");
+    pm.Push<Hist1D>(Axis(40,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j1_m");
 
+    pm.Push<Hist1D>(Axis(60,    30,  230, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j2_pt");
+    pm.Push<Hist1D>(Axis(100, -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j2_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j2_phi_");
+    pm.Push<Hist1D>(Axis(40,     0,   40, j2_m,   "m(j_{2}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j2_m");
 
-    //pm.Push<Hist1D>(Axis(50,100,300, mtop,         "cand. m_{t} [GeV]",             {130,220}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_mtop");
-    pm.Push<Hist1D>(Axis(50,0,1,     ptj_m4j,      "#Sigma(p_{T}(j_{i}))/m_{4j} [GeV]", {0.6}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_ptj_m4j");
-    pm.Push<Hist1D>(Axis(50,0,1,     ptj_m5j,      "#Sigma(p_{T}(j_{i}))/m_{5j} [GeV]", {0.6}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_ptj_m5j");
-    pm.Push<Hist1D>(Axis(50,0,1,     max_Imini,    "max. I_{mini}",                        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_max_Imini");
+    pm.Push<Hist1D>(Axis(60,    30,  200, j3_pt,  "p_{T}(j_{3}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j3_pt");
+    pm.Push<Hist1D>(Axis(100, -5.0,  5.0, j3_eta, "#eta(j_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j3_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j3_phi, "#phi(j_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j3_phi_");
+    pm.Push<Hist1D>(Axis(40,     0,   40, j3_m,   "m(j_{3}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j3_m");
+
+    pm.Push<Hist1D>(Axis(60,    30,  120, j4_pt,  "p_{T}(j_{4}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j4_pt");
+    pm.Push<Hist1D>(Axis(100, -5.0,  5.0, j4_eta, "#eta(j_{4})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j4_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j4_phi, "#phi(j_{4})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j4_phi_");
+    pm.Push<Hist1D>(Axis(40,     0,   40, j4_m,   "m(j_{4}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j4_m");
+
+    pm.Push<Hist1D>(Axis(60,    30,  80, j5_pt,  "p_{T}(j_{5}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j5_pt");
+    pm.Push<Hist1D>(Axis(100, -5.0,  5.0, j5_eta, "#eta(j_{5})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j5_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j5_phi, "#phi(j_{5})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j5_phi_");
+    pm.Push<Hist1D>(Axis(40,     0,   40, j5_m,   "m(j_{5}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j5_m");
+
+    pm.Push<Hist1D>(Axis(10,0,10,    "njet",       "N_{jet}",                             {4}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_Njet_");
+    pm.Push<Hist1D>(Axis(75,0,200,   "met",        "MET",                                  {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_MET");
+    pm.Push<Hist1D>(Axis(80,150,1000, "ht",        "H_{T}",                             {150}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_HT_");
+
+    pm.Push<Hist1D>(Axis(50,0,1,     ptj_m4j,      "#Sigma(p_{T}(j_{i}))/m_{4j} [GeV]", {0.6}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_ptj_m4j");
+    pm.Push<Hist1D>(Axis(50,0,1,     ptj_m5j,      "#Sigma(p_{T}(j_{i}))/m_{5j} [GeV]", {0.6}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_ptj_m5j");
+    pm.Push<Hist1D>(Axis(50,0,1,     max_Imini,    "max. I_{mini}",                        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_max_Imini");
 
     if(run3==true){
-      pm.Push<Hist1D>(Axis(40,  0,   1, max_particlenet, "Particle Net - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_pnet_BASE_MAX");
-      pm.Push<Hist1D>(Axis(75, 50, 350, mtop_r3,                        "m_{t}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_mtop_");
+      pm.Push<Hist1D>(Axis(40,  0,   1, max_particlenet, "Particle Net - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_pnet_BASE_MAX");
+      pm.Push<Hist1D>(Axis(75, 50, 350, mtop_r3,                        "m_{t}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_mtop_");
     } else {
-      pm.Push<Hist1D>(Axis(40,  0,   1, max_deepflav, "Deep Flavor - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_lep_deepflav_BASE_MAX");
-      pm.Push<Hist1D>(Axis(75, 50, 350, mtop,         "m_{t}",             {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ttH_had_mtop_");
+      pm.Push<Hist1D>(Axis(40,  0,   1, max_deepflav, "Deep Flavor - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_lep_deepflav_BASE_MAX");
+      pm.Push<Hist1D>(Axis(75, 50, 350, mtop,         "m_{t}",             {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_mtop_");
     }
+  }
 
+  void ttH_had_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, int nbins, bool run3){
+    sample_photon_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ttH_had_");
+    sample_lepton_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ttH_had_");
+    sample_llphoton_plots(pm, selection, processes, ops, wgt, nbins, labels + "_ttH_had_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, nbins, labels + "_ttH_had_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_ttH_had_");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  250, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j1_pt");
+    pm.Push<Hist1D>(Axis(nbins, -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j1_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j1_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j1_m");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  230, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j2_pt");
+    pm.Push<Hist1D>(Axis(nbins, -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j2_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j2_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j2_m,   "m(j_{2}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j2_m");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  200, j3_pt,  "p_{T}(j_{3}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j3_pt");
+    pm.Push<Hist1D>(Axis(nbins, -5.0,  5.0, j3_eta, "#eta(j_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j3_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j3_phi, "#phi(j_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j3_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j3_m,   "m(j_{3}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j3_m");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  120, j4_pt,  "p_{T}(j_{4}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j4_pt");
+    pm.Push<Hist1D>(Axis(nbins, -5.0,   5.0, j4_eta, "#eta(j_{4})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j4_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j4_phi, "#phi(j_{4})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j4_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j4_m,   "m(j_{4}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j4_m");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,   80, j5_pt,  "p_{T}(j_{5}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j5_pt");
+    pm.Push<Hist1D>(Axis(nbins, -5.0,   5.0, j5_eta, "#eta(j_{5})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j5_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j5_phi, "#phi(j_{5})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j5_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j5_m,   "m(j_{5}) [GeV]",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_j5_m");
+
+    pm.Push<Hist1D>(Axis(nbins,0,10,    "njet",       "N_{jet}",                             {4}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_Njet_");
+    pm.Push<Hist1D>(Axis(nbins,0,200,   "met",        "MET",                                  {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_MET");
+    pm.Push<Hist1D>(Axis(nbins,150,1000, "ht",        "H_{T}",                             {150}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_HT_");
+
+    pm.Push<Hist1D>(Axis(nbins,0,1,     ptj_m4j,      "#Sigma(p_{T}(j_{i}))/m_{4j} [GeV]", {0.6}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_ptj_m4j");
+    pm.Push<Hist1D>(Axis(nbins,0,1,     ptj_m5j,      "#Sigma(p_{T}(j_{i}))/m_{5j} [GeV]", {0.6}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_ptj_m5j");
+    pm.Push<Hist1D>(Axis(nbins,0,1,     max_Imini,    "max. I_{mini}",                        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_max_Imini");
+
+    if(run3==true){
+      pm.Push<Hist1D>(Axis(nbins,  0,   1, max_particlenet, "Particle Net - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_pnet_BASE_MAX");
+      pm.Push<Hist1D>(Axis(nbins, 50, 350, mtop_r3,                        "m_{t}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_mtop_");
+    } else {
+      pm.Push<Hist1D>(Axis(nbins,  0,   1, max_deepflav, "Deep Flavor - max", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_deepflav_BASE_MAX");
+      pm.Push<Hist1D>(Axis(nbins, 50, 350, mtop,         "m_{t}",             {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ttH_had_mtop_");
+    }
   }
 
   //Sample VH 4l category plots
@@ -1243,38 +1525,36 @@ int N_OSSF_leppairs(const Baby &b){
     sample_lepton_plots(  pm, selection, processes, ops, wgt, labels + "_ZH_4l_");
     sample_llphoton_plots(pm, selection, processes, ops, wgt, labels + "_ZH_4l_");
 
-    pm.Push<Hist1D>(Axis(50,0,1,    l3_mini,  "I_{mini} - l3", {}),           selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_Imini_3l");
-    pm.Push<Hist1D>(Axis(35,5,75,   l3_pt,    "p_{T}(e_{3}) [GeV]", {}),      selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_e3_pt");
-    pm.Push<Hist1D>(Axis(35,5,75,   l3_pt,    "p_{T}(#mu_{3}) [GeV]", {}),    selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_mu3_pt");
-    pm.Push<Hist1D>(Axis(55,-0.1,1, l3_idmva, "l_{3} - e IDMVA ", {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_e3idmva");
+    pm.Push<Hist1D>(Axis(50,0,1,    l3_mini,  "I_{mini} - l3", {}),           selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_Imini_3l");
+    pm.Push<Hist1D>(Axis(35,5,75,   l3_pt,    "p_{T}(e_{3}) [GeV]", {}),      selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_e3_pt");
+    pm.Push<Hist1D>(Axis(35,5,75,   l3_pt,    "p_{T}(#mu_{3}) [GeV]", {}),    selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_mu3_pt");
+    pm.Push<Hist1D>(Axis(55,-0.1,1, l3_idmva, "l_{3} - e IDMVA ", {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_e3idmva");
 
-    pm.Push<Hist1D>(Axis(50,0,1,    l4_mini, "I_{mini} - l4", {}),            selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_Imini_4l");
-    pm.Push<Hist1D>(Axis(35,5,75,   l4_pt,   "p_{T}(e_{4}) [GeV]", {}),       selection && l4_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_e4_pt");
-    pm.Push<Hist1D>(Axis(35,5,75,   l4_pt,   "p_{T}(#mu_{4}) [GeV]", {}),     selection && l4_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_mu4_pt");
-    pm.Push<Hist1D>(Axis(55,-0.1,1, l4_idmva, "l_{4} - e IDMVA ", {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_e4idmva"); 
+    pm.Push<Hist1D>(Axis(50,0,1,    l4_mini, "I_{mini} - l4", {}),            selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_Imini_4l");
+    pm.Push<Hist1D>(Axis(35,5,75,   l4_pt,   "p_{T}(e_{4}) [GeV]", {}),       selection && l4_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_e4_pt");
+    pm.Push<Hist1D>(Axis(35,5,75,   l4_pt,   "p_{T}(#mu_{4}) [GeV]", {}),     selection && l4_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_mu4_pt");
+    pm.Push<Hist1D>(Axis(55,-0.1,1, l4_idmva, "l_{4} - e IDMVA ", {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_e4idmva"); 
 
-    pm.Push<Hist1D>(Axis(80,0,400,  Z2_pt,  "p_{T}(ll) - Z_{2} [GeV]", {50}),           selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_ptll_Z2");
-    pm.Push<Hist1D>(Axis(35,50,120, Z2_m,   "m_{l_{3} l_{4}} - Z_{2} [GeV]", {80,100}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_mll_Z2"); 
-    pm.Push<Hist1D>(Axis(50,0.0,5,  Z2y_dR, "#Delta R(Z_{2},#gamma) [GeV]", {0.2}),     selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_Z2y_dr");
-    pm.Push<Hist1D>(Axis(50,0.0,5,  ZZ_dR,  "#Delta R(Z_{1},Z_{2}) [GeV]", {}),         selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_ZZ_dr");
-    pm.Push<Hist1D>(Axis(50,0,1,     max_Imini, "max. I_{mini}", {}),         selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_max_Imini");
+    pm.Push<Hist1D>(Axis(80,0,400,  Z2_pt,  "p_{T}(ll) - Z_{2} [GeV]", {50}),           selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_ptll_Z2");
+    pm.Push<Hist1D>(Axis(35,50,120, Z2_m,   "m_{l_{3} l_{4}} - Z_{2} [GeV]", {80,100}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_mll_Z2"); 
+    pm.Push<Hist1D>(Axis(50,0.0,5,  Z2y_dR, "#Delta R(Z_{2},#gamma) [GeV]", {0.2}),     selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_Z2y_dr");
+    pm.Push<Hist1D>(Axis(50,0.0,5,  ZZ_dR,  "#Delta R(Z_{1},Z_{2}) [GeV]", {}),         selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_ZZ_dr");
+    pm.Push<Hist1D>(Axis(50,0,1,     max_Imini, "max. I_{mini}", {}),         selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_max_Imini");
 
-    pm.Push<Hist1D>(Axis(35,50,120,   Z1_m_avg,   "m_{Z_{1}} [GeV]", {80,100}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_mll_Z1_AVG"); 
-    pm.Push<Hist1D>(Axis(80,0,400,    Z1_pt_avg,  "p_{T}(Z_{1}) [GeV]", {50}),  selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_ptll_Z1_AVG");
-    pm.Push<Hist1D>(Axis(80,-4,4,     Z1_eta_avg,  "#eta(Z_{1}) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_etall_Z1_AVG");
-    pm.Push<Hist1D>(Axis(6.4,-3.2,3.2,Z1_phi_avg,  "#phi(Z_{1}) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_phill_Z1_AVG");
+    pm.Push<Hist1D>(Axis(35,50,120,   Z1_m_avg,   "m_{Z_{1}} [GeV]", {80,100}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_mll_Z1_AVG"); 
+    pm.Push<Hist1D>(Axis(80,0,400,    Z1_pt_avg,  "p_{T}(Z_{1}) [GeV]", {50}),  selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_ptll_Z1_AVG");
+    pm.Push<Hist1D>(Axis(80,-4,4,     Z1_eta_avg,  "#eta(Z_{1}) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_etall_Z1_AVG");
+    pm.Push<Hist1D>(Axis(6.4,-3.2,3.2,Z1_phi_avg,  "#phi(Z_{1}) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_phill_Z1_AVG");
 
-    pm.Push<Hist1D>(Axis(35,50,120,   Z2_m_avg,   "m_{Z_{2}} [GeV]", {80,100}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_mll_Z2_AVG"); 
-    pm.Push<Hist1D>(Axis(80,0,400,    Z2_pt_avg,  "p_{T}(Z_{2}) [GeV]", {50}),  selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_ptll_Z2_AVG");
-    pm.Push<Hist1D>(Axis(80,-4,4,     Z2_eta_avg,  "#eta(Z_{2}) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_etall_Z2_AVG");
-    pm.Push<Hist1D>(Axis(6.4,-3.2,3.2,Z2_phi_avg,  "#phi(Z_{2}) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_phill_Z2_AVG");
+    pm.Push<Hist1D>(Axis(35,50,120,   Z2_m_avg,   "m_{Z_{2}} [GeV]", {80,100}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_mll_Z2_AVG"); 
+    pm.Push<Hist1D>(Axis(80,0,400,    Z2_pt_avg,  "p_{T}(Z_{2}) [GeV]", {50}),  selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_ptll_Z2_AVG");
+    pm.Push<Hist1D>(Axis(80,-4,4,     Z2_eta_avg,  "#eta(Z_{2}) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_etall_Z2_AVG");
+    pm.Push<Hist1D>(Axis(6.4,-3.2,3.2,Z2_phi_avg,  "#phi(Z_{2}) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_phill_Z2_AVG");
 
-    pm.Push<Hist1D>(Axis(35,100,180,  Zg_m_avg,   "m_{Z#gamma} [GeV]", {80,100}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_mll_Zg_AVG"); 
-    pm.Push<Hist1D>(Axis(80,0,400,    Zg_pt_avg,  "p_{T}(Z#gamma) [GeV]", {50}),  selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_ptll_Zg_AVG");
-    pm.Push<Hist1D>(Axis(80,-4,4,     Zg_eta_avg,  "#eta(Z#gamma) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_etall_Zg_AVG");
-    pm.Push<Hist1D>(Axis(6.4,-3.2,3.2,Zg_phi_avg,  "#phi(Z#gamma) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_4l_phill_Zg_AVG");
-
-
+    pm.Push<Hist1D>(Axis(35,100,180,  Zg_m_avg,   "m_{Z#gamma} [GeV]", {80,100}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_mll_Zg_AVG"); 
+    pm.Push<Hist1D>(Axis(80,0,400,    Zg_pt_avg,  "p_{T}(Z#gamma) [GeV]", {50}),  selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_ptll_Zg_AVG");
+    pm.Push<Hist1D>(Axis(80,-4,4,     Zg_eta_avg,  "#eta(Z#gamma) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_etall_Zg_AVG");
+    pm.Push<Hist1D>(Axis(6.4,-3.2,3.2,Zg_phi_avg,  "#phi(Z#gamma) [GeV]", {}),    selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_4l_phill_Zg_AVG");
   }
 
   //Sample WH 3l category plots
@@ -1282,16 +1562,74 @@ int N_OSSF_leppairs(const Baby &b){
     sample_photon_plots(pm,   selection, processes, ops, wgt, labels + "_WH_3l_");
     sample_lepton_plots(pm,   selection, processes, ops, wgt, labels + "_WH_3l_");
     sample_llphoton_plots(pm, selection, processes, ops, wgt, labels + "_WH_3l_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, labels + "_WH_3l_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_WH_3l_");
 
-    pm.Push<Hist1D>(Axis(75,0,200,  "met",     "MET",                   {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _WH_3l_MET");
-    pm.Push<Hist1D>(Axis(40,0,3.2,  dphi_Hmet, "#Delta #phi(MET,H)", {2.0}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _WH_3l_dphi_Hmet");
-    pm.Push<Hist1D>(Axis(40,0,4.0,  l3_Z_DR,   "#Delta R(Z,l_{3})",   {45}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _WH_3l_Zl3_DR");
-    pm.Push<Hist1D>(Axis(50,0,1,    l3_mini,   "I_{mini} - l3 [GeV]",   {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _WH_3l_lep_l3_Imini");
-    pm.Push<Hist1D>(Axis(55,-0.1,1, l3_idmva,  "l_{3} - e IDMVA ",      {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _WH_3l_e3idmva");
-    pm.Push<Hist1D>(Axis(50,0,1,    max_Imini, "max. I_{mini}",         {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _WH_3l_max_Imini");
-    pm.Push<Hist1D>(Axis(35,5,75,   l3_pt,     "p_{T}(e_{3})",          {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _WH_3l_e3_pt");
-    pm.Push<Hist1D>(Axis(35,5,75,   l3_pt,     "p_{T}(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _WH_3l_mu3_pt");
+    pm.Push<Hist1D>(Axis(75,0,200,  "met",     "MET",                   {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_MET");
+    pm.Push<Hist1D>(Axis(40,0,3.2,  dphi_Hmet, "#Delta #phi(MET,H)", {2.0}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_dphi_Hmet");
+    pm.Push<Hist1D>(Axis(40,0,4.0,  l3_Z_DR,   "#Delta R(Z,l_{3})",   {45}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_Zl3_DR");
+    pm.Push<Hist1D>(Axis(50,0,1,    l3_mini,   "I_{mini} - l3 [GeV]",   {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_lep_l3_Imini");
+    pm.Push<Hist1D>(Axis(55,-0.1,1, l3_idmva,  "l_{3} - e IDMVA ",      {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_e3idmva");
+    pm.Push<Hist1D>(Axis(50,0,1,    max_Imini, "max. I_{mini}",         {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_max_Imini");
 
+    pm.Push<Hist1D>(Axis(30,     5,   75,  l3_pt,  "p_{T}(e_{3}) [GeV]", {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_e3_pt");
+    pm.Push<Hist1D>(Axis(5.2,  -2.6,  2.6, l3_eta, "#eta(e_{3})",        {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_e3_eta");
+    pm.Push<Hist1D>(Axis(6.3, -3.15, 3.15, l3_phi, "#phi(e_{3})",        {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_e3_phi");
+
+    pm.Push<Hist1D>(Axis(30,    5,   75,  l3_pt,  "p_{T}(#mu_{3}) [GeV]", {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_mu3_pt");
+    pm.Push<Hist1D>(Axis(5.2, -2.6,  2.6, l3_eta, "#eta(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_mu3_eta");
+    pm.Push<Hist1D>(Axis(6.3,-3.15, 3.15, l3_phi, "#phi(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_mu3_phi");
+
+    pm.Push<Hist1D>(Axis(30,     5,   75,  l3_pt,  "p_{T}(l_{3}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_l3_pt");
+    pm.Push<Hist1D>(Axis(5.2,  -2.6,  2.6, l3_eta, "#eta(l_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_l3_eta");
+    pm.Push<Hist1D>(Axis(6.3, -3.15, 3.15, l3_phi, "#phi(l_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_l3_phi");
+
+    pm.Push<Hist1D>(Axis(50,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j1_pt");
+    pm.Push<Hist1D>(Axis(50,  -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j1_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j1_phi_");
+    pm.Push<Hist1D>(Axis(50,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j1_m");
+
+    pm.Push<Hist1D>(Axis(50,    30,  150, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j2_pt");
+    pm.Push<Hist1D>(Axis(50,  -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j2_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j2_phi_");
+    pm.Push<Hist1D>(Axis(50,     0,   40, j2_m,   "m(j_{2}) [GeV]",     {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j2_m");
+  }
+
+  void WH_3l_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, int nbins){
+    sample_photon_plots(pm,   selection, processes, ops, wgt, nbins, labels + "_WH_3l_");
+    sample_lepton_plots(pm,   selection, processes, ops, wgt, nbins, labels + "_WH_3l_");
+    sample_llphoton_plots(pm, selection, processes, ops, wgt, nbins, labels + "_WH_3l_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, nbins, labels + "_WH_3l_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_WH_3l_");
+
+    pm.Push<Hist1D>(Axis(nbins,0,200,  "met",     "MET",                   {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_MET");
+    pm.Push<Hist1D>(Axis(nbins,0,3.2,  dphi_Hmet, "#Delta #phi(MET,H)", {2.0}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_dphi_Hmet");
+    pm.Push<Hist1D>(Axis(nbins,0,4.0,  l3_Z_DR,   "#Delta R(Z,l_{3})",   {45}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_Zl3_DR");
+    pm.Push<Hist1D>(Axis(nbins,0,1,    l3_mini,   "I_{mini} - l3 [GeV]",   {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_lep_l3_Imini");
+    pm.Push<Hist1D>(Axis(nbins,-0.1,1, l3_idmva,  "l_{3} - e IDMVA ",      {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_e3idmva");
+    pm.Push<Hist1D>(Axis(nbins,0,1,    max_Imini, "max. I_{mini}",         {}), selection,                processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_max_Imini");
+
+    pm.Push<Hist1D>(Axis(nbins,     5,   75, l3_pt,  "p_{T}(e_{3}) [GeV]", {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_e3_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -2.6,  2.6, l3_eta, "#eta(e_{3})",        {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_e3_eta");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, l3_phi, "#phi(e_{3})",        {}), selection && l3_flav==11, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_e3_phi");
+
+    pm.Push<Hist1D>(Axis(nbins,    5,   75, l3_pt,  "p_{T}(#mu_{3}) [GeV]", {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_mu3_pt");
+    pm.Push<Hist1D>(Axis(nbins, -2.6,  2.6, l3_eta, "#eta(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_mu3_eta");
+    pm.Push<Hist1D>(Axis(nbins,-3.15, 3.15, l3_phi, "#phi(#mu_{3})",        {}), selection && l3_flav==13, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_mu3_phi");
+
+    pm.Push<Hist1D>(Axis(nbins,     5,   75, l3_pt,  "p_{T}(l_{3}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_l3_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -2.6,  2.6, l3_eta, "#eta(l_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_l3_eta");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, l3_phi, "#phi(l_{3})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_l3_phi");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j1_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j1_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j1_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j1_m");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  150, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection && "njet>1", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j2_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection && "njet>1", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j2_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection && "njet>1", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j2_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j2_m,   "m(j_{2}) [GeV]",     {}), selection && "njet>1", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_WH_3l_j2_m");
   }
 
   //Sample ZH 2bl category plots
@@ -1300,15 +1638,15 @@ int N_OSSF_leppairs(const Baby &b){
     sample_lepton_plots(  pm, selection, processes, ops, wgt, labels + "_ZH_2bl");
     sample_llphoton_plots(pm, selection, processes, ops, wgt, labels + "_ZH_2bl");
 
-    pm.Push<Hist1D>(Axis(10,0,10,  "njet",        "N_{jet}", {2}),            selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_2bl_Njet_");
-    pm.Push<Hist1D>(Axis(10,0,10,  "nbdfm",       "N_{bdfm}", {2}),           selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_2bl_Nbdfm_"); 
+    pm.Push<Hist1D>(Axis(10,0,10,  "njet",        "N_{jet}", {2}),            selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_2bl_Njet_");
+    pm.Push<Hist1D>(Axis(10,0,10,  "nbdfm",       "N_{bdfm}", {2}),           selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_2bl_Nbdfm_"); 
 
-    pm.Push<Hist1D>(Axis(40,0,4.0,  dr_bb_H,      "#Delta R(Z_{bb},H_{ll#gamma})", {45}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_2bl_Zbb_H_DR");
-    pm.Push<Hist1D>(Axis(40,0,1,    max_deepflav, "Max. Deep Flavor", {0.4}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_2bl_deepflav_BASE_MAX");
-    pm.Push<Hist1D>(Axis(50,50,150, mbb,          "m_{bb}", {}),              selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_2bl_mbb");
-    pm.Push<Hist1D>(Axis(75,0,200, "met",         "p_{T}^{miss}", {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_2bl_MET");
-    pm.Push<Hist1D>(Axis(80,0,500, "ht",          "H_{T}", {}),               selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_2bl_HT_");
-    pm.Push<Hist1D>(Axis(50,0,1,    max_Imini, "max. I_{mini}", {}),          selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_2bl_max_Imini");
+    pm.Push<Hist1D>(Axis(40,0,4.0,  dr_bb_H,      "#Delta R(Z_{bb},H_{ll#gamma})", {45}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_2bl_Zbb_H_DR");
+    pm.Push<Hist1D>(Axis(40,0,1,    max_deepflav, "Max. Deep Flavor", {0.4}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_2bl_deepflav_BASE_MAX");
+    pm.Push<Hist1D>(Axis(50,50,150, mbb,          "m_{bb}", {}),              selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_2bl_mbb");
+    pm.Push<Hist1D>(Axis(75,0,200, "met",         "p_{T}^{miss}", {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_2bl_MET");
+    pm.Push<Hist1D>(Axis(80,0,500, "ht",          "H_{T}", {}),               selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_2bl_HT_");
+    pm.Push<Hist1D>(Axis(50,0,1,    max_Imini, "max. I_{mini}", {}),          selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_2bl_max_Imini");
 
   }
 
@@ -1317,15 +1655,42 @@ int N_OSSF_leppairs(const Baby &b){
     sample_photon_plots(  pm, selection, processes, ops, wgt, labels + "_ZH_MET_");
     sample_lepton_plots(  pm, selection, processes, ops, wgt, labels + "_ZH_MET_");
     sample_llphoton_plots(pm, selection, processes, ops, wgt, labels + "_ZH_MET_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, labels + "_ZH_MET_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_ZH_MET_");
 
-    pm.Push<Hist1D>(Axis(6,0,6,     "njet",    "N_{jet}", {}),               selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_MET_njet_");
-    pm.Push<Hist1D>(Axis(6,0,6,     "nbdfm",   "N_{b,med}", {}),             selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_MET_nbdfm_");
-    pm.Push<Hist1D>(Axis(6,0,6,     "nbdfl",   "N_{b,loose}", {}),           selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_MET_nbdfl_");
+    pm.Push<Hist1D>(Axis(6, 0, 6, "njet",    "N_{jet}",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_njet_");
+    pm.Push<Hist1D>(Axis(6, 0, 6, "nbdfm",   "N_{b,med}",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_nbdfm_");
+    pm.Push<Hist1D>(Axis(6, 0, 6, "nbdfl",   "N_{b,loose}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_nbdfl_");
 
-    pm.Push<Hist1D>(Axis(55,90,200, "met",     "p_{T}^{miss}", {}),          selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_MET_MET_");
-    pm.Push<Hist1D>(Axis(40,0,3.2,  dphi_Hmet, "#Delta #phi(MET,H)", {2.5}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_MET_dphi_Hmet");
-    pm.Push<Hist1D>(Axis(50,0,1,    max_Imini, "max. I_{mini}", {}),         selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + " _ZH_MET_max_Imini");
-    pm.Push<Hist1D>(Axis(70, 0, 140, llgamma_pTt       ,"p^{t}_{T} [GeV]",           {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_pTt");
+    pm.Push<Hist1D>(Axis(55, 90, 200, "met",     "p_{T}^{miss}", {}),          selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_MET_");
+    pm.Push<Hist1D>(Axis(40,  0, 3.2, dphi_Hmet, "#Delta #phi(MET,H)", {2.5}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_dphi_Hmet");
+    pm.Push<Hist1D>(Axis(50,  0,   1, max_Imini, "max. I_{mini}", {}),         selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_max_Imini");
+
+    pm.Push<Hist1D>(Axis(50,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_j1_pt");
+    pm.Push<Hist1D>(Axis(50,  -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_j1_eta_");
+    pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_j1_phi_");
+    pm.Push<Hist1D>(Axis(50,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_j1_m");
+  }
+
+  void ZH_MET_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, int nbins){
+    sample_photon_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ZH_MET_");
+    sample_lepton_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ZH_MET_");
+    sample_llphoton_plots(pm, selection, processes, ops, wgt, nbins, labels + "_ZH_MET_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, nbins, labels + "_ZH_MET_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_ZH_MET_");
+
+    pm.Push<Hist1D>(Axis(6, 0, 6, "njet",    "N_{jet}",     {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_njet_");
+    pm.Push<Hist1D>(Axis(6, 0, 6, "nbdfm",   "N_{b,med}",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_nbdfm_");
+    pm.Push<Hist1D>(Axis(6, 0, 6, "nbdfl",   "N_{b,loose}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_nbdfl_");
+
+    pm.Push<Hist1D>(Axis(nbins, 90, 200, "met",     "p_{T}^{miss}", {}),          selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_MET_");
+    pm.Push<Hist1D>(Axis(nbins,  0, 3.2, dphi_Hmet, "#Delta #phi(MET,H)", {2.5}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_dphi_Hmet");
+    pm.Push<Hist1D>(Axis(nbins,  0,   1, max_Imini, "max. I_{mini}", {}),         selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_max_Imini");
+
+    pm.Push<Hist1D>(Axis(nbins,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_j1_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_j1_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_j1_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ZH_MET_j1_m");
 
   }
 
@@ -1335,11 +1700,40 @@ int N_OSSF_leppairs(const Baby &b){
     sample_photon_plots(  pm, selection, processes, ops, wgt, labels + "_ggF_");
     sample_lepton_plots(  pm, selection, processes, ops, wgt, labels + "_ggF_");
     sample_llphoton_plots(pm, selection, processes, ops, wgt, labels + "_ggF_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, labels + "_ggF_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_ggF_");
 
     //--kinematic angles--//
-    pm.Push<Hist1D>(Axis(40,-1,1,      lly_cosTheta, "cos(#Theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_cTHETA_");
-    pm.Push<Hist1D>(Axis(40,-1,1,      lly_costheta, "cos(#theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_ctheta_");
-    pm.Push<Hist1D>(Axis(40,-3.2,3.2,  lly_angphi,   "#phi",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_phi_");
+    pm.Push<Hist1D>(Axis(40,   -1  ,1,  lly_cosTheta, "cos(#Theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_cTHETA_");
+    pm.Push<Hist1D>(Axis(40,   -1,  1,  lly_costheta, "cos(#theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_ctheta_");
+    pm.Push<Hist1D>(Axis(40, -3.2,3.2,  lly_angphi,   "#phi",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_phi_");
+
+    pm.Push<Hist1D>(Axis(45,     0,   90, "met",  "p_{T}^{miss} [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_met");
+    pm.Push<Hist1D>(Axis(50,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_pt");
+    pm.Push<Hist1D>(Axis(50,  -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_eta_");
+    pm.Push<Hist1D>(Axis(50, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_phi_");
+    pm.Push<Hist1D>(Axis(50,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_m");
+
+  }
+
+  void ggF_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, int nbins){
+    sample_photon_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ggF_");
+    sample_lepton_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ggF_");
+    sample_llphoton_plots(pm, selection, processes, ops, wgt, nbins, labels + "_ggF_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, nbins, labels + "_ggF_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_ggF_");
+
+    //--kinematic angles--//
+    pm.Push<Hist1D>(Axis(nbins,   -1  ,1,  lly_cosTheta, "cos(#Theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_cTHETA_");
+    pm.Push<Hist1D>(Axis(nbins,   -1,  1,  lly_costheta, "cos(#theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_ctheta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.2,3.2,  lly_angphi,   "#phi",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_phi_");
+
+    pm.Push<Hist1D>(Axis(nbins,     0,   90, "met",  "p_{T}^{miss} [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_met");
+    pm.Push<Hist1D>(Axis(nbins,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_pt");
+    pm.Push<Hist1D>(Axis(nbins,  -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_phi_");
+    pm.Push<Hist1D>(Axis(nbins,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_m");
+
   }
 
   //This function again adds control region plots for the VBF category based on variables used in Run 2. Some overlap with ggF region but removing variables specific to the "kinematic BDT"
@@ -1347,26 +1741,62 @@ int N_OSSF_leppairs(const Baby &b){
     sample_photon_plots(  pm, selection, processes, ops, wgt, labels + "_VBF_");
     sample_lepton_plots(  pm, selection, processes, ops, wgt, labels + "_VBF_");
     sample_llphoton_plots(pm, selection, processes, ops, wgt, labels + "_VBF_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, labels + "_VBF_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_VBF_");
 
-    pm.Push<Hist1D>(Axis(40,0,1000,   "dijet_m",    "m_{jj} [GeV]",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dijet_m");
-    pm.Push<Hist1D>(Axis(40,0,200 ,   "dijet_pt",    "p_{T}(jj) [GeV]",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dijet_pt");
-    pm.Push<Hist1D>(Axis(90,0,9,      "dijet_deta", "#Delta#eta(j_{1},j_{2})", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_deta");
-    pm.Push<Hist1D>(Axis(64,-3.2,3.2, "dijet_dphi", "#Delta#phi(j_{1},j_{2})", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dphi");
+    pm.Push<Hist1D>(Axis(6, 0, 6, "njet", "N_{jet}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_njet_");
 
-    pm.Push<Hist1D>(Axis(30, 0, 3,    dphi_lly_dijet,     "#Delta#phi(Z#gamma,jj)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_jjlly_dphi");
-    pm.Push<Hist1D>(Axis(30, 0, 4.5,  dR_lly_dijet ,      "#Delta R(Z#gamma,jj)",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_jjlly_dphi");
-    pm.Push<Hist1D>(Axis(30, 0, 1.0,  balance_lly_dijet , "System balance",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_sysbal");
-    pm.Push<Hist1D>(Axis(70, 0, 140,  llgamma_pTt,        "p^{t}_{T} [GeV]",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_pTt");
-    pm.Push<Hist1D>(Axis( 8,   0,  6, zeppenfeld_y_jet,   "#gamma zeppenfeld",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_zep");
-    pm.Push<Hist1D>(Axis(15, 0.4,4.4, mindR_y_jet,        "Min. #DeltaR(#gamma,j)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_yjdr");
+    pm.Push<Hist1D>(Axis(40,    0, 1000, "dijet_m",    "m_{jj} [GeV]",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dijet_m");
+    pm.Push<Hist1D>(Axis(40,    0,  300, "dijet_pt",   "p_{T}(jj) [GeV]",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dijet_pt");
+    pm.Push<Hist1D>(Axis(90,    0,    9, "dijet_deta", "#Delta#eta(j_{1},j_{2})", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_deta");
+    pm.Push<Hist1D>(Axis(64, -3.2,  3.2, "dijet_dphi", "#Delta#phi(j_{1},j_{2})", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dphi");
 
-    pm.Push<Hist1D>(Axis(60,    30,  150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_pt");
-    pm.Push<Hist1D>(Axis(60,    30,  150, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_pt");
+    pm.Push<Hist1D>(Axis(30,-3.15,3.15, dphi_lly_dijet,    "#Delta#phi(Z#gamma,jj)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_jjlly_dphi");
+    pm.Push<Hist1D>(Axis(30,    0, 4.5, dR_lly_dijet,      "#Delta R(Z#gamma,jj)",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_jjlly_dphi");
+    pm.Push<Hist1D>(Axis(30,    0, 1.0, balance_lly_dijet, "System balance",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_sysbal");
+    pm.Push<Hist1D>(Axis( 8,    0,   6, zeppenfeld_y_jet,  "#gamma zeppenfeld",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_zep");
+    pm.Push<Hist1D>(Axis(15,  0.4, 4.4, mindR_y_jet,       "Min. #DeltaR(#gamma,j)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_yjdr");
+
+    pm.Push<Hist1D>(Axis(60,    30,  250, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_pt");
     pm.Push<Hist1D>(Axis(100, -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_eta_");
-    pm.Push<Hist1D>(Axis(100, -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_eta_");
     pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_phi_");
+
+    pm.Push<Hist1D>(Axis(60,    30,  200, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_pt");
+    pm.Push<Hist1D>(Axis(100, -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_eta_");
     pm.Push<Hist1D>(Axis(63, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_phi_");
+
+    //pm.Push<Hist1D>(Axis(70,   0, 140, llgamma_pTt,        "p^{t}_{T} [GeV]",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_pTt");
   }
+
+  void VBF_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, int nbins){
+    sample_photon_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_VBF_");
+    sample_lepton_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_VBF_");
+    sample_llphoton_plots(pm, selection, processes, ops, wgt, nbins, labels + "_VBF_");
+    //sample_kinrefit_plots(pm, selection, processes, ops, wgt, nbins, labels + "_VBF_");
+    //mvp_objects(          pm, selection, processes, ops, wgt, labels + "_VBF_");
+
+    pm.Push<Hist1D>(Axis(6, 0, 6, "njet", "N_{jet}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_njet_");
+
+    pm.Push<Hist1D>(Axis(nbins,    0, 1500, "dijet_m",    "m_{jj} [GeV]",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dijet_m");
+    pm.Push<Hist1D>(Axis(nbins,    0,  300, "dijet_pt",   "p_{T}(jj) [GeV]",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dijet_pt");
+    pm.Push<Hist1D>(Axis(nbins,    0,    9, "dijet_deta", "#Delta#eta(j_{1},j_{2})", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_deta");
+    pm.Push<Hist1D>(Axis(nbins, -3.2,  3.2, "dijet_dphi", "#Delta#phi(j_{1},j_{2})", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dphi");
+
+    pm.Push<Hist1D>(Axis(nbins,-3.15,3.15, dphi_lly_dijet,    "#Delta#phi(Z#gamma,jj)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_jjlly_dphi");
+    pm.Push<Hist1D>(Axis(nbins,    0, 4.5, dR_lly_dijet,      "#Delta R(Z#gamma,jj)",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_jjlly_dphi");
+    pm.Push<Hist1D>(Axis(nbins,    0, 1.0, balance_lly_dijet, "System balance",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_sysbal");
+    pm.Push<Hist1D>(Axis(nbins,    0,   6, zeppenfeld_y_jet,  "#gamma zeppenfeld",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_zep");
+    pm.Push<Hist1D>(Axis(nbins,  0.4, 4.4, mindR_y_jet,       "Min. #DeltaR(#gamma,j)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_yjdr");
+
+    pm.Push<Hist1D>(Axis(nbins,    30, 150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_pt");
+    pm.Push<Hist1D>(Axis(nbins, -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_phi_");
+
+    pm.Push<Hist1D>(Axis(nbins,   30,  150, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_pt");
+    pm.Push<Hist1D>(Axis(nbins, -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_eta_");
+    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_phi_");
+  }
+
 
   //This function, as of 11/03/23 is a work in progress. No control region plots were made in HIG-19-014
   void Lep_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels){
@@ -1386,16 +1816,52 @@ int N_OSSF_leppairs(const Baby &b){
   }
 
   void mvp_objects(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels){
-    pm.Push<Hist1D>(Axis(5, 0, 5, "nel",       "N_{e}",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_nel");
-    pm.Push<Hist1D>(Axis(5, 0, 5, "nmu",       "N_{#mu}",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_nmu");
-    pm.Push<Hist1D>(Axis(5, 0, 5, "nll",       "N_{ll}",       {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_nll");
-    pm.Push<Hist1D>(Axis(7, 0, 7, "njet",      "N_{jet}",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_njet");
-    pm.Push<Hist1D>(Axis(4, 0, 4, "nbdfl",     "N_{b,med}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_nbdfm");
-    pm.Push<Hist1D>(Axis(4, 0, 4, "nbdfm",     "N_{b,med}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_nbdfm");
-    pm.Push<Hist1D>(Axis(4, 0, 4, "nbdft",     "N_{b,med}",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_nbdfm");
-    pm.Push<Hist1D>(Axis(2, 0, 2, "nphoton",   "N_{#gamma}",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_nphoton");
-    pm.Push<Hist1D>(Axis(2, 0, 2, "nllphoton", "N_{ll#gamma}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:MVP_procs_and_corrections_" + labels + "_nllphoton");
+    pm.Push<Hist1D>(Axis(5, 0, 5, "nel",       "N_{e}",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_nel");
+    pm.Push<Hist1D>(Axis(5, 0, 5, "nmu",       "N_{#mu}",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_nmu");
+    pm.Push<Hist1D>(Axis(5, 0, 5, "nll",       "N_{ll}",       {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_nll");
+    pm.Push<Hist1D>(Axis(7, 0, 7, "njet",      "N_{jet}",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_njet");
+    pm.Push<Hist1D>(Axis(4, 0, 4, "nbdfl",     "N_{b,loose}",  {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_nbdfl");
+    pm.Push<Hist1D>(Axis(4, 0, 4, "nbdfm",     "N_{b,medium}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_nbdfm");
+    pm.Push<Hist1D>(Axis(4, 0, 4, "nbdft",     "N_{b,tight}",  {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_nbdft");
+    pm.Push<Hist1D>(Axis(2, 0, 2, "nphoton",   "N_{#gamma}",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_nphoton");
+    pm.Push<Hist1D>(Axis(2, 0, 2, "nllphoton", "N_{ll#gamma}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_nllphoton");
   }
+
+
+  std::vector<std::vector<float>> plotting_bins(bool plotting_run3){
+    std::vector<std::vector<float>> vec_nbins_run2 = {
+    {5,   5, 10},
+    {12, 12, 20},
+    {12, 12, 20},
+    {12, 12, 20},
+    {50, 50, 75},
+    {100,100,100}};
+
+    std::vector<std::vector<float>> vec_nbins_run3 = {
+    {5,   5,   5},
+    {8,   8,  12},
+    {8,   8,  12},
+    {8,   8,  12},
+    {50, 50,  75},
+    {100,100,100}};
+
+    if(!plotting_run3){ return vec_nbins_run2; 
+    } else { return vec_nbins_run3; }
+  }
+
+
+
+//--------------------------------Skim Selector-----------------------------//
+/*unordered_map<int,string> run2_skims = {{0, "Run2SkimttHlep"}, {1, "Run2SkimttHhad"}, {2, "Run2SkimZHMET"}, {3, "Run2SkimWH3l"}, {4, "Run2SkimVBF"},{5, "Run2SkimggF"}};
+unordered_map<int,string> run3_skims = {{0, "Run3SkimttHlep"}, {1, "Run3SkimttHhad"}, {2, "Run3SkimZHMET"}, {3, "Run3SkimWH3l"}, {4, "Run3SkimVBF"},{5, "Run3SkimggF"}};
+
+procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma_skims.txt", run3_skims[category],10);
+vector<shared_ptr<Process>> select_proper_skim_files(bool plotting_run3, string year, int category){
+
+}
+ZgUtilities::procs_sig_with_scale()
+*/
+
 
 }
 

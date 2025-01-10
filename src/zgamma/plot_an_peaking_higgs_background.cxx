@@ -36,11 +36,15 @@ using namespace CatUtilities;
 //Currently the an_peak_H_bkg has the year as an input variable, but this can be removed
 //This is only used in defining processes
 //int main() {
-int main() {
+int main(int argc, char *argv[]) {
+
+  bool run3_plots = false;
+  string era_select = "";
+  if(argc>1){ era_select=argv[1];}
+  if(era_select == "run3"){run3_plots=true;}
 
   gErrorIgnoreLevel = 6000;
   Palette colors("txt/colors.txt","default");
-
 
   //Defines the plot options for 1D and 2D plots
   PlotOpt style("txt/plot_styles.txt","Eff2D");
@@ -67,8 +71,19 @@ int main() {
   vector<PlotOpt> ops = {lin_lumi()};
 
   //Uses txt/zg_samples.txt to define needed processes
-  vector<shared_ptr<Process>> procs =  ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","OtherHiggsBkg"); 
-  //vector<shared_ptr<Process>> procs =  ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","OtherHiggsBkg",1);
+  vector<shared_ptr<Process>> procs_allhiggs =  ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllHiggsRun2"); 
+  vector<shared_ptr<Process>> procs_peakinghiggs =  ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","HiggsBkgRun2");
+  string lumi_tag = "137.61";
+
+  if(run3_plots){
+    cout << "add the ability to plot run3 samples" << endl;
+    procs_allhiggs     =  ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllHiggsRun3"); 
+    procs_peakinghiggs =  ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","HiggsBkgRun3");
+    lumi_tag = "62.32";
+  }
+
+  vector<vector<shared_ptr<Process>>> procs_vector = {procs_allhiggs,  procs_peakinghiggs};
+  vector<string> procs_string = {"_procs_allhiggs", "_procs_peakinghiggs"};
 
   //This defines the splits based on lepton flavor that will be plotted
   vector<NamedFunc> lep = { "ll_lepid[0]==11","ll_lepid[0]==13","1"};
@@ -90,40 +105,50 @@ int main() {
     for(unsigned int idx_j = 0; idx_j < cat_vec.size(); idx_j++){
       //Vectors used for plots with the tightened baseline selection
       NamedFunc_loop.push_back( tightened_baseline && cat_vec[idx_j] && lep[idx_i]);
-      string_loop_label_tight.push_back(cat_vec_str[idx_j] + lep_lab[idx_i] + "_TIGHT_BASELINE");
+      string_loop_label_tight.push_back(cat_vec_str[idx_j] + lep_lab[idx_i]);
     }
   }
 
   //This block of code handles all of the plot making
   PlotMaker pm;
   string pltNames = "all";
-  NamedFunc sel_cat = tight_baseline;
+  NamedFunc selection = tight_baseline;
 
-  //Makes plots with the tightened baseline selection
-  vector<vector<TableRow>> higgs_window_yields = {{},{},{}};
-  pm.Push<Hist1D>(Axis(40, 100, 180, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {120,130}), sel_cat, procs, ops).Weight(wgt_nodiff).Tag("ShortName:an_peak_H_bkg_" + pltNames+"_llphoton_m");
-  for(unsigned int idx_plt = 0; idx_plt < NamedFunc_loop.size(); idx_plt++){
-    //These are not necessary but sometimes make it a bit more concise when making plots
-    pltNames = string_loop_label_tight[idx_plt];
-    sel_cat  = NamedFunc_loop[idx_plt];
 
-    cout << pltNames << endl;
-    pm.Push<Hist1D>(Axis(40, 100, 180, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {120,130}), sel_cat, procs, ops).Weight(wgt_nodiff).Tag("ShortName:an_peak_H_bkg_" + pltNames+"_llphoton_m");
+  pm.Push<Hist1D>(Axis(40, 100, 180, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {120,130}), selection, procs_vector[0], ops).Weight(wgt_nodiff).Tag("ShortName:an_peak_H_bkg_nocat_llphoton_m_allh");
+  pm.Push<Hist1D>(Axis(40, 100, 180, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {120,130}), selection, procs_vector[1], ops).Weight(wgt_nodiff).Tag("ShortName:an_peak_H_bkg_nocat_llphoton_m_bkgh");
 
-    //Adds rows to tables, CHANGE ROW NAME
-    higgs_window_yields[static_cast<int>(idx_plt/6)].push_back(TableRow(pltNames, sel_cat, 0,0, wgt_nodiff));
+
+  for(unsigned int idx_proc = 0; idx_proc < procs_vector.size(); idx_proc++){
+    string procs_lab = procs_string[idx_proc];
+
+    //Makes plots with the tightened baseline selection
+    vector<vector<TableRow>> higgs_window_yields = {{},{},{}};
+    //pm.Push<Hist1D>(Axis(40, 100, 180, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {120,130}), selection, procs, ops).Weight(wgt_nodiff).Tag("ShortName:an_peak_H_bkg_" + pltNames+"_llphoton_m" + procs_lab);
+
+    for(unsigned int idx_plt = 0; idx_plt < NamedFunc_loop.size(); idx_plt++){
+      //These are not necessary but sometimes make it a bit more concise when making plots
+      pltNames = string_loop_label_tight[idx_plt];
+      selection  = NamedFunc_loop[idx_plt];
+
+      pm.Push<Hist1D>(Axis(40, 100, 180, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {120,130}), selection, procs_vector[idx_proc], ops).Weight(wgt_nodiff).Tag("ShortName:an_peak_H_bkg_" + pltNames+"_llphoton_m" + procs_lab);
+      pm.Push<Hist1D>(Axis(40, 100, 180, "llphoton_refit_m", "m_{ll#gamma,refit} [GeV]", {120,130}), selection, procs_vector[idx_proc], ops).Weight(wgt_nodiff).Tag("ShortName:an_peak_H_bkg_" + pltNames+"_llphoton_m" + procs_lab);
+
+      //Adds rows to tables, CHANGE ROW NAME
+      higgs_window_yields[static_cast<int>(idx_plt/6)].push_back(TableRow(pltNames, selection, 0,0, wgt_nodiff));
+    }
+
+    //Tables of yields for each final state signal MC
+    pm.Push<Table>("an_peaking_higgs_bkg_ee" + procs_lab,   higgs_window_yields[0], procs_vector[idx_proc],0, 1, 0, 1, 0).Precision(3);
+    pm.Push<Table>("an_peaking_higgs_bkg_mumu" + procs_lab, higgs_window_yields[1], procs_vector[idx_proc],0, 1, 0, 1, 0).Precision(3);
+    pm.Push<Table>("an_peaking_higgs_bkg_ll" + procs_lab,   higgs_window_yields[2], procs_vector[idx_proc],0, 1, 0, 1, 0).Precision(3);
   }
-
-  //Tables of yields for each final state signal MC
-  pm.Push<Table>("an_peaking_higgs_bkg_ee",   higgs_window_yields[0], procs,0, 1, 0, 1, 0).Precision(3);
-  pm.Push<Table>("an_peaking_higgs_bkg_mumu", higgs_window_yields[1], procs,0, 1, 0, 1, 0).Precision(3);
-  pm.Push<Table>("an_peaking_higgs_bkg_ll",   higgs_window_yields[2], procs,0, 1, 0, 1, 0).Precision(3);
 
   //This block controls the verbose or non-verbose plotting option and whether or not to use multiple threads
   pm.min_print_ = true;
   pm.multithreaded_ = true;
 
   //Luminosity option for the plots
-  pm.SetLuminosityTag("137.61").MakePlots(1);
+  pm.SetLuminosityTag(lumi_tag).MakePlots(1);
 
 }

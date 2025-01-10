@@ -426,7 +426,17 @@ namespace ZgUtilities {
     rename_signal(procs_loaded,sig_factor);
     return procs_loaded;
   }
+  
+  //Boolean used to select which era to use for plotting. False == Run2, True == Run3
+  bool select_era(int argc, char *argv[]){
+    bool era = false;
+    if(argc<2){return era;}
+    
+    std::string era_sel = argv[1];
+    if(era_sel == "run3" || era_sel =="r3"){era=true;}
 
+    return era; 
+  }
 
   //0 is untagged, 1 is loose, 2 is medium, 3 is tight
   int get_btag_wp_deepjet(int year, float discriminator_value) {
