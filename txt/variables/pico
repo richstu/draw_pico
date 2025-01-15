@@ -9,6 +9,7 @@ bool stitch_htmet
 bool stitch_photon
 bool stitch_dy
 bool old_stitch_dy
+bool use_event
 
 ####################   Global   ###################
 int npv
@@ -28,6 +29,10 @@ float mt
 float mt_tru
 float ht_isr_me
 float vbf_mva
+
+std::vector<float> met_nosmear
+std::vector<float> met_phi_nosmear
+
 
 ###################   Higgsinos   ##################
 std::vector<float> hig_cand_dm
@@ -71,7 +76,41 @@ std::vector<int>   llphoton_iph
 std::vector<int>   llphoton_ill
 std::vector<float> llphoton_dijet_dphi
 std::vector<float> llphoton_dijet_balance
+std::vector<float> llphoton_dijet_dr
+std::vector<float> llphoton_pTt
 std::vector<float> llphoton_pTt2
+
+float ll_refit_m
+float ll_refit_pt
+float ll_refit_eta
+float ll_refit_phi
+
+float llphoton_refit_pt
+float llphoton_refit_eta
+float llphoton_refit_phi
+float llphoton_refit_m
+float llphoton_refit_l1_masserr
+float llphoton_refit_l2_masserr
+float llphoton_refit_ph_masserr
+float llphoton_refit_dr
+float llphoton_refit_dphi
+float llphoton_refit_deta
+float llphoton_refit_costhj
+float llphoton_refit_costheta
+float llphoton_refit_cosTheta
+float llphoton_refit_psi
+float llphoton_refit_dijet_dphi
+float llphoton_refit_dijet_balance
+float llphoton_refit_dijet_dr
+float llphoton_refit_pTt
+
+bool trig_single_el
+bool trig_double_el
+bool trig_single_mu
+bool trig_double_mu
+
+int zg_cutBitMap 
+int zg_categorizationBitMap
 
 ###################   gammagamma   ##################
 int nphotonphoton
@@ -133,6 +172,8 @@ std::vector<float> jet_breg_corr
 std::vector<float> jet_breg_res
 std::vector<float> jet_deepcsv
 std::vector<float> jet_deepflav
+std::vector<float> jet_btagpnetb
+std::vector<float> jet_btagak4b
 std::vector<int>   jet_puid
 std::vector<float> jet_puid_disc
 std::vector<float> jet_ne_emef
@@ -150,6 +191,8 @@ std::vector<float> jet_met_dphi
 std::vector<bool>  jet_h1d
 std::vector<bool>  jet_h2d
 std::vector<int>   jet_fjet_idx
+std::vector<float> jet_pt_nosmear
+std::vector<float> jet_m_nosmear
 
 int ngenjet
 std::vector<float> genjet_pt
@@ -284,7 +327,9 @@ std::vector<float> photon_reliso
 std::vector<float> photon_r9
 std::vector<float> photon_sieie
 std::vector<float> photon_drmin
+std::vector<float> photon_drmax
 std::vector<float> photon_pterr
+std::vector<float> photon_energyErr
 std::vector<float> photon_hoe
 std::vector<float> photon_idmva
 std::vector<int>   photon_pflavor
@@ -292,6 +337,7 @@ std::vector<bool>  photon_id
 std::vector<bool>  photon_id80
 std::vector<bool>  photon_elveto
 std::vector<bool>  photon_sig
+std::vector<bool>  photon_pixelseed
 std::vector<int>   photon_elidx
 std::vector<float> photon_jet_mindr
 std::vector<float> photon_zeppenfeld
@@ -337,6 +383,11 @@ bool pass_ecalnoisejet
 bool pass_badcalib
 bool pass_boosted
 bool pass
+
+#Untested filters in picos
+bool pass_badpfmudz
+bool pass_hfnoisyhits
+
 
 ################  Truth   ##################
 std::vector<float> mc_pt
@@ -436,6 +487,9 @@ bool HLT_Ele15_IsoVVVL_PFHT400
 bool HLT_Ele15_IsoVVVL_PFHT450
 bool HLT_Ele15_IsoVVVL_PFHT600
 bool HLT_Ele50_IsoVVVL_PFHT450
+bool HLT_Ele32_WPTight_Gsf_Emu
+bool HLT_Ele30_WPTight_Gsf
+
 
 # MET triggers
 #------------------------------
@@ -558,3 +612,7 @@ std::vector<float> sys_met_phi
 std::vector<float> sys_hig_cand_am
 std::vector<float> sys_hig_cand_dm
 std::vector<float> sys_hig_cand_drmax
+std::vector<float> sys_jet_pt_jerup
+std::vector<float> sys_jet_pt_jerdn
+std::vector<float> sys_jet_pt_jesup
+std::vector<float> sys_jet_pt_jesdn
