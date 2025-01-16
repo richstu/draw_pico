@@ -22,6 +22,9 @@ MVAWrapper::MVAWrapper(std::string name) :
   variables_(std::vector<NamedFunc>()),
   variable_names_(std::vector<std::string>()),
   variable_values_(std::vector<float>()),
+  spectators_(std::vector<NamedFunc>()),
+  spectator_names_(std::vector<std::string>()),
+  spectator_values_(std::vector<float>()),
   mva_reader_(TMVA::Reader()),
   booked_(false),
   previous_event_(0),
@@ -46,6 +49,18 @@ MVAWrapper & MVAWrapper::SetVariable(std::string name, NamedFunc variable) {
   return *this;
 }
 
+MVAWrapper & MVAWrapper::SetSpectator(std::string name, NamedFunc variable) {
+  if (!booked_) {
+    spectators_.push_back(variable);
+    spectator_names_.push_back(name);
+    spectator_values_.push_back(0);
+  }
+  else {
+    throw std::runtime_error("Cannot add spectator after booking.");
+  }
+  return *this;
+}
+
 /*!\brief Books an MVA and makes it ready for evaluation
  * \param[in] weights_filename - filename for the MVA weights files
 */
@@ -54,6 +69,10 @@ MVAWrapper & MVAWrapper::BookMVA(std::string weights_filename) {
   for (unsigned i = 0; i < variables_.size(); i++) {
     mva_reader_.AddVariable(variable_names_[i], &(variable_values_[i]));
   }
+  for (unsigned i = 0; i < spectators_.size(); i++) {
+    mva_reader_.AddSpectator(spectator_names_[i], &(spectator_values_[i]));
+  }
+
   //MVA type currently hardcoded to BDT
   mva_reader_.BookMVA("BDT",weights_filename.c_str());
   booked_ = true;
