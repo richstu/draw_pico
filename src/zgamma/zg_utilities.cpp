@@ -415,7 +415,7 @@ namespace ZgUtilities {
   
   void rename_signal(std::vector<std::shared_ptr<Process>> &procs, int factor) {
     for (std::shared_ptr<Process> &proc : procs) {
-      if (proc->type_ == Process::Type::signal) {
+      if (proc->type_ == Process::Type::signal && factor != 1) {
         proc->name_ = proc->name_ + " (x" + std::to_string(factor) + ")";
       }
     }

@@ -1,5 +1,5 @@
 #add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_pinnacles_v0/
-#add V12_PRODUCTION_NAME /net/cms18/cms18r0/pico/NanoAODv12/htozgamma_pinnacles_v0/
+#add V12_PRODUCTION_NAME /net/cms18/cms18r0/pico/NanoAODv12/htozgamma_pinnacles_v0_patch/
 #add YEARS 2016APV
 #add YEARS 2016
 #add YEARS 2017
@@ -61,7 +61,7 @@
 #add FILENAMES_BAK_ALL *EWKZ2Jets*.root
 #add FILENAMES_BAK_ALL *ZGamma2JToGamma2L2J_EWK*.root
 #add FILENAMES_HZG_ALL *GluGluHToZG*M-125*.root
-#add FILENAMES_HZG_ALL *VBFHToZG*M-125*.root
+#add FILENAMES_HZG_ALL *VBFHToZG*M-125_TuneCP5_13TeV*.root
 #add FILENAMES_HZG_ALL *WplusH_HToZG_WToAll_M-125*.root
 #add FILENAMES_HZG_ALL *WminusH_HToZG_WToAll_M-125*.root
 #add FILENAMES_HZG_ALL *ZH_HToZG_ZToAll*M-125*.root
@@ -128,42 +128,42 @@
     ProcessType = 1
     PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
-    Selection= trig_double_el||trig_double_mu&&use_event
+    Selection= (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [Z+#gamma]
     ProcessType = 1
     PaletteColor = zgtollg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [t#bar{t}]
     ProcessType = 1
     PaletteColor = tt
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTBAR
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [t#gamma/t#bar{t}#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTGAMMA
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [VBS Z+#gamma]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZG
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [t#bar{t}+X]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTX
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [Multiboson]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_MULTIBOSON
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[AllMoreTrigs]]
   [Z+Fake Photon]
@@ -784,6 +784,33 @@
     Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/$FILENAMES_R3_HZG_ALL
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
 
+[[AllMoreTrigsBkgRun3]]
+  [Z+Fake Photon]
+    ProcessType = 1
+    PaletteColor = dyjets
+    Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/$FILENAMES_R3_DY
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
+  [Z+#gamma]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/$FILENAMES_R3_QQZG
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
+  [t#bar{t}]
+    ProcessType = 1
+    PaletteColor = tt
+    Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/$FILENAMES_R3_TTBAR
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
+  [VBS Z+#gamma]
+    ProcessType = 1
+    PaletteColor = vbszg
+    Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/$FILENAMES_R3_EWKZG
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
+  [Multiboson]
+    ProcessType = 1
+    PaletteColor = vv
+    Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/$FILENAMES_R3_MULTIBOSON
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
+
 
 [[AllSkimLLMoreTrigsDataRun3]]
   [Z+Fake Photon]
@@ -949,181 +976,214 @@
     ProcessType = 1
     PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
-    Selection= trig_double_el||trig_double_mu&&use_event
+    Selection= (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [W+Jets]
     ProcessType = 1
     PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_WJETS
-    Selection= trig_double_el||trig_double_mu&&use_event
+    Selection= (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [Z+#gamma]
     ProcessType = 1
     PaletteColor = zgtollg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [t#bar{t}]
     ProcessType = 1
     PaletteColor = tt
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_TTBAR
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [t#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_TGJets*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [t#bar{t}#gamma]
     ProcessType = 1
     PaletteColor = ttg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*TTGJets*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [VBS Z]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZJETS
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [VBS Z#gamma]
     ProcessType = 1
     PaletteColor = vbszg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZG
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [t#bar{t}W]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttWJets_Tune*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [t#bar{t}Z]
     ProcessType = 1
     PaletteColor = ttx
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttZJets*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [WW]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_WW_Tune*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [WZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_WZ_Tune*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [ZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*_ZZ_Tune*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [WW#gamma]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWG*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [WZ#gamma]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WZG*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [WWW]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWW_4F_Tune*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [WWZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WWZ_4F_Tune*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [WZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WZZ*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [ZZZ]
     ProcessType = 1
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZZZ*.root
-    Selection = trig_double_el||trig_double_mu&&use_event
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)&&use_event
   [gg#rightarrow H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*GluGluHToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [W^{+} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WplusH_HToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [W^{-} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WminusH_HToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [Z H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZH_HToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [t#bar{t}H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttHToZG_M125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[SignalSplit]]
   [gg#rightarrow H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*GluGluHToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*VBFHToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [W^{+} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*WplusH_HToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [W^{-} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*WminusH_HToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [Z H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*ZH_HToZG*M-125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [t#bar{t}H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*ttHToZG_M125*.root
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
+[[ggFVBFSignal]]
+  [gg#rightarrow H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = blue
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*GluGluHToZG*M-125*.root
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
+  [VBF H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = vbfzg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
+  [H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = red
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
+
+[[ggFVBFSignalRun3]]
+  [gg#rightarrow H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = blue
+    Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/*GluGluHToZG*M-125*.root
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
+  [VBF H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = vbfzg
+    Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
+  [H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = red
+    Files = $V12_PRODUCTION_NAME/$R3_YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[ttHtoZG]]
   [ttH#rightarrow Z#gamma]
     ProcessType = 2
     Color = 6
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_TTH
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[VHtoZG]]
   [VH#rightarrow Z#gamma]
     ProcessType = 2
     Color = 6
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_VH
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[VBFHtoZG]]
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 6
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_VBF
-    Selection = trig_double_el||trig_double_mu
+    Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[SignalUnskimmed]]
   [H#rightarrow Z#gamma]
@@ -1137,6 +1197,13 @@
     ProcessType = 1
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
+    Selection = 1 
+
+[[SignalSlim]]
+  [H#rightarrow Z#gamma]
+    ProcessType = 1
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
     Selection = 1 
 
 
@@ -1358,7 +1425,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [Data]
     ProcessType = 0
@@ -1391,7 +1458,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEAR_2016/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEAR_2016/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [Data]
     ProcessType = 0
@@ -1423,7 +1490,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEAR_2016APV/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEAR_2016APV/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [Data]
     ProcessType = 0
@@ -1455,7 +1522,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEAR_2017/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEAR_2017/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [Data]
     ProcessType = 0
@@ -1487,7 +1554,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEAR_2018/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEAR_2018/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
   [Data]
     ProcessType = 0
@@ -1519,7 +1586,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEAR_2016/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEAR_2016/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[2016APVAMT]]
@@ -1546,7 +1613,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEAR_2016APV/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEAR_2016APV/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[2017AMT]]
@@ -1573,7 +1640,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEAR_2017/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEAR_2017/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[2018AMT]]
@@ -1600,7 +1667,7 @@
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEAR_2018/$SKIM_LLG/*VBFHToZG*M-125*.root
+    Files = $PRODUCTION_NAME/$YEAR_2018/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
 [[2016AMT_NoSig]]

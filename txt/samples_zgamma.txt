@@ -1,4 +1,4 @@
-#add PRODUCTION_NAME /net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v3/
+#add PRODUCTION_NAME /net/cms17/cms17r0/pico/NanoAODv9/htozgamma_lassen_v0/
 #add YEARS 2016APV
 #add YEARS 2016
 #add YEARS 2017
@@ -189,6 +189,53 @@
     ProcessType = 0
     Color = 1
     Files = $PRODUCTION_NAME/$YEARS/$DATA_SKIM_LLG/$FILENAMES_ALL
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+
+[[AllMoreTrigsDataSlim]]
+  [Z+Fake Photon]
+    ProcessType = 1
+    PaletteColor = dyjets
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_DY
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [Z+#gamma]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_QQZG
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [t#bar{t}]
+    ProcessType = 1
+    PaletteColor = tt
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_TTBAR
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [t#gamma/t#bar{t}#gamma]
+    ProcessType = 1
+    PaletteColor = ttg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_TTGAMMA
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [VBS Z+#gamma]
+    ProcessType = 1
+    PaletteColor = vbszg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_EWKZG
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [t#bar{t}+X]
+    ProcessType = 1
+    PaletteColor = ttx
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_TTX
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [Multiboson]
+    ProcessType = 1
+    PaletteColor = vv
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_MULTIBOSON
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
+  [Data]
+    ProcessType = 0
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$DATA_SLIM_LLG/$FILENAMES_ALL
     Selection = (HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch
 
 [[AllSplit]]

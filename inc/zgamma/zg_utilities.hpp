@@ -41,7 +41,6 @@ namespace ZgUtilities {
   SampleLoader ZgSampleLoader();
   void rename_signal(std::vector<std::shared_ptr<Process>> &procs, int factor);
   std::vector<std::shared_ptr<Process>> procs_with_sig_scale(const std::string file_name, const std::string loader_name, int sig_factor);
-  bool select_era(int argc, char *argv[]);
 
   int get_btag_wp_deepjet(int year, float discriminator_value);
 
