@@ -232,8 +232,8 @@ int main(int argc, char *argv[]) {
   for(unsigned int idx_sel = 0; idx_sel < ggf_categories_vector.size(); idx_sel++){
     selection = ggf_categories_vector[idx_sel] && blind_data;
     labels = ggf_categories_name_vector[idx_sel];  
-    CatUtilities::ggF_controlregion_plots(pm,selection,procs,ops,wgt,labels);
-    //CatUtilities::ggF_controlregion_plots(pm,selection,procs,ops,wgt,labels,bins); //<--- Option that allows you to set the bins for ALL plots
+    CatUtilities::ggF_controlregion_plots(pm,selection,procs,ops,wgt_pin_fix,labels);
+    //CatUtilities::ggF_controlregion_plots(pm,selection,procs,ops,wgt_pin_fix,labels,bins); //<--- Option that allows you to set the bins for ALL plots
   }
   
   //Plot options and MakePlots command

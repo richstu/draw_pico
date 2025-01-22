@@ -162,6 +162,7 @@ namespace CRUtilities{
   std::vector<PlotOpt> an_plotting_options(std::string select_options){
     std::vector<PlotOpt> ops = {};
 
+    //WAIT WHY AM I DOING THIS JUST PUT IT IN PLOT_STYLES
     if(select_options == "control_region"){
         PlotOpt an_cr_plot("txt/plot_styles.txt","CMSPaper");
         an_cr_plot.YAxis(PlotOptTypes::YAxisType::linear)
@@ -174,8 +175,6 @@ namespace CRUtilities{
                 .CanvasHeight(800)
                 .FileExtensions({"pdf"});
         ops = {an_cr_plot};
-        return ops;
-
     } else if(select_options=="2D"){
         PlotOpt an_2D_hist("txt/plot_styles.txt","Eff2D");
         an_2D_hist().Stack(PlotOptTypes::StackType::data_norm)
@@ -183,7 +182,6 @@ namespace CRUtilities{
              .LabelSize(0.04)
              .UseCMYK(true); 
         ops = {an_2D_hist};
-        return ops;   
     } else if(select_options == "1D root"){
         PlotOpt an_cr_plot("txt/plot_styles.txt","CMSPaper");
         an_cr_plot.YAxis(PlotOptTypes::YAxisType::linear)
@@ -195,7 +193,37 @@ namespace CRUtilities{
                 .CanvasHeight(800)
                 .FileExtensions({"pdf","root"});
         ops = {an_cr_plot};
-        return ops;
+    } else if(select_options == "soverb"){
+      PlotOpt soverb("txt/plot_styles.txt","CMSPaper");
+      soverb.YAxis(PlotOptTypes::YAxisType::log)
+          .Stack(PlotOptTypes::StackType::signal_overlay)
+          .Overflow(PlotOptTypes::OverflowType::both)
+          .YTitleOffset(1.)
+          .LogMinimum(0.001)
+          .AutoYAxis(true)
+          .UseCMYK(false)
+          .LeftMargin(0.17)
+          .LegendColumns(1)
+          .CanvasWidth(900)
+          .Bottom(PlotOptTypes::BottomType::sorb)
+          .FileExtensions({"pdf"});
+      ops = {soverb};
+    } else if(select_options == "soverb upper"){
+      PlotOpt soverb_upper("txt/plot_styles.txt","CMSPaper");
+      soverb_upper.Title(PlotOptTypes::TitleType::info)
+          .YAxis(PlotOptTypes::YAxisType::log)
+          .Stack(PlotOptTypes::StackType::signal_overlay)
+          .Overflow(PlotOptTypes::OverflowType::both)
+          .YTitleOffset(1.)
+          .LogMinimum(0.001)
+          .AutoYAxis(true)
+          .UseCMYK(false)
+          .LeftMargin(0.17)
+          .LegendColumns(1)
+          .CanvasWidth(900)
+          .Bottom(PlotOptTypes::BottomType::sorb_cut_upper)
+          .FileExtensions({"pdf"});
+      ops = {soverb_upper};
     } else {
         PlotOpt an_1D_plot("txt/plot_styles.txt","CMSPaper");
         an_1D_plot.YAxis(PlotOptTypes::YAxisType::linear)
@@ -207,11 +235,9 @@ namespace CRUtilities{
                 .CanvasHeight(800)
                 .FileExtensions({"pdf"});
          ops = {an_1D_plot};
-         return ops;
     }
  
-    //Never should reach this statement
-    return {};
+    return ops;
  }
 
 /*

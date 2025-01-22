@@ -163,6 +163,58 @@ namespace ZgFunctions {
     return 1.0;
   });
 
+
+  //Turns a vector<NamedFunc> into one usable for a cutflow table
+  std::vector<NamedFunc> progressive_cuts(std::vector<NamedFunc> vector_NamedFunc){
+    for(unsigned int idx = 1; idx<vector_NamedFunc.size(); idx++){ vector_NamedFunc[idx] = vector_NamedFunc[idx-1] && vector_NamedFunc[idx];}
+    return vector_NamedFunc;
+  }
+
+  //This function adds all selections and reverses the selection at reverse
+  NamedFunc Nreverse1(std::vector<NamedFunc> vector_NamedFunc, unsigned int reverse){
+    NamedFunc return_NamedFunc = "1";
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==reverse){return_NamedFunc = return_NamedFunc && !(vector_NamedFunc[idx]); continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+  //Returns a NamedFunc replacing one selection (marked by skip)
+  NamedFunc Nreplace1(std::vector<NamedFunc> vector_NamedFunc, NamedFunc replace, unsigned int skip){
+    NamedFunc return_NamedFunc = "1";//vector_NamedFunc[start];
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==skip){return_NamedFunc = return_NamedFunc && replace; continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+  //Returns a NamedFunc with all but one selection (marked by skip)
+  NamedFunc Nminus1(std::vector<NamedFunc> vector_NamedFunc, unsigned int skip){
+//    NamedFunc return_NamedFunc = "1";
+//    unsigned int start = skip!=0 ?  0 : 1;
+    NamedFunc return_NamedFunc = "1";//vector_NamedFunc[start];
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==skip){continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+
+  //Returns a NamedFunc without all selections in the vector skip
+  NamedFunc Nminusk(std::vector<NamedFunc> vector_NamedFunc, std::vector<unsigned int> skip){
+    unsigned int idx_s = 0;
+    NamedFunc return_NamedFunc = "1";
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx_s < skip.size() && idx==skip[idx_s]){idx_s++; continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+
   //drmax of lead photon
   const NamedFunc photon_drmax("photon_drmax",[](const Baby &b) -> NamedFunc::ScalarType{
       return ZgUtilities::pdrmax(b);
@@ -187,6 +239,15 @@ namespace ZgFunctions {
   //pT/m of Higgs candidate
   const NamedFunc llphoton_rel_pt = NamedFunc("llphoton_pt[0]/llphoton_m[0]").Name("llphoton_rel_pt");
 
+  const NamedFunc mlly("mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return ZgUtilities::AssignH(b).M(); });
+  const NamedFunc pTy_mlly("pTy_mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.photon_pt()->at(0))/(ZgUtilities::AssignH(b).M()); });
+  const NamedFunc mll_mlly("mll_mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.ll_m() ->at(0)) + ZgUtilities::AssignH(b).M(); });
+
+  const NamedFunc mlly_refit("mlly_refit",[](const Baby &b) -> NamedFunc::ScalarType{ return b.llphoton_refit_m(); });
+  const NamedFunc pTy_mlly_refit("pTy_mlly_refit",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.photon_pt()->at(0))/(b.llphoton_refit_m()); });
+  const NamedFunc mll_mlly_refit("mll_mlly_refit",[](const Baby &b) -> NamedFunc::ScalarType{ return b.ll_refit_m() + b.llphoton_refit_m(); });
+
+
   //Below is the baseline used by HIG-19-014
   const NamedFunc hig19014_baseline     = "nllphoton>0" && pass_trigs_and_pt && "ll_m[0] > 50 && photon_pt[0]/llphoton_m[0] > 15.0/110 && ll_m[0] + llphoton_m[0] > 185 && llphoton_m[0] > 100 && llphoton_m[0] < 180 && pass";
 
@@ -197,6 +258,15 @@ namespace ZgFunctions {
   const NamedFunc tightened_baseline_refit_all_sels= "nllphoton>0" && pass_trigs_and_pt && "photon_pt[0]/llphoton_refit_m > 15.0/110 && ll_refit_m > 80 && ll_refit_m < 100 && llphoton_refit_m > 100 && llphoton_refit_m < 180 && ll_refit_m + llphoton_refit_m > 185 && pass";
   const NamedFunc tightened_baseline_refit= "nllphoton>0" && pass_trigs_and_pt && "photon_pt[0]/llphoton_m[0] > 15.0/110 && ll_m[0] > 80 && ll_m[0] < 100 && llphoton_refit_m > 100 && llphoton_refit_m < 180 && ll_refit_m + llphoton_refit_m > 185 && pass";
 
+  const std::vector<NamedFunc> vector_tightened_baseline = {"pass && nll>0", pass_trigs_and_pt, "ll_m[0] > 50", "nphoton > 0",  pTy_mlly > 15.0/110, "ll_m[0] > 80 && ll_m[0] < 100",
+                                                            mlly > 100 && mlly < 180, mll_mlly > 185};
+  const std::vector<NamedFunc> vector_tightened_baseline_refit = {"nll>0", pass_trigs_and_pt, "ll_refit_m > 50", "nphoton > 0",  pTy_mlly_refit > 15.0/110,
+                                                                  "ll_refit_m > 80 && ll_refit_m < 100", mlly_refit > 100 && mlly_refit < 180, mll_mlly_refit > 185};
+  const std::vector<NamedFunc> vtb_refit = {"nll>0", pass_trigs_and_pt, "ll_m[0] > 50", "nphoton > 0",  pTy_mlly_refit > 15.0/110,
+                                                                  "ll_m[0] > 80 && ll_m[0] < 100", mlly_refit > 100 && mlly_refit < 180, mll_mlly_refit > 185};
+
+
+
   const NamedFunc wgt("wgt",[](const Baby &b) -> NamedFunc::ScalarType{ 
     if(b.SampleTypeString().Contains("-")) {
       return 1;
@@ -204,6 +274,21 @@ namespace ZgFunctions {
 
     double w_year = w_years.GetScalar(b);
     if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
+    if(b.SampleType() > 2020){ return b.w_lumi()*w_year;}
+
+    return b.weight()*w_year;
+  });
+
+
+
+  const NamedFunc wgt_pin_fix("wgt_pin_fix",[](const Baby &b) -> NamedFunc::ScalarType{ 
+    if(b.SampleTypeString().Contains("-")) {
+      return 1;
+    }
+
+    double w_year = w_years.GetScalar(b);
+    if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
+    if( b.type()==17200 && b.SampleType()==2016){w_year = w_year/5.0;}
     if(b.SampleType() > 2020){ return b.w_lumi()*w_year;}
 
     return b.weight()*w_year;
