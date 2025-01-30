@@ -18,9 +18,14 @@
 #include "core/process.hpp"
 #include "core/RooMultiPdf.hpp"
 
+/*!\brief Figure subclass used to produce combine datacards (i.e. statistical models)
+*/
 class Datacard final: public Figure{
 public:
 
+  /*!\brief Class used to store selections applied to sample in a way that allows
+   * selection to be replaced for ex. systematics evaluation
+  */
   class SelectionList {
   public:
     SelectionList(const std::string& name);
@@ -36,6 +41,9 @@ public:
   private:
   };
 
+  /*!\brief Class that stores systematic variations, either in the selections 
+   * or weights applied to each sample
+  */
   class Systematic {
   public:
     Systematic(const std::string &name, const NamedFunc &alternate_weight);
@@ -56,12 +64,34 @@ public:
   };
   //TODO implement asymmetric systematics
 
-  class DatacardProcess final: public Figure::FigureComponent{
+  /*!\brief Interface representing processes appearing in the datacard, see 
+   * below DatacardProcessNonparametric and DatacardProcessParametric classes
+  */
+  class DatacardProcess : public Figure::FigureComponent{
   public:
-    DatacardProcess(const Figure &figure,
-                    const std::shared_ptr<Process> &process,
-                    const Axis &axis);
-    ~DatacardProcess() = default;
+    DatacardProcess(const Figure &figure, const std::shared_ptr<Process> &process);
+    DatacardProcess(const Figure &figure);
+    virtual void WriteWorkspace(unsigned int channel) = 0; 
+    virtual std::string WSName(unsigned int channel) = 0;
+    virtual std::string PDFName(unsigned int channel) = 0;
+    virtual float Yield(unsigned int channel, unsigned int systematic = 999) = 0;
+
+    std::string name_;              //!< Process name
+    bool is_data_;                  //!< If process is data
+    bool is_signal_;                //!< If process is signal
+    std::vector<bool> is_profiled_; //!< If each channel is profiled
+    std::vector<float> data_norm_;  //!< Number of events in data for each channel
+  };
+
+  /*!\brief Class representing a nonparametric (i.e. derived at some level
+   * from data or MC samples) process in a datacard
+  */
+  class DatacardProcessNonparametric final: public DatacardProcess{
+  public:
+    DatacardProcessNonparametric(const Figure &figure,
+                                 const std::shared_ptr<Process> &process,
+                                 const Axis &axis);
+    ~DatacardProcessNonparametric() = default;
     void RecordEvent(const Baby &baby) final;
     void WriteWorkspace(unsigned int channel) final;
     std::string WSName(unsigned int channel) final;
