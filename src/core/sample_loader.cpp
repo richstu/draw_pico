@@ -191,11 +191,13 @@ vector<shared_ptr<Process>> SampleLoader::GetSamples() {
   for (DataSample this_sample : samples_) {
     //currently only picos supported; easy enough to add more Baby children, though
     if (this_sample.ntuple_type_ == "Baby_pico") {
-      if (verbose_)
-        std::cout << this_sample.name_;
+      if (verbose_) {
+        std::cout << this_sample.name_ << "\n";
+      }
       processes.push_back(Process::MakeShared<Baby_pico>(this_sample.name_,
           this_sample.type_, this_sample.color_, this_sample.files_, 
           this_sample.selection_));
+      processes.back()->SetLineColor(this_sample.color_);
     }
   }
   return processes;

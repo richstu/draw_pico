@@ -11,6 +11,9 @@ Long64_t event
 # not clear if this is for medium WP??
 float btagWeight_CSVV2
 float btagWeight_DeepCSVB
+float L1PreFiringWeight_Nom
+float L1PreFiringWeight_Up
+float L1PreFiringWeight_Dn
 
 ################ Electrons ################
 

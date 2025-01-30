@@ -7,10 +7,13 @@
 #include "zgamma/zg_utilities.hpp"
 
 using NamedFuncUtilities::ReduceNamedFunc;
+using NamedFuncUtilities::MultiReduceNamedFunc;
 using NamedFuncUtilities::FilterNamedFunc;
 using NamedFuncUtilities::reduce_sum;
 using NamedFuncUtilities::reduce_max;
+using NamedFuncUtilities::reduce_maxfirst;
 using NamedFuncUtilities::reduce_sublead;
+using NamedFuncUtilities::reduce_subleadfirst;
 
 namespace ZgFunctions {
 
@@ -104,13 +107,47 @@ namespace ZgFunctions {
   const NamedFunc sublead_el_pt = ReduceNamedFunc(FilterNamedFunc("el_pt","el_sig"),
       reduce_sublead).Name("sublead_el_pt");
 
+  //signal jet pt
+  const NamedFunc sig_jet_pt = FilterNamedFunc("jet_pt","jet_isgood").Name("sig_jet_pt");
+
+  //signal jet eta
+  const NamedFunc sig_jet_eta = FilterNamedFunc("jet_eta","jet_isgood").Name("sig_jet_eta");
+
+  //signal jet phi
+  const NamedFunc sig_jet_phi = FilterNamedFunc("jet_phi","jet_isgood").Name("sig_jet_phi");
+
+  //signal jet m
+  const NamedFunc sig_jet_m = FilterNamedFunc("jet_m","jet_isgood").Name("sig_jet_m");
+
   //leading jet pt
-  const NamedFunc lead_jet_pt = ReduceNamedFunc(FilterNamedFunc("jet_pt","jet_isgood"),
-      reduce_max).Name("lead_jet_pt");
+  const NamedFunc lead_jet_pt = ReduceNamedFunc(sig_jet_pt,reduce_max).Name("lead_jet_pt");
 
   //subleading jet pt
-  const NamedFunc sublead_jet_pt = ReduceNamedFunc(FilterNamedFunc("jet_pt","jet_isgood"),
-      reduce_sublead).Name("sublead_jet_pt");
+  const NamedFunc sublead_jet_pt = ReduceNamedFunc(sig_jet_pt,reduce_sublead).Name("sublead_jet_pt");
+
+  //lead jet eta
+  const NamedFunc lead_jet_eta = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_eta},reduce_maxfirst).Name("lead_jet_eta");
+
+  //sublead jet eta
+  const NamedFunc sublead_jet_eta = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_eta},reduce_subleadfirst).Name("sublead_jet_eta");
+
+  //lead jet phi
+  const NamedFunc lead_jet_phi = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_phi},reduce_maxfirst).Name("lead_jet_phi");
+
+  //sublead jet phi
+  const NamedFunc sublead_jet_phi = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_phi},reduce_subleadfirst).Name("sublead_jet_phi");
+
+  //lead jet m
+  const NamedFunc lead_jet_m = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_m},reduce_maxfirst).Name("lead_jet_m");
+
+  //sublead jet m
+  const NamedFunc sublead_jet_m = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_m},reduce_subleadfirst).Name("sublead_jet_m");
 
   //trigger-paired lepton pt plateau cuts
   const NamedFunc trig_plateau_cuts("trig_plateau_cuts", [](const Baby &b) -> NamedFunc::ScalarType{
@@ -136,9 +173,12 @@ namespace ZgFunctions {
   NamedFunc zg_baseline_nolep = "nlep>=2 && nphoton>=1 && (ll_m[0]>50) && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ((llphoton_m[0]+ll_m[0])>=185)";
   NamedFunc zg_el_cuts = lead_el_pt>25&&sublead_el_pt>15;
   NamedFunc zg_mu_cuts = lead_mu_pt>20&&sublead_mu_pt>10;
-  const NamedFunc zg_baseline_el = NamedFunc(zg_el_cuts && zg_baseline_nolep).Name("electron_baseline");
-  const NamedFunc zg_baseline_mu = NamedFunc(zg_mu_cuts && zg_baseline_nolep).Name("muon_baseline");
-  const NamedFunc zg_baseline = NamedFunc((zg_el_cuts || zg_mu_cuts) && zg_baseline_nolep).Name("baseline");
+  const NamedFunc zg_baseline_el_run2 = NamedFunc(zg_el_cuts && zg_baseline_nolep).Name("electron_baseline_run2");
+  const NamedFunc zg_baseline_mu_run2 = NamedFunc(zg_mu_cuts && zg_baseline_nolep).Name("muon_baseline_run2");
+  const NamedFunc zg_baseline_run2 = NamedFunc((zg_el_cuts || zg_mu_cuts) && zg_baseline_nolep).Name("baseline_run2");
+
+  //new working baseline selection
+  const NamedFunc zg_baseline = NamedFunc("(nel>=2||nmu>=2) && nphoton>=1 && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ll_m[0]>80 && ll_m[0]<100 && ((llphoton_m[0]+ll_m[0])>=185) && llphoton_m[0]>100 && llphoton_m[0]<180"&&trig_plateau_cuts).Name("baseline");
 
   //master stitch variable, updated for KingsCanyon_v0, later to be updated for v1
   const NamedFunc stitch("stitch",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -201,7 +241,7 @@ namespace ZgFunctions {
 
   //relative pt uncertainty of lead photon for kingscanyon_v0 productions and earlier
   const NamedFunc photon_relpterr_deathvalley("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
-    return b.photon_pterr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
+    return b.photon_energyErr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
   });
 
   //relative pt uncertainty of lead photon

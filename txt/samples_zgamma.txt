@@ -1,6 +1,7 @@
-#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_kingscanyon_v1/
-#add PRODUCTION_NAME_v11 /net/cms11/cms11r0/pico/NanoAODv11/htozgamma_kingscanyon_v1/
-#add PRODUCTION_NAME_v11p9 /net/cms11/cms11r0/pico/NanoAODv11p9/htozgamma_kingscanyon_v1/
+#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_lassen_v0/
+#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_lassen_v0/
+#add PRODUCTION_NAME_v11 /net/cms11/cms11r0/pico/NanoAODv11/htozgamma_lassen_v0/
+#add PRODUCTION_NAME_v11p9 /net/cms11/cms11r0/pico/NanoAODv11p9/htozgamma_lassen_v0/
 #add YEARS 2016APV
 #add YEARS 2016
 #add YEARS 2017
@@ -130,11 +131,23 @@
 #add FILENAMES_HASZ *ttHToZG_ZToLL_M-125*.root
 
 #add FILENAMES_HZG_GGF *GluGluHToZG_ZToLL_M-125*.root
+#add FILENAMES_HZG_GGF *GluGluHtoZG_Zto2L_M-125*.root
 #add FILENAMES_HZG_VBF *VBFHToZG_ZToLL_M-125*.root
+#add FILENAMES_HZG_VBF *VBFHtoZG_Zto2L_M-125*.root
 #add FILENAMES_HZG_VH *WplusH_HToZG_WToAll_M-125*.root
+#add FILENAMES_HZG_VH *WplusH_HtoZG_WtoAll_Zto2L_M-125*.root
 #add FILENAMES_HZG_VH *WminusH_HToZG_WToAll_M-125*.root
+#add FILENAMES_HZG_VH *WminusH_HtoZG_WtoAll_Zto2L_M-125*.root
 #add FILENAMES_HZG_VH *ZH_HToZG_ZToAll_M-125*.root
+#add FILENAMES_HZG_VH *ZH_HtoZG_ZtoAll_M-125*.root
+#add FILENAMES_HZG_WPH *WplusH_HToZG_WToAll_M-125*.root
+#add FILENAMES_HZG_WPH *WplusH_HtoZG_WtoAll_Zto2L_M-125*.root
+#add FILENAMES_HZG_WMH *WminusH_HToZG_WToAll_M-125*.root
+#add FILENAMES_HZG_WMH *WminusH_HtoZG_WtoAll_Zto2L_M-125*.root
+#add FILENAMES_HZG_ZH *ZH_HToZG_ZToAll_M-125*.root
+#add FILENAMES_HZG_ZH *ZH_HtoZG_ZtoAll_M-125*.root
 #add FILENAMES_HZG_TTH *ttHToZG_ZToLL_M-125*.root
+#add FILENAMES_HZG_TTH *ttHtoZG_Zto2L_M-125*.root
 
 #add FILENAMES_HZG_ALL *GluGluHToZG_ZToLL_M-125*.root
 #add FILENAMES_HZG_ALL *VBFHToZG_ZToLL_M-125*.root
@@ -142,6 +155,12 @@
 #add FILENAMES_HZG_ALL *WminusH_HToZG_WToAll_M-125*.root
 #add FILENAMES_HZG_ALL *ZH_HToZG_ZToAll_M-125*.root
 #add FILENAMES_HZG_ALL *ttHToZG_ZToLL_M-125*.root
+#add FILENAMES_HZG_ALL *GluGluHtoZG_Zto2L_M-125*.root
+#add FILENAMES_HZG_ALL *VBFHtoZG_Zto2L_M-125*.root
+#add FILENAMES_HZG_ALL *WplusH_HtoZG_WtoAll_Zto2L_M-125*.root
+#add FILENAMES_HZG_ALL *WminusH_HtoZG_WtoAll_Zto2L_M-125*.root
+#add FILENAMES_HZG_ALL *ZH_HtoZG_ZtoAll_M-125*.root
+#add FILENAMES_HZG_ALL *ttHtoZG_Zto2L_M-125*.root
 
 #add FILENAMES_HMUMU *GluGluHToMuMu*.root
 #add FILENAMES_HMUMU *VBFHToMuMu*.root
@@ -193,7 +212,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
@@ -235,7 +254,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Data]
@@ -262,7 +281,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
@@ -274,7 +293,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [htozgamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
@@ -380,33 +399,33 @@
     Files = $PRODUCTION_KINGSCANYON/$YEARS/$SKIM_LLG/$FILENAMES_WJETS
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [gg#rightarrow H#rightarrow Z#gamma]
-    ProcessType = 2
-    Color = 2
+    ProcessType = htozg
+    PaletteColor = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*GluGluHToZG_ZToLL_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [VBF H#rightarrow Z#gamma]
-    ProcessType = 2
-    Color = 2
+    ProcessType = htozg
+    PaletteColor = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG_ZToLL_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W^{+} H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WplusH_HToZG_WToAll_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W^{-} H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*WminusH_HToZG_WToAll_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Z H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ZH_HToZG_ZToAll_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t} H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*ttHToZG_ZToLL_M-125*.root
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
@@ -414,32 +433,32 @@
   [gg#rightarrow H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*GluGluHToZG_ZToLL_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_HZG_GGF
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [VBF H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 3
-    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*VBFHToZG_ZToLL_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_HZG_VBF
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W^{+} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 4
-    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*WplusH_HToZG_WToAll_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_HZG_WPH
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [W^{-} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 5
-    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*WminusH_HToZG_WToAll_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_HZG_WMH
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Z H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 6
-    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*ZH_HToZG_ZToAll_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_HZG_ZH
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [t#bar{t} H#rightarrow Z#gamma]
     ProcessType = 2
     Color = 7
-    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/*ttHToZG_ZToLL_M-125*.root
+    Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_HZG_TTH
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
 [[ttHtoZG]]
@@ -471,7 +490,7 @@
     Selection = use_event&&trig&&photon_isjet
   [Z+Fake photon (#gamma=e)]
     ProcessType = 1
-    PaletteColor = dyel
+    PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)&&(photon_pflavor[0]==11)
   [Z+"Fake" photon (real #gamma)]
@@ -481,7 +500,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)&&(photon_pflavor[0]==1)
   [Z+Fake photon (other fake)]
     ProcessType = 1
-    PaletteColor = dyother
+    PaletteColor = dyjets
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
     Selection = use_event&&trig&&photon_isother
   [Z+#gamma (ISR)]
@@ -491,7 +510,7 @@
     Selection = use_event&&trig&&photon_isisr
   [Z+#gamma (FSR)]
     ProcessType = 1
-    PaletteColor = zgfsr
+    PaletteColor = zgtollg
     Files = $PRODUCTION_NAME/$YEARS/$UNSKIMMED/$FILENAMES_QQZG
     Selection = use_event&&trig&&photon_isfsr
 
@@ -513,7 +532,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_DILEP/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Data]
@@ -535,7 +554,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_DILEP/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
@@ -552,7 +571,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_DILEP/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Data]
@@ -604,7 +623,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_DILEP/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
@@ -651,7 +670,7 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
-    Color = 2
+    PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_DILEP/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Data]
