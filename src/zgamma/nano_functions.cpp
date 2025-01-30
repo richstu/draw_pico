@@ -1,5 +1,6 @@
-#include <fstream>
 #include <iostream>
+#include <cmath>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,11 @@
 #include "zgamma/zg_utilities.hpp"
 
 using namespace NamedFuncUtilities;
+
+//have to have a wrapper because fabs overloading confuses MapNamedFunc
+double abs_fn(double x){
+  return fabs(x);
+}
 
 //Namedfuncs that replicate standard nano2pico behavior
 namespace NanoFunctions {
@@ -83,11 +89,33 @@ namespace NanoFunctions {
   //signal muon pt
   const NamedFunc SignalMuon_pt = FilterNamedFunc("Muon_pt", Muon_sig).Name("SignalMuon_pt");
 
+  //signal muon eta
+  const NamedFunc SignalMuon_eta = FilterNamedFunc("Muon_eta", Muon_sig).Name("SignalMuon_eta");
+
+  //signal muon phi
+  const NamedFunc SignalMuon_phi = FilterNamedFunc("Muon_phi", Muon_sig).Name("SignalMuon_phi");
+
   //lead signal muon pt
   const NamedFunc Lead_SignalMuon_pt = ReduceNamedFunc(SignalMuon_pt, reduce_max).Name("Lead_SignalMuon_pt");
 
+  //lead signal muon eta
+  const NamedFunc Lead_SignalMuon_eta = MultiReduceNamedFunc(
+      {SignalMuon_pt,SignalMuon_eta}, reduce_maxfirst).Name("Lead_SignalMuon_eta");
+
+  //lead signal muon phi
+  const NamedFunc Lead_SignalMuon_phi = MultiReduceNamedFunc(
+      {SignalMuon_pt,SignalMuon_phi}, reduce_maxfirst).Name("Lead_SignalMuon_phi");
+
   //sublead signal muon pt
   const NamedFunc Sublead_SignalMuon_pt = ReduceNamedFunc(SignalMuon_pt, reduce_sublead).Name("Sublead_SignalMuon_pt");
+
+  //sublead signal muon eta
+  const NamedFunc Sublead_SignalMuon_eta = MultiReduceNamedFunc(
+      {SignalMuon_pt,SignalMuon_eta}, reduce_subleadfirst).Name("Sublead_SignalMuon_eta");
+
+  //sublead signal muon phi
+  const NamedFunc Sublead_SignalMuon_phi = MultiReduceNamedFunc(
+      {SignalMuon_pt,SignalMuon_phi}, reduce_subleadfirst).Name("Sublead_SignalMuon_phi");
 
   //Minimum delta r between photon and a signal lepton
   const NamedFunc Photon_drmin("Photon_drmin",[](const Baby &b) -> NamedFunc::VectorType{
@@ -116,16 +144,20 @@ namespace NanoFunctions {
   //H->Zg standard signal photon criteria
   const NamedFunc Photon_sig("Photon_sig",[](const Baby &b) -> NamedFunc::VectorType{
     std::vector<double> Photon_drmin_ = Photon_drmin.GetVector(b);
+    std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
     std::vector<double> Photon_sig_;
     for (unsigned iph = 0; iph < b.Photon_pt()->size(); iph++) {
       double sig = 1;
       if (b.Photon_pt()->at(iph) < 15) sig = 0;
-      else if (abs(b.Photon_eta()->at(iph)) > 2.5) sig = 0;
       else if (!(b.Photon_isScEtaEB()->at(iph) || b.Photon_isScEtaEE()->at(iph))) sig = 0;
-      else if (abs(b.Photon_eta()->at(iph))<1.4442 && b.Photon_mvaID()->at(iph)<-0.4) sig = 0;
-      else if (abs(b.Photon_eta()->at(iph))>1.566 && b.Photon_mvaID()->at(iph)<-0.58) sig = 0;
+      else if (!(b.Photon_mvaID_WP80()->at(iph))) sig = 0;
+      //else if (abs(b.Photon_eta()->at(iph))<1.4442 && b.Photon_mvaID()->at(iph)<-0.4) sig = 0;
+      //else if (abs(b.Photon_eta()->at(iph))>1.566 && b.Photon_mvaID()->at(iph)<-0.58) sig = 0;
       else if (!b.Photon_electronVeto()->at(iph)) sig = 0;
-      else if (Photon_drmin_[iph]<0.4) sig = 0;
+      else if (Photon_drmin_[iph]<0.3) sig = 0;
+      else if (b.Photon_electronIdx()->at(iph) != -1) {
+        if (Electron_sig_[b.Photon_electronIdx()->at(iph)]) sig = 0;
+      }
       Photon_sig_.push_back(sig);
     }
     return Photon_sig_;
@@ -133,6 +165,18 @@ namespace NanoFunctions {
 
   //signal photon pt
   const NamedFunc SignalPhoton_pt = FilterNamedFunc("Photon_pt",Photon_sig).Name("SignalPhoton_pt");
+
+  //signal photon eta
+  const NamedFunc SignalPhoton_eta = FilterNamedFunc("Photon_eta",Photon_sig).Name("SignalPhoton_eta");
+
+  //photon abs eta
+  const NamedFunc Photon_abseta = MapNamedFunc("Photon_eta",abs_fn).Name("Photon_abseta");
+
+  //signal photon abs eta
+  const NamedFunc SignalPhoton_abseta = FilterNamedFunc(Photon_abseta,Photon_sig).Name("SignalPhoton_abseta");
+
+  //signal photon phi
+  const NamedFunc SignalPhoton_phi = FilterNamedFunc("Photon_phi",Photon_sig).Name("SignalPhoton_phi");
 
   //signal photon mvaID
   const NamedFunc SignalPhoton_mvaID = FilterNamedFunc("Photon_mvaID",Photon_sig).Name("SignalPhoton_mvaID");
@@ -145,6 +189,18 @@ namespace NanoFunctions {
 
   //lead signal photon pt
   const NamedFunc Lead_SignalPhoton_pt = ReduceNamedFunc(SignalPhoton_pt, reduce_max).Name("Lead_SignalPhoton_pt");
+
+  //lead signal photon eta
+  const NamedFunc Lead_SignalPhoton_eta = MultiReduceNamedFunc(
+      {SignalPhoton_pt,SignalPhoton_eta}, reduce_maxfirst).Name("Lead_SignalPhoton_eta");
+
+  //lead signal photon abs eta
+  const NamedFunc Lead_SignalPhoton_abseta = MultiReduceNamedFunc(
+      {SignalPhoton_pt,SignalPhoton_abseta}, reduce_maxfirst).Name("Lead_SignalPhoton_abseta");
+
+  //lead signal photon phi
+  const NamedFunc Lead_SignalPhoton_phi = MultiReduceNamedFunc(
+      {SignalPhoton_pt,SignalPhoton_phi}, reduce_maxfirst).Name("Lead_SignalPhoton_phi");
 
   //lead signal photon idmva
   const NamedFunc Lead_SignalPhoton_mvaID = MultiReduceNamedFunc(
@@ -162,7 +218,8 @@ namespace NanoFunctions {
     for (unsigned ijet = 0; ijet < b.Jet_pt()->size(); ijet++) {
       double sig = 1;
       if (b.Jet_pt()->at(ijet) < 30) sig = 0;
-      if (abs(b.Jet_eta()->at(ijet)) > 2.4) sig = 0;
+      if (abs(b.Jet_eta()->at(ijet)) > 4.7) sig = 0;
+      if (b.Jet_jetId()->at(ijet) < 1) sig = 0;
       for (unsigned iel = 0; iel < b.Electron_pt()->size(); iel++) {
         if (Electron_sig_[iel] > 0.5) {
           if (deltaR(b.Electron_eta()->at(iel), b.Electron_phi()->at(iel), b.Jet_eta()->at(ijet), b.Jet_phi()->at(ijet)) < 0.4)
@@ -188,6 +245,9 @@ namespace NanoFunctions {
 
   //number of signal jets
   const NamedFunc nSignalJet = ReduceNamedFunc(Jet_sig, reduce_sum).Name("nSignalJet");
+
+  //signal jet eta
+  const NamedFunc SignalJet_eta = FilterNamedFunc("Jet_eta", Jet_sig).Name("SignalJet_eta");
 
   //number of deep jet/flavor medium-tagged jets
   const NamedFunc nJet_bdfm("nJet_bdfm",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -342,15 +402,50 @@ namespace NanoFunctions {
   const NamedFunc HLT_pass_muonphoton = NamedFunc("HLT_Mu17_Photon30_IsoCaloId")
       .Name("muon+photon triggers");
 
+  //standard triggers and pT cuts
+  const NamedFunc Selection_HLT_pt("Selection_HLT_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+    double el_cut = 35;
+    double mu_cut = 25;
+    if (b.SampleTypeString()=="2016APV" || b.SampleTypeString()=="-2016APV" ||
+        b.SampleTypeString()=="2016" || b.SampleTypeString()=="-2016")
+      el_cut = 30;
+    else if (b.SampleTypeString()=="2017" || b.SampleTypeString()=="-2017")
+      mu_cut = 28;
+    if (nSignalElectron.GetScalar(b)>0) {
+      if (HLT_pass_singleelectron.GetScalar(b) && (Lead_SignalElectron_pt.GetScalar(b) > el_cut))
+        return true;
+    }
+    if (nSignalMuon.GetScalar(b)>0) {
+      if (HLT_pass_singlemuon.GetScalar(b) && (Lead_SignalMuon_pt.GetScalar(b) > mu_cut))
+        return true;
+    }
+    if (nSignalElectron.GetScalar(b)>1) {
+      if (HLT_pass_dielectron.GetScalar(b) && (Lead_SignalElectron_pt.GetScalar(b) > 25) 
+          && Sublead_SignalElectron_pt.GetScalar(b)>15)
+        return true;
+    }
+    if (nSignalMuon.GetScalar(b)>1) {
+      if (HLT_pass_dimuon.GetScalar(b) && (Lead_SignalMuon_pt.GetScalar(b) > 20) 
+          && Sublead_SignalMuon_pt.GetScalar(b)>10)
+        return true;
+    }
+    return false;
+  });
+
   //baseline for H->Zgamma analysis
-  const NamedFunc zg_baseline = NamedFunc( nSignalLepton>=2 && nSignalPhoton>=1 &&
+  const NamedFunc zg_baseline = NamedFunc( 
+      (nSignalElectron>=2 || nSignalMuon>=2) && nSignalPhoton>=1 &&
+      Selection_HLT_pt &&
       ((Lead_SignalPhoton_pt/HiggsCandidate_mass)>=15.0/110.0) &&
-      ((HiggsCandidate_mass+ZCandidate_mass)>185.0) &&
-      ((Lead_SignalElectron_pt > 25 && Sublead_SignalElectron_pt > 15)||
-      (Lead_SignalMuon_pt > 20 && Sublead_SignalMuon_pt > 10))).Name("baseline");
+      (ZCandidate_mass>80.0 && ZCandidate_mass<100.0) &&
+      (HiggsCandidate_mass>100.0 && HiggsCandidate_mass<180.0) &&
+      ((HiggsCandidate_mass+ZCandidate_mass)>185.0)).Name("baseline");
 
   //poor man's stitch variable
   const NamedFunc stitch("stitch",[](const Baby &b) -> NamedFunc::ScalarType{
+    //skip data
+    if (b.SampleTypeString().Contains("-")) return 1;
+    //for MC, just use existence of true photon
     std::vector<double> photon_pflavor = SignalPhoton_genPartFlav.GetVector(b);
     bool is_real_photon = false;
     if (photon_pflavor.size()>0)
@@ -364,6 +459,15 @@ namespace NanoFunctions {
     //if ((b.FirstFileName().find("WZ_Tune") == 0) && is_real_photon) return 0;
     //if ((b.FirstFileName().find("ZZ_Tune") == 0) && is_real_photon) return 0;
     return 1;
+  });
+
+  //lumi weight for Nanos
+  const NamedFunc lumiWeight("lumiWeight",[](const Baby &b) -> NamedFunc::ScalarType{
+    //adding in samples as needed
+    if (b.SampleTypeString()=="-2018") return 1.0;
+    if (b.FirstFileName().find("ZGToLLG_01J_5f_lowMLL") != std::string::npos) 
+      if (b.SampleTypeString()=="2018") return 0.0032085*b.genWeight()/fabs(b.genWeight());
+    return b.genWeight();
   });
 
   //golden json loader

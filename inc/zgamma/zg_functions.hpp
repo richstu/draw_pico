@@ -46,12 +46,33 @@ namespace ZgFunctions {
   //subleading jet pt
   extern const NamedFunc sublead_jet_pt;
 
+  //leading jet eta
+  extern const NamedFunc lead_jet_eta;
+
+  //subleading jet eta
+  extern const NamedFunc sublead_jet_eta;
+
+  //leading jet phi
+  extern const NamedFunc lead_jet_phi;
+
+  //subleading jet phi
+  extern const NamedFunc sublead_jet_phi;
+
+  //leading jet m
+  extern const NamedFunc lead_jet_m;
+
+  //subleading jet m
+  extern const NamedFunc sublead_jet_m;
+
   //trigger-paired lepton pt plateau cuts
   extern const NamedFunc trig_plateau_cuts;
 
   //common NamedFuncs for run 2 baseline selection
-  extern const NamedFunc zg_baseline_el;
-  extern const NamedFunc zg_baseline_mu;
+  extern const NamedFunc zg_baseline_el_run2;
+  extern const NamedFunc zg_baseline_mu_run2;
+  extern const NamedFunc zg_baseline_run2;
+
+  //new working baseline selection
   extern const NamedFunc zg_baseline;
 
   //master stitch variable

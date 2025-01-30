@@ -9,6 +9,8 @@ bool stitch_htmet
 bool stitch_photon
 bool stitch_dy
 bool old_stitch_dy
+bool is_overlap_old
+bool is_overlap
 bool use_event
 
 ####################   Global   ###################
@@ -16,6 +18,7 @@ int npv
 int npv_good
 int npu_tru
 int npu_tru_mean
+float rho
 float ht
 float ht5
 float mht
@@ -25,10 +28,11 @@ float met_phi
 float met_calo
 float met_tru
 float met_tru_phi
+float met_tk
+float met_tk_phi
 float mt
 float mt_tru
 float ht_isr_me
-float vbf_mva
 
 ###################   Higgsinos   ##################
 std::vector<float> hig_cand_dm
@@ -53,6 +57,10 @@ float dijet_dr
 float dijet_dphi
 float dijet_deta
 
+float vbf_mva
+
+int zg_cutBitMap
+int zg_categorizationBitMap
 int nllphoton
 std::vector<float> llphoton_pt
 std::vector<float> llphoton_eta
@@ -64,15 +72,36 @@ std::vector<float> llphoton_ph_masserr
 std::vector<float> llphoton_dr
 std::vector<float> llphoton_dphi
 std::vector<float> llphoton_deta
-std::vector<float> llphoton_costhj
 std::vector<float> llphoton_costheta
+std::vector<float> llphoton_costhj
 std::vector<float> llphoton_cosTheta
 std::vector<float> llphoton_psi
 std::vector<int>   llphoton_iph
 std::vector<int>   llphoton_ill
 std::vector<float> llphoton_dijet_dphi
 std::vector<float> llphoton_dijet_balance
-std::vector<float> llphoton_pTt2
+std::vector<float> llphoton_dijet_dr
+std::vector<float> llphoton_pTt
+std::vector<float> llphoton_pTt_an_hig019014
+
+float llphoton_refit_pt
+float llphoton_refit_eta
+float llphoton_refit_phi
+float llphoton_refit_m
+float llphoton_refit_dphi
+float llphoton_refit_deta
+float llphoton_refit_dr
+float llphoton_refit_l1_masserr
+float llphoton_refit_l2_masserr
+float llphoton_refit_ph_masserr
+float llphoton_refit_costheta
+float llphoton_refit_cosTheta
+float llphoton_refit_psi
+float llphoton_refit_dijet_dphi
+float llphoton_refit_dijet_balance
+float llphoton_refit_dijet_dr
+float llphoton_refit_pTt
+float llphoton_refit_pTt_an_hig019014
 
 ###################   gammagamma   ##################
 int nphotonphoton
@@ -85,6 +114,7 @@ std::vector<float> photonphoton_dphi
 std::vector<float> photonphoton_deta
 std::vector<int>   photonphoton_ileadph
 std::vector<int>   photonphoton_isubph
+
 ###################   bb   ##################
 int nbb
 std::vector<float> bb_pt
@@ -106,15 +136,17 @@ std::vector<float> bb_df_dphi
 std::vector<float> bb_df_deta
 std::vector<int>   bb_df_ileadscorejet
 std::vector<int>   bb_df_isubscorejet
+
 ###################   bbgammagamma   ##################
-int nbbphotonphoton;
-std::vector<float> bbphotonphoton_dm;
-std::vector<float> bbphotonphoton_am;
-std::vector<float> bbphotonphoton_drmax;
-int nbbphotonphoton_df;
-std::vector<float> bbphotonphoton_df_dm;
-std::vector<float> bbphotonphoton_df_am;
-std::vector<float> bbphotonphoton_df_drmax;
+int nbbphotonphoton
+std::vector<float> bbphotonphoton_dm
+std::vector<float> bbphotonphoton_am
+std::vector<float> bbphotonphoton_drmax
+int nbbphotonphoton_df
+std::vector<float> bbphotonphoton_df_dm
+std::vector<float> bbphotonphoton_df_am
+std::vector<float> bbphotonphoton_df_drmax
+
 
 ###################   Jets   ##################
 int njet
@@ -134,6 +166,8 @@ std::vector<float> jet_breg_corr
 std::vector<float> jet_breg_res
 std::vector<float> jet_deepcsv
 std::vector<float> jet_deepflav
+std::vector<float> jet_btagpnetb
+std::vector<float> jet_btagak4b
 std::vector<int>   jet_puid
 std::vector<float> jet_puid_disc
 std::vector<float> jet_ne_emef
@@ -174,7 +208,9 @@ std::vector<float> fjet_deep_md_hbb_jme
 std::vector<float> fjet_deep_md_tvsqcd
 std::vector<float> fjet_deep_tvsqcd
 std::vector<float> fjet_pnet_wtag
+std::vector<float> fjet_pnet_ztag
 std::vector<float> fjet_pnet_ttag
+std::vector<float> fjet_pnet_m
 std::vector<int>   fjet_subjet_idx1
 std::vector<int>   fjet_subjet_idx2
 
@@ -210,11 +246,13 @@ int nvlep
 std::vector<float> lep_pt
 std::vector<float> lep_eta
 std::vector<float> lep_phi
-std::vector<int> lep_pdgid
+std::vector<int>   lep_pdgid
 
 int nmu
 int nvmu
 std::vector<float> mu_pt
+std::vector<float> mu_corrected_pt
+std::vector<float> mu_corrected_ptErr
 std::vector<float> mu_eta
 std::vector<float> mu_phi
 std::vector<float> mu_ptErr
@@ -232,12 +270,13 @@ std::vector<bool>  mu_sig
 std::vector<int>   mu_charge
 std::vector<int>   mu_pflavor
 std::vector<int>   mu_fsrphotonid
-std::vector<float> mu_corrected_pt
-std::vector<float> mu_corrected_ptErr
+std::vector<float> mu_raw_pt
+std::vector<float> mu_raw_ptErr
 
 int nel
 int nvel
 std::vector<float> el_pt
+std::vector<float> el_pt_raw
 std::vector<float> el_eta
 std::vector<float> el_etasc
 std::vector<float> el_phi
@@ -252,6 +291,7 @@ std::vector<float> el_dxy
 std::vector<float> el_ip3d
 std::vector<float> el_sip3d
 std::vector<float> el_idmva
+std::vector<float> el_idmvaHZZ
 std::vector<bool>  el_id
 std::vector<bool>  el_id80
 std::vector<bool>  el_id90
@@ -261,6 +301,7 @@ std::vector<bool>  el_ispf
 std::vector<int>   el_charge
 std::vector<int>   el_pflavor
 std::vector<bool>  el_ecal
+std::vector<int>   el_fsrphotonidx
 
 ##################   Di-Leptons   ################
 int nll
@@ -276,31 +317,64 @@ std::vector<float> ll_deta
 std::vector<int>   ll_lepid
 std::vector<int>   ll_i1
 std::vector<int>   ll_i2
-std::vector<int>   ll_charge
+
+float ll_refit_pt
+float ll_refit_eta
+float ll_refit_phi
+float ll_refit_m
+float ll_refit_l1_pt
+float ll_refit_l2_pt
+int   ll_refit_status
+int   ll_refit_covmat_status
+float ll_refit_minnll
+
+
 
 ##################   Photons   ###################
 int nphoton
+int photon_idx_hig019014
 std::vector<float> photon_pt
+std::vector<float> photon_pt_raw
 std::vector<float> photon_eta
 std::vector<float> photon_phi
+std::vector<float> photon_ecorr
 std::vector<float> photon_reliso
+std::vector<float> photon_phiso
+std::vector<float> photon_chiso
+std::vector<float> photon_chiso_worst
 std::vector<float> photon_r9
+std::vector<float> photon_s4
 std::vector<float> photon_sieie
+std::vector<float> photon_sieip
+std::vector<float> photon_etawidth
+std::vector<float> photon_phiwidth
 std::vector<float> photon_drmin
 std::vector<float> photon_drmax
 std::vector<float> photon_pterr
 std::vector<float> photon_energyErr
+std::vector<float> photon_energy_raw
+std::vector<float> photon_origin_eta
 std::vector<float> photon_hoe
+std::vector<float> photon_esoversc
+std::vector<float> photon_essigmarr
 std::vector<float> photon_idmva
+std::vector<float> photon_pudisc
 std::vector<int>   photon_pflavor
 std::vector<bool>  photon_id
 std::vector<bool>  photon_id80
 std::vector<bool>  photon_isScEtaEB
 std::vector<bool>  photon_isScEtaEE
+std::vector<int>   photon_idCutBased
+std::vector<int>   photon_idCutBasedBitMap
 std::vector<bool>  photon_elveto
 std::vector<bool>  photon_sig
 std::vector<int>   photon_elidx
+std::vector<bool>  photon_pixelseed
 std::vector<float> photon_jet_mindr
+std::vector<float> photon_jet_maxdr
+std::vector<float> photon_jet1_dr
+std::vector<float> photon_jet2_dr
+
 std::vector<float> photon_zeppenfeld
 
 #################   FsrPhotons  ##################
@@ -311,6 +385,7 @@ std::vector<float> fsrphoton_phi
 std::vector<float> fsrphoton_pt
 std::vector<float> fsrphoton_reliso
 std::vector<int>   fsrphoton_muonidx
+std::vector<int> fsrphoton_electronidx
 
 ###################   Tracks    ##################
 int ntk
@@ -335,6 +410,8 @@ bool pass_cschalo_tight
 bool pass_eebadsc
 bool pass_ecaldeadcell
 bool pass_badpfmu
+bool pass_badpfmudz
+bool pass_hfnoisyhits
 bool pass_mubadtrk
 bool pass_badchhad
 bool pass_muon_jet
@@ -372,10 +449,8 @@ int mlsp
 float weight
 float w_lumi
 float w_lep
-float w_trig
-float w_el_id
-float w_mu_id
-float w_mu_iso
+float w_el
+float w_mu
 float w_fs_lep
 float w_photon
 float w_photon_id
@@ -388,7 +463,9 @@ float w_isr
 float w_btag_dc
 float w_pu
 float w_prefire
-float eff_trig
+float w_trig
+float w_trig_singlemu
+float w_trig_doublemu
 
 ################  Triggers copy straight from Nano, same names   ##################
 
@@ -396,8 +473,10 @@ float eff_trig
 #------------------------------
 bool trig_single_el
 bool trig_double_el
+bool trig_el_pt
 bool trig_single_mu
 bool trig_double_mu
+bool trig_mu_pt
 
 # Muon triggers
 #------------------------------
@@ -432,11 +511,18 @@ bool HLT_Mu50_IsoVVVL_PFHT450
 bool HLT_Ele25_WPTight_Gsf
 bool HLT_Ele27_WPTight_Gsf
 bool HLT_Ele28_WPTight_Gsf
+bool HLT_Ele30_WPTight_Gsf
 bool HLT_Ele32_WPTight_Gsf_L1DoubleEG
+bool HLT_Ele32_WPTight_Gsf_Emu
 bool HLT_Ele32_WPTight_Gsf
 bool HLT_Ele35_WPTight_Gsf
 bool HLT_Ele20_WPLoose_Gsf
 bool HLT_Ele45_WPLoose_Gsf
+bool HLT_Ele8_CaloIdL_TrackIdL_IsoVL_PFJet30
+bool HLT_Ele8_CaloIdM_TrackIdM_PFJet30
+bool HLT_Ele17_CaloIdM_TrackIdM_PFJet30
+bool HLT_Ele23_CaloIdL_TrackIdL_IsoVL_PFJet30
+bool HLT_Ele23_CaloIdM_TrackIdM_PFJet30
 bool HLT_Ele105_CaloIdVT_GsfTrkIdT
 bool HLT_Ele115_CaloIdVT_GsfTrkIdT
 bool HLT_Ele135_CaloIdVT_GsfTrkIdT
@@ -446,6 +532,7 @@ bool HLT_Ele27_eta2p1_WPTight_Gsf
 bool HLT_Ele20_eta2p1_WPLoose_Gsf
 bool HLT_Ele25_eta2p1_WPLoose_Gsf
 bool HLT_Ele27_eta2p1_WPLoose_Gsf
+bool HLT_Ele28_eta2p1_WPTight_Gsf_HT150
 bool HLT_Ele15_IsoVVVL_PFHT350
 bool HLT_Ele15_IsoVVVL_PFHT400
 bool HLT_Ele15_IsoVVVL_PFHT450
@@ -529,16 +616,29 @@ bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ
 bool HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ
 bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8
 bool HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8
+bool HLT_TkMu17_TrkIsoVVL_TkMu8_TrkIsoVVL
+bool HLT_TkMu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ
 bool HLT_DoubleEle25_CaloIdL_MW
 bool HLT_Mu37_TkMu27
+bool HLT_Ele16_Ele12_Ele8_CaloIdL_TrackIdL
 
 # Photon triggers
 bool HLT_Mu17_Photon30_IsoCaloId
 bool HLT_Photon175
 
-################  Systematic variations  - to be implemented as needed  ##################
+# Diphoton triggers
+bool HLT_DoublePhoton70
+bool HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId
+bool HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_Mass55
+bool HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+bool HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass95
+
+
+################  Systematic variations  ##################
 
 # +/- variations are index 0 and 1
+std::vector<float> sys_el
+std::vector<float> sys_mu
 std::vector<float> sys_lep
 std::vector<float> sys_fs_lep
 
@@ -548,12 +648,15 @@ std::vector<float> sys_bchig
 std::vector<float> sys_udsghig
 std::vector<float> sys_fs_bchig
 std::vector<float> sys_fs_udsghig
+std::vector<float> sys_bchig_uncorr
+std::vector<float> sys_udsghig_uncorr
 
 std::vector<float> sys_trig
 std::vector<float> sys_isr
 std::vector<float> sys_pu
 std::vector<float> sys_prefire
 
+#variations have index: 0 (MUF=0.5 MUR=0.5), 1 (MUF=1 MUR=0.5), 2 (MUF=2 MUR=0.5), 3 (MUF=0.5 MUR=1), 4 (MUF=2 MUR=1), 5 (MUF=0.5 MUR=2), 6 (MUF=1 MUR=2), 7 (MUF=2 MUR=2)
 std::vector<float> sys_murf
 
 #variations have index: 0 (ISR=2 FSR=1), 1 (ISR=1 FSR=2), 2 (ISR=0.5 FSR=1), 2(ISR=1 FSR=0.5)
@@ -581,7 +684,8 @@ std::vector<float> sys_photon_pt_scaledn
 std::vector<float> sys_photon_pt_resup
 std::vector<float> sys_photon_pt_resdn
 
-# variations have index 0 (JER smearing up), 1 (JER smearing down), 2 (JEC up) and 3 (JEC down)
+# variations have index 0 (JER smearing up), 1 (JER smearing down), 2 (JES up) and 3 (JES down)
+# for met_phi only: indxes 4 (unclustered up) 5 (unclustered down) 6 (lepton photon up) 7 (lepton photon down)
 std::vector<float> sys_ht
 std::vector<int>   sys_njet
 std::vector<int>   sys_nbl

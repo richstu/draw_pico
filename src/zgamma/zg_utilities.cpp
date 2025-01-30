@@ -480,7 +480,7 @@ namespace ZgUtilities {
     kin_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
     kin_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
     kin_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
-    kin_bdt_reader->BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
+    kin_bdt_reader->BookMVA("/data2/oshiro/analysis_archive/small_phys_utils_archive/dataset/weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
     return kin_bdt_reader;
   }
 
@@ -525,7 +525,7 @@ namespace ZgUtilities {
     vbf_bdt_reader->SetVariable("detajj","dijet_deta");
     vbf_bdt_reader->SetVariable("dphizgjj","llphoton_dijet_dphi[0]");
     vbf_bdt_reader->SetVariable("zgjj_balance","llphoton_dijet_balance[0]");
-    vbf_bdt_reader->SetVariable("ptt","llphoton_pTt2[0]");
+    vbf_bdt_reader->SetVariable("ptt","llphoton_pTt[0]");
     vbf_bdt_reader->SetVariable("dphijj","dijet_dphi");
     vbf_bdt_reader->SetVariable("zeppenfeld","photon_zeppenfeld[0]");
     vbf_bdt_reader->SetVariable("ptj2",ZgFunctions::lead_jet_pt);
@@ -569,7 +569,7 @@ namespace ZgUtilities {
     //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isisr);
     //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isfsr",
     //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isfsr);
-    zg_sample_loader.LoadPalette("txt/colors_zgamma.txt","default");
+    zg_sample_loader.LoadPalette("txt/colors_zgamma_official.txt","default");
     return zg_sample_loader;
   }
 
@@ -671,7 +671,6 @@ namespace ZgUtilities {
       exp_arglist.add(*exp_cn);
     }
 
-
     std::stringstream str_stream;
     str_stream << std::fixed << std::setprecision(1) << mllg->getMin();
     std::string offset = str_stream.str();
@@ -680,7 +679,7 @@ namespace ZgUtilities {
                << (mllg->getMax()-mllg->getMin());
     std::string range = str_stream.str();
     std::string scaled_arg = "(@0-"+offset+")/"+range;
-    std::string exp_def = "(@0<@1 ? 0.0 : 1.0)*(";
+    std::string exp_def = "(@0<@1 ? 0.0 : (@0<(@1+1) ? (@0-@1) : 1))*(";
     for (unsigned iterm = 0; iterm<order; iterm++) {
       if (iterm != 0) exp_def += "+";
       exp_def += ("@"+std::to_string(iterm*2+3)+"*exp(@"
@@ -695,11 +694,11 @@ namespace ZgUtilities {
 
     std::shared_ptr<RooRealVar> exp_w1 = std::make_shared<RooRealVar>(
         (exp_name+"_w1_"+category).c_str(),
-        ("Bernstein "+std::to_string(order)+" gauss width").c_str(),0.05,20.0); 
+        ("Exponential "+std::to_string(order)+" gauss width").c_str(),0.05,20.0); 
     vars.push_back(exp_w1); 
     std::shared_ptr<RooRealVar> exp_m1 = std::make_shared<RooRealVar>(
         (exp_name+"_m1_"+category).c_str(),
-        ("Bernstein "+std::to_string(order)+" gauss mean").c_str(),0.0,0.0); 
+        ("Exponential "+std::to_string(order)+" gauss mean").c_str(),0.0,0.0); 
     vars.push_back(exp_m1); 
     exp_o1->setVal(105);
     exp_w1->setVal(0.05);
@@ -708,6 +707,7 @@ namespace ZgUtilities {
                       *mllg, *exp_m1, *exp_w1);
     aux_pdfs.push_back(gauss);
 
+    //set large number of points for FFT
     mllg->setBins(20000,"cache");
     std::shared_ptr<RooFFTConvPdf> step_exp_pdf = std::make_shared<RooFFTConvPdf>(
         ("pdf_background_"+category+"_"+exp_name).c_str(),

@@ -231,7 +231,7 @@ int main() {
         ("mllg_"+category).c_str(),"mllg cat",105.0,160.0); 
     vars.push_back(pdf_mllg);
 
-    AddGaussStepBernstein(background_pdfs, vars, pdf_mllg, category, 4);
+    AddGaussStepExponential(background_pdfs, aux_pdfs, vars, pdf_mllg, category, 2);
 
     shared_ptr<RooRealVar> dscb_mu = make_shared<RooRealVar>(
         ("dscb_mu_"+category).c_str(),"Signal DSCB gaussian mean",120.0,130.0); 
