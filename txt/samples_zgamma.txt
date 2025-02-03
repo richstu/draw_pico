@@ -149,6 +149,44 @@
 #add FILENAMES_HZG_TTH *ttHToZG_ZToLL_M-125*.root
 #add FILENAMES_HZG_TTH *ttHtoZG_Zto2L_M-125*.root
 
+#add FILENAMES_HZG120_GGF *GluGluHToZG_ZToLL_M-120*.root
+#add FILENAMES_HZG120_GGF *GluGluHtoZG_Zto2L_M-120*.root
+#add FILENAMES_HZG120_VBF *VBFHToZG_ZToLL_M-120*.root
+#add FILENAMES_HZG120_VBF *VBFHtoZG_Zto2L_M-120*.root
+#add FILENAMES_HZG120_VH *WplusH_HToZG_WToAll_M-120*.root
+#add FILENAMES_HZG120_VH *WplusH_HtoZG_WtoAll_Zto2L_M-120*.root
+#add FILENAMES_HZG120_VH *WminusH_HToZG_WToAll_M-120*.root
+#add FILENAMES_HZG120_VH *WminusH_HtoZG_WtoAll_Zto2L_M-120*.root
+#add FILENAMES_HZG120_VH *ZH_HToZG_ZToAll_M-120*.root
+#add FILENAMES_HZG120_VH *ZH_HtoZG_ZtoAll_M-120*.root
+#add FILENAMES_HZG120_WPH *WplusH_HToZG_WToAll_M-120*.root
+#add FILENAMES_HZG120_WPH *WplusH_HtoZG_WtoAll_Zto2L_M-120*.root
+#add FILENAMES_HZG120_WMH *WminusH_HToZG_WToAll_M-120*.root
+#add FILENAMES_HZG120_WMH *WminusH_HtoZG_WtoAll_Zto2L_M-120*.root
+#add FILENAMES_HZG120_ZH *ZH_HToZG_ZToAll_M-120*.root
+#add FILENAMES_HZG120_ZH *ZH_HtoZG_ZtoAll_M-120*.root
+#add FILENAMES_HZG120_TTH *ttHToZG_ZToLL_M-120*.root
+#add FILENAMES_HZG120_TTH *ttHtoZG_Zto2L_M-120*.root
+
+#add FILENAMES_HZG130_GGF *GluGluHToZG_ZToLL_M-130*.root
+#add FILENAMES_HZG130_GGF *GluGluHtoZG_Zto2L_M-130*.root
+#add FILENAMES_HZG130_VBF *VBFHToZG_ZToLL_M-130*.root
+#add FILENAMES_HZG130_VBF *VBFHtoZG_Zto2L_M-130*.root
+#add FILENAMES_HZG130_VH *WplusH_HToZG_WToAll_M-130*.root
+#add FILENAMES_HZG130_VH *WplusH_HtoZG_WtoAll_Zto2L_M-130*.root
+#add FILENAMES_HZG130_VH *WminusH_HToZG_WToAll_M-130*.root
+#add FILENAMES_HZG130_VH *WminusH_HtoZG_WtoAll_Zto2L_M-130*.root
+#add FILENAMES_HZG130_VH *ZH_HToZG_ZToAll_M-130*.root
+#add FILENAMES_HZG130_VH *ZH_HtoZG_ZtoAll_M-130*.root
+#add FILENAMES_HZG130_WPH *WplusH_HToZG_WToAll_M-130*.root
+#add FILENAMES_HZG130_WPH *WplusH_HtoZG_WtoAll_Zto2L_M-130*.root
+#add FILENAMES_HZG130_WMH *WminusH_HToZG_WToAll_M-130*.root
+#add FILENAMES_HZG130_WMH *WminusH_HtoZG_WtoAll_Zto2L_M-130*.root
+#add FILENAMES_HZG130_ZH *ZH_HToZG_ZToAll_M-130*.root
+#add FILENAMES_HZG130_ZH *ZH_HtoZG_ZtoAll_M-130*.root
+#add FILENAMES_HZG130_TTH *ttHToZG_ZToLL_M-130*.root
+#add FILENAMES_HZG130_TTH *ttHtoZG_Zto2L_M-130*.root
+
 #add FILENAMES_HZG_ALL *GluGluHToZG_ZToLL_M-125*.root
 #add FILENAMES_HZG_ALL *VBFHToZG_ZToLL_M-125*.root
 #add FILENAMES_HZG_ALL *WplusH_HToZG_WToAll_M-125*.root
@@ -168,6 +206,13 @@
 #add FILENAMES_HMUMU *WplusHToMuMu*.root
 #add FILENAMES_HMUMU *ZHToMuMu*.root
 #add FILENAMES_HMUMU *ttHToMuMu*.root
+
+#add FILENAMES_HMUMU_GGF *GluGluHToMuMu*.root
+#add FILENAMES_HMUMU_VBF *VBFHToMuMu*.root
+#add FILENAMES_HMUMU_WMH *WminusHToMuMu*.root
+#add FILENAMES_HMUMU_WPM *WplusHToMuMu*.root
+#add FILENAMES_HMUMU_ZH *ZHToMuMu*.root
+#add FILENAMES_HMUMU_TTH *ttHToMuMu*.root
 
 [[AllMC]]
   [Z+Fake Photon]
@@ -285,17 +330,229 @@
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
-[[DatacardMC]]
+[[Datacard]]
   [pseudodata]
     ProcessType = 0
     Color = 1
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_PSEUDODATA
-    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
-  [htozgamma]
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_PSEUDODATA
+    Selection = use_event
+  [ggH_Htozg_el]
     ProcessType = 2
-    PaletteColor = htozg
-    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
-    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_GGF
+    Selection = hzg_elchannel
+  [VBF_Htozg_el]
+    ProcessType = 2
+    Color = 3
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_VBF
+    Selection = hzg_elchannel
+  [WpH_Htozg_el]
+    ProcessType = 2
+    Color = 4
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_WPH
+    Selection = hzg_elchannel
+  [WmH_Htozg_el]
+    ProcessType = 2
+    Color = 5
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_WMH
+    Selection = hzg_elchannel
+  [ZH_Htozg_el]
+    ProcessType = 2
+    Color = 6
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ZH
+    Selection = hzg_elchannel
+  [ttH_Htozg_el]
+    ProcessType = 2
+    Color = 7
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TTH
+    Selection = hzg_elchannel
+  [ggH_Htozg_mu]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_GGF
+    Selection = hzg_muchannel
+  [VBF_Htozg_mu]
+    ProcessType = 2
+    Color = 3
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_VBF
+    Selection = hzg_muchannel
+  [WpH_Htozg_mu]
+    ProcessType = 2
+    Color = 4
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_WPH
+    Selection = hzg_muchannel
+  [WmH_Htozg_mu]
+    ProcessType = 2
+    Color = 5
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_WMH
+    Selection = hzg_muchannel
+  [ZH_Htozg_mu]
+    ProcessType = 2
+    Color = 6
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ZH
+    Selection = hzg_muchannel
+  [ttH_Htozg_mu]
+    ProcessType = 2
+    Color = 7
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TTH
+    Selection = hzg_muchannel
+  [ggH_Htomm]
+    ProcessType = 1
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMM_GGF
+    Selection = use_event
+  [VBF_Htomm]
+    ProcessType = 1
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMM_VBF
+    Selection = use_event
+  [WpH_Htomm]
+    ProcessType = 1
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMM_WPH
+    Selection = use_event
+  [WmH_Htomm]
+    ProcessType = 1
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMM_WMH
+    Selection = use_event
+  [ZH_Htomm]
+    ProcessType = 1
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMM_ZH
+    Selection = use_event
+  [ttH_Htomm]
+    ProcessType = 1
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMM_TTH
+    Selection = use_event
+
+[[DatacardAux]]
+  [mc]
+    ProcessType = 1
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_BAK_ALL
+    Selection = use_event
+  [ggH_Htozg120_el]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_GGF
+    Selection = hzg_elchannel
+  [VBF_Htozg120_el]
+    ProcessType = 2
+    Color = 3
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_VBF
+    Selection = hzg_elchannel
+  [WpH_Htozg120_el]
+    ProcessType = 2
+    Color = 4
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_WPH
+    Selection = hzg_elchannel
+  [WmH_Htozg120_el]
+    ProcessType = 2
+    Color = 5
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_WMH
+    Selection = hzg_elchannel
+  [ZH_Htozg120_el]
+    ProcessType = 2
+    Color = 6
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_ZH
+    Selection = hzg_elchannel
+  [ttH_Htozg120_el]
+    ProcessType = 2
+    Color = 7
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_TTH
+    Selection = hzg_elchannel
+  [ggH_Htozg120_mu]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_GGF
+    Selection = hzg_muchannel
+  [VBF_Htozg120_mu]
+    ProcessType = 2
+    Color = 3
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_VBF
+    Selection = hzg_muchannel
+  [WpH_Htozg120_mu]
+    ProcessType = 2
+    Color = 4
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_WPH
+    Selection = hzg_muchannel
+  [WmH_Htozg120_mu]
+    ProcessType = 2
+    Color = 5
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_WMH
+    Selection = hzg_muchannel
+  [ZH_Htozg120_mu]
+    ProcessType = 2
+    Color = 6
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_ZH
+    Selection = hzg_muchannel
+  [ttH_Htozg120_mu]
+    ProcessType = 2
+    Color = 7
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_TTH
+    Selection = hzg_muchannel
+  [ggH_Htozg130_el]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_GGF
+    Selection = hzg_elchannel
+  [VBF_Htozg130_el]
+    ProcessType = 2
+    Color = 3
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_VBF
+    Selection = hzg_elchannel
+  [WpH_Htozg130_el]
+    ProcessType = 2
+    Color = 4
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_WPH
+    Selection = hzg_elchannel
+  [WmH_Htozg130_el]
+    ProcessType = 2
+    Color = 5
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_WMH
+    Selection = hzg_elchannel
+  [ZH_Htozg130_el]
+    ProcessType = 2
+    Color = 6
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_ZH
+    Selection = hzg_elchannel
+  [ttH_Htozg130_el]
+    ProcessType = 2
+    Color = 7
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_TTH
+    Selection = hzg_elchannel
+  [ggH_Htozg130_mu]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_GGF
+    Selection = hzg_muchannel
+  [VBF_Htozg130_mu]
+    ProcessType = 2
+    Color = 3
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_VBF
+    Selection = hzg_muchannel
+  [WpH_Htozg130_mu]
+    ProcessType = 2
+    Color = 4
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_WPH
+    Selection = hzg_muchannel
+  [WmH_Htozg130_mu]
+    ProcessType = 2
+    Color = 5
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_WMH
+    Selection = hzg_muchannel
+  [ZH_Htozg130_mu]
+    ProcessType = 2
+    Color = 6
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_ZH
+    Selection = hzg_muchannel
+  [ttH_Htozg130_mu]
+    ProcessType = 2
+    Color = 7
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_TTH
+    Selection = hzg_muchannel
 
 [[VerboseMC]]
   [Z+Fake Photon]

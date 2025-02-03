@@ -91,6 +91,26 @@ namespace ZgFunctions {
     return 2.472;
   });
 
+  //requires Z->ee in truth
+  const NamedFunc Ztoee("Ztoee",[](const Baby &b) -> NamedFunc::ScalarType{
+    for (unsigned imc = 0; imc < b.mc_id()->size(); imc++) {
+      if (abs(b.mc_id()->at(imc))==11 && b.mc_mom()->at(imc)==23) {
+        return 1;
+      }
+    }
+    return 0;
+  });
+
+  //requires Z->mumu in truth
+  const NamedFunc ZtoMuMu("ZtoMuMu",[](const Baby &b) -> NamedFunc::ScalarType{
+    for (unsigned imc = 0; imc < b.mc_id()->size(); imc++) {
+      if (abs(b.mc_id()->at(imc))==13 && b.mc_mom()->at(imc)==23) {
+        return 1;
+      }
+    }
+    return 0;
+  });
+
   //leading muon pt
   const NamedFunc lead_mu_pt = ReduceNamedFunc(FilterNamedFunc("mu_pt","mu_sig"),
       reduce_max).Name("lead_mu_pt");

@@ -18,7 +18,17 @@
 
 /*! \class Datacard::Systematic
 
-  \brief Container for systematics (nuisance parameters) other than PDF parameters
+  \brief Container for systematics (nuisance parameters) 
+  
+  These come in several flavors implemented by various child classes
+  two flavours: weight systematics where the nominal weight is 
+  replaced by an alternative, and selection systematics where one selection
+  is replaced by an alternative
+*/
+
+/*! \class Datacard::NormWeightSystematic
+
+  \brief Container for systematics implemented as weight variations
   
   These come in two flavours: weight systematics where the nominal weight is 
   replaced by an alternative, and selection systematics where one selection
@@ -38,6 +48,7 @@
 #include <iostream>
 #include <memory>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -46,6 +57,7 @@
 
 #include "RooAbsPdf.h"
 #include "RooArgSet.h"
+#include "RooArgList.h"
 #include "RooDataHist.h"
 #include "RooDataSet.h"
 #include "RooHistPdf.h"
@@ -71,8 +83,18 @@
 Datacard::SelectionList::SelectionList(const std::string &channel_name) :
     channel_name_(channel_name) {}
 
+/*!\brief Rename+copy constructor
+*/
+Datacard::SelectionList::SelectionList(const std::string& channel_name, 
+                                       const SelectionList& selection_list) :
+  channel_name_(channel_name),
+  name_(selection_list.name_),
+  selection_(selection_list.selection_) {}
+
 /*!\brief Method to add a selection
+ 
  \param[in] name       Selection name, needed for systematics referencing
+
  \param[in] selection  Selection
 */
 Datacard::SelectionList & Datacard::SelectionList::AddSelection(
@@ -90,38 +112,58 @@ Datacard::SelectionList & Datacard::SelectionList::AddSelection(
 //Systematic
 //----------------------------------------------------------------------------
 
-/*!\brief Constructor for reweighting-based systematics
- \param[in] name              Name of systematic
- \param[in] alternate_weight  Alternate weight
+//TODO implement sample comparison systematics somehow (ex. Tune)
+
+/*!\brief Constructor for symmetric systematics
+ 
+ \param[in] name             Name of systematic
+
+ \param[in] selection_names  Name of selections to replace OR "weight" OR 
+                             "fitvar"
+ \param[in] variations       Replacement selections/weights
 */
 Datacard::Systematic::Systematic(const std::string &name, 
-                                 const NamedFunc &alternate_weight) :
-  is_weight_systematic_(true),
-  name_(name),
-  selection_name_(""),
-  content_(alternate_weight) {
-  if (!alternate_weight.IsScalar()) {
-    throw std::invalid_argument(("Systematic NamedFunc "+alternate_weight.Name()
-                                 +" is not a scalar.").c_str());
+    const std::vector<std::string> &selection_names, 
+    const std::vector<NamedFunc> &variations) :
+  is_symmetric(true),
+  name_(name) {
+  if (selection_names.size() != variations.size()) {
+    throw std::invalid_argument("Selection names and replacements must be"
+                                "the same size");
+  }
+  for (unsigned int ivar = 0; ivar < selection_names.size(); ivar++) {
+    variation_[selection_names[ivar]] = std::make_shared<NamedFunc>(
+        variations[ivar]);
   }
 }
 
-/*!\brief Constructor for reweighting-based systematics
- \param[in] name                  Name of systematic
- \param[in] selection_name        Name of selection to replace
- \param[in] alternate_selection   Alternate selection
+/*!\brief Constructor for asymmetric systematics
+ 
+ \param[in] name             Name of systematic
+
+ \param[in] selection_names  Name of selections to replace OR "weight" OR 
+                             "fitvar"
+
+ \param[in] variations_up    Replacement selections/weights
+
+ \param[in] variations_dn    Replacement selections/weights
 */
-Datacard::Systematic::Systematic(const std::string &name,
-                                 const std::string &selection_name, 
-                                 const NamedFunc &alternate_selection) :
-  is_weight_systematic_(false),
-  name_(name),
-  selection_name_(selection_name),
-  content_(alternate_selection) {
-  if (!alternate_selection.IsScalar()) {
-    throw std::invalid_argument(("Systematic NamedFunc "
-                                 +alternate_selection.Name()
-                                 +" is not a scalar.").c_str());
+Datacard::Systematic::Systematic(const std::string &name, 
+    const std::vector<std::string> &selection_names, 
+    const std::vector<NamedFunc> &variations_up,
+    const std::vector<NamedFunc> &variations_dn) :
+  is_symmetric(false),
+  name_(name) {
+  if ((selection_names.size() != variations_up.size()) 
+      || (selection_names.size() != variations_dn.size())) {
+    throw std::invalid_argument("Selection names and replacements must be"
+                                "the same size");
+  }
+  for (unsigned int ivar = 0; ivar < selection_names.size(); ivar++) {
+    variation_up_[selection_names[ivar]] = std::make_shared<NamedFunc>(
+        variations_up[ivar]);
+    variation_dn_[selection_names[ivar]] = std::make_shared<NamedFunc>(
+        variations_dn[ivar]);
   }
 }
 
@@ -141,14 +183,16 @@ Datacard::DatacardProcess::DatacardProcess(const Figure &figure) :
 //----------------------------------------------------------------------------
 
 /*!\brief Standard constructor
+ 
   \param[in] figure   Parent figure
+
   \param[in] process  Process used to fill histogram
 */
-Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(const Figure &figure,
-    const std::shared_ptr<Process> &process,
-    const Axis &axis) :
+Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(
+    const Figure &figure, const std::shared_ptr<Process> &process, 
+    const Axis &axis, bool in_datacard) :
     DatacardProcess(figure, process),
-    weight_(RooRealVar("weight","",-50.0,50.0)) {
+    rrv_weight_(RooRealVar("weight","",-50.0,50.0)) {
   if (process_->type_ == Process::Type::data) {
     is_data_ = true;
     is_signal_ = false;
@@ -163,53 +207,51 @@ Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(const Figur
     is_signal_ = false;
   }
   name_ = process_->name_;
+  in_datacard_ = in_datacard;
   replace_with_param_ = false;
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  n_variations_ = 1;
+  if (in_datacard_) {
+    n_variations_ = datacard->n_variations_;
+  }
   float axis_min = axis.Bins().at(0);
   float axis_max = axis.Bins().at(axis.Bins().size()-1);
   for (unsigned ichan = 0; ichan < datacard->n_channels_; ichan++) {
+    is_profiled_.push_back(false);
     var_.push_back(RooRealVar(
         (axis.var_.Name()+"_"+datacard->channel_name_[ichan]).c_str(),"",
-        axis.Bins().at(0),axis.Bins().at(axis.Bins().size()-1)));
-    raw_histogram_nom_.push_back(TH1D("","",axis.Nbins(),&axis.Bins().at(0)));
-    raw_histogram_sys_.push_back(std::vector<TH1D>());
-    is_profiled_.push_back(false);
-    if (is_data_)
-      raw_dataset_nom_.push_back(RooDataSet("","",RooArgSet(var_[ichan],weight_),RooFit::WeightVar(weight_)));
-
-    //for now, only do normalization systematics
-    for (unsigned isyst = 0; isyst < datacard->n_systematics_; isyst++) {
-      raw_histogram_sys_.back().push_back(TH1D("","",1,axis_min,axis_max));
-    }
-  }
+        axis_min,axis_max));
+    var_[ichan].setBins(axis.Nbins());
+    dataset_.push_back(std::vector<RooDataSet>());
+    for (unsigned isyst = 0; isyst < n_variations_; isyst++) {
+      dataset_[ichan].push_back(RooDataSet("","",RooArgSet(var_[ichan],
+                                                           rrv_weight_),
+                                           RooFit::WeightVar(rrv_weight_)));
+    } // loop over variations
+  } // loop over channels
 }
 
 void Datacard::DatacardProcessNonparametric::RecordEvent(const Baby &baby) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
-  float nominal_weight = datacard->nominal_weight_.GetScalar(baby);
   for (unsigned ichan = 0; ichan < datacard->n_channels_; ichan++) {
-    if (datacard->channel_selection_[ichan].GetScalar(baby)) {
-      float nominal_value = datacard->variable_.GetScalar(baby);
-      raw_histogram_nom_[ichan].Fill(nominal_value, nominal_weight);
-      if (is_data_) {
-        var_[ichan].setVal(nominal_value);
-        raw_dataset_nom_[ichan].add(RooArgSet(var_[ichan]),nominal_weight);
+    for (unsigned isyst = 0; isyst < n_variations_; isyst++) {
+      float weight = datacard->weight_[isyst].GetScalar(baby);
+      float fit_var = datacard->fit_var_[isyst].GetScalar(baby);
+      if (datacard->channel_selection_[isyst][ichan].GetScalar(baby)) {
+        var_[ichan].setVal(fit_var);
+        rrv_weight_.setVal(weight);
+        dataset_[ichan][isyst].add(RooArgSet(var_[ichan]),weight);
       }
-    }
-    for (unsigned isyst = 0; isyst < datacard->n_systematics_; isyst++) {
-      if (datacard->systematic_selection_[ichan][isyst].GetScalar(baby)) {
-        raw_histogram_sys_[ichan][isyst].Fill(
-            datacard->variable_.GetScalar(baby),
-            datacard->systematic_weight_[ichan][isyst].GetScalar(baby));
-      }
-    } //loop over systematics
+    } //loop over systematics/variations
   } //loop over channels
 }
 
 /*! \brief Returns the name of the RooWorkspace saved for a given channel
+ 
   \param[in] channel    index of channel to write
 */
-std::string Datacard::DatacardProcessNonparametric::WSName(unsigned int channel) {
+std::string Datacard::DatacardProcessNonparametric::WSName(
+    unsigned int channel) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   if (is_data_) {
     return "WS_data_obs_"+datacard->channel_name_[channel];
@@ -218,92 +260,62 @@ std::string Datacard::DatacardProcessNonparametric::WSName(unsigned int channel)
   return "WS_"+name_+"_"+datacard->channel_name_[channel];
 }
 
-/*! \brief Returns the name of the PDF/RooDataHist/RooDataSet saved for a given channel
+/*! \brief Returns the name of the RooDataSet/Hist saved for a given channel
+ 
   \param[in] channel    index of channel to write
 */
-std::string Datacard::DatacardProcessNonparametric::PDFName(unsigned int channel) {
+std::string Datacard::DatacardProcessNonparametric::DataName(
+    unsigned int channel, unsigned int variation) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   if (is_data_) {
     return "data_obs_"+datacard->channel_name_[channel];
   }
-  else if (replace_with_param_) { //MC replaced by parametric PDF
-    return param_pdf_[channel]->GetName();
+  return ("mcdata_"+name_+"_"+datacard->channel_name_[channel]+"_"
+          +datacard->variation_name_[variation]);
+}
+
+
+/*! \brief Returns the name of the PDF for a given channel
+ 
+  \param[in] channel    index of channel to write
+*/
+std::string Datacard::DatacardProcessNonparametric::PDFName(
+    unsigned int channel) {
+  const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  if (is_data_) {
+    return "data_obs_"+datacard->channel_name_[channel];
   }
-  //is MC RooHistPdf
-  return "pdf_"+name_+"_"+datacard->channel_name_[channel];
+  return (name_+"_"+datacard->channel_name_[channel]);
 }
 
 /*! \brief Returns yield (rate) of events in a given channel
+ 
   \param[in] channel    index of channel
 */
 float Datacard::DatacardProcessNonparametric::Yield(unsigned int channel, 
-                                                    unsigned int systematic) {
-  if (systematic==999)
-    return raw_histogram_nom_[channel].Integral();
-  float ratio = raw_histogram_nom_[channel].Integral()/
-                raw_histogram_sys_[channel][systematic].Integral();
-  if (ratio<1.0) ratio = 1.0/ratio;
-  return ratio;
+                                                    unsigned int variation) {
+  return dataset_[channel][variation].sumEntries();
 }
 
-/*! \brief Performs fit to data and freezes PDF parameters
-  \param[in] channel   index of channel to fit
-*/
-void Datacard::DatacardProcessNonparametric::FitAndFreeze(unsigned int channel) {
-  if (is_data_ || !replace_with_param_)
-    throw std::runtime_error("FitAndFreeze called for function with no parametric form.");
-  RooDataHist fit_hist("fit_hist","",RooArgList(var_[channel]), &raw_histogram_nom_[channel]);
-  param_pdf_[channel]->fitTo(fit_hist);
-  RooArgSet* params = param_pdf_[channel]->getParameters(fit_hist);
-  //can't use normal range for loop because ancient ROOT version...
-  RooFIter param_iterator = params->fwdIterator();
-  bool param_loop = true;
-  while (param_loop) {
-    RooAbsArg* param = param_iterator.next();
-    if (param != nullptr) {
-      static_cast<RooRealVar*>(param)->setConstant(true);
-    }
-    else {
-      param_loop = false;
-    }
-  }
-}
-
-/*! \brief Writes contained PDFs to a workspace and saves to ROOT file. 
-    Assumes ROOT file open
+/*! \brief Writes datasets to a workspace and saves to opened ROOT file
+ 
   \param[in] channel    index of channel to write
 */
-void Datacard::DatacardProcessNonparametric::WriteWorkspace(unsigned int channel) {
+void Datacard::DatacardProcessNonparametric::WriteWorkspace(
+    unsigned int channel) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   RooWorkspace ws(WSName(channel).c_str());
-  if (is_data_) {
+  for (unsigned int ivar = 0; ivar < n_variations_; ivar++) {
     if (datacard->save_data_as_hist_) {
-      RooDataHist data_obs(PDFName(channel).c_str(),"",RooArgList(var_[channel]),
-          &raw_histogram_nom_[channel]);
-      ws.import(data_obs);
+      //TODO check if weights work correctly for this
+      RooDataHist binned_data(DataName(channel,ivar).c_str(),"",
+                              RooArgSet(var_[channel]),
+                              dataset_[channel][ivar]);
+      ws.import(binned_data);
     }
-    else { //save data as RooDataSet
-      raw_dataset_nom_[channel].SetName(PDFName(channel).c_str());
-      ws.import(raw_dataset_nom_[channel]);
-    }
-  }
-  else { //is MC
-    if (replace_with_param_) { //replace histogram with analytic PDF
-      FitAndFreeze(channel);
-      ws.import(*param_pdf_[channel]);
-    }
-    else { //don't replace with param, just make RooHistPdf
-      RooDataHist hist((PDFName(channel)+"_hist").c_str(),"",RooArgList(var_[channel]),
-          &raw_histogram_nom_[channel]);
-      RooHistPdf pdf(PDFName(channel).c_str(),"",RooArgList(var_[channel]),hist);
-      //add a separate norm RooRealVar for non-signal processes (signal controlled by r)
-      if (!is_signal_) {
-        float nom_yield = raw_histogram_nom_[channel].Integral();
-        RooRealVar norm((PDFName(channel)+"_norm").c_str(),"",nom_yield,
-            0,10.0*nom_yield);
-        ws.import(norm);
-      }
-      ws.import(pdf);
+    else {
+      dataset_[channel][ivar].SetName(DataName(channel,ivar).c_str());
+      ws.import(dataset_[channel][ivar]);
     }
   }
   ws.Write();
@@ -313,58 +325,23 @@ void Datacard::DatacardProcessNonparametric::WriteWorkspace(unsigned int channel
 //DatacardProcessParametric
 //----------------------------------------------------------------------------
 
-/*! \brief Add parametric process to datacard (ex. background constrained by fit)
+/*! \brief Add parametric process to datacard (background constrained by fit)
+ 
   \param[in] name   Name of process
-  \param[in] pdf    PDF for process by channel
 */
 Datacard::DatacardProcessParametric::DatacardProcessParametric(
-    const std::string &name, 
-    std::vector<std::shared_ptr<RooAbsPdf>> &pdf, const Figure &figure) :
+    const std::string &name, const Figure &figure) :
     DatacardProcess(figure) {
-
-  std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> double_vec;
-  for (std::shared_ptr<RooAbsPdf> channel_pdf : pdf) {
-    double_vec.push_back(std::vector<std::shared_ptr<RooAbsPdf>>());
-    double_vec.back().push_back(channel_pdf);
-    is_profiled_.push_back(false);
-  }
 
   //initialize properties
   name_ = name;
-  pdf_ = double_vec;
   is_data_ = false;
-  is_signal_ = false; //currently, don't allow signal
+  is_signal_ = false; 
+  in_datacard_ = true;
 }
 
-/*! \brief Add parametric process to datacard (ex. background constrained by fit)
-  \param[in] name   Name of process
-  \param[in] pdf    PDF for process by channel and profile
-*/
-Datacard::DatacardProcessParametric::DatacardProcessParametric(
-    const std::string &name, 
-    std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> &pdf, 
-    const Figure &figure) : 
-    DatacardProcess(figure) {
-
-  //check for errors and which channels are profiled
-  for (std::vector<std::shared_ptr<RooAbsPdf>>& channel_pdfs : pdf) {
-    if (channel_pdfs.size()==0)
-      throw std::invalid_argument(("Process "+name+" has a channel with 0 PDFs.").c_str());
-    else if (channel_pdfs.size()==1)
-      is_profiled_.push_back(false);
-    else
-      is_profiled_.push_back(true);
-  }
-
-  //initialize properties
-  name_ = name;
-  pdf_ = pdf;
-  is_data_ = false;
-  is_signal_ = false; //currently, don't allow signal
-}
-
-
-/*! \brief Helper function that wraps a vector of PDFs as a vector of single-entry vectors of PDFs
+/*! \brief Wraps a vector of PDFs as a vector of single-entry vectors of PDFs
+ 
   \param[in] pdf  vector of (pointers to) PDFs
 */
 std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> 
@@ -386,144 +363,152 @@ void Datacard::DatacardProcessParametric::RecordEvent(const Baby &baby) {
 }
 
 /*! \brief Returns the name of the RooAbsPdf saved for a given channel
+ 
   \param[in] channel    index of channel
 */
-std::string Datacard::DatacardProcessParametric::PDFName(unsigned int channel) {
-  if (!is_profiled_[channel]) {
-    return pdf_[channel][0]->GetName();
-  }
-  //is profiled
+std::string Datacard::DatacardProcessParametric::PDFName(
+    unsigned int channel) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   return "pdf_"+name_+"_"+datacard->channel_name_[channel];
 }
 
 /*! \brief Returns the name of the RooWorkspace saved for a given channel
+ 
   \param[in] channel    index of channel
 */
 std::string Datacard::DatacardProcessParametric::WSName(unsigned int channel) {
   //if (figure_==nullptr)
-  //  throw std::runtime_error(("WSName called for "+name_+" before datacard assignment.").c_str());
+  //  throw std::runtime_error(("WSName called for "+name_
+  //                           +" before datacard assignment.").c_str());
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   //is MC
   return "WS_"+name_+"_"+datacard->channel_name_[channel];
 }
 
-/*! \brief Dummy function that returns a yield (rate) of 1.0 for parametric 
-    function as per combine convention
+/*! \brief Returns a yield (rate) of 1.0 per combine conventions
+ 
 */
-float Datacard::DatacardProcessParametric::Yield(unsigned int channel, unsigned int systematic) {
+float Datacard::DatacardProcessParametric::Yield(unsigned int channel, 
+                                                 unsigned int variation) {
   channel += 0;
-  systematic += 0;
+  variation += 0;
   return 1.0;
 }
 
-/*! \brief Writes contained PDFs to a workspace and saves to ROOT file. 
-    Assumes ROOT file open
+/*! \brief Dummy function for interface
+ 
   \param[in] channel    index of channel to write
 */
-void Datacard::DatacardProcessParametric::WriteWorkspace(unsigned int channel) {
-  const Datacard* datacard = static_cast<const Datacard*>(&figure_);
-  RooWorkspace ws(WSName(channel).c_str());
-  if (!is_profiled_[channel]) {
-    RooRealVar norm((PDFName(channel)+"_norm").c_str(),"",data_norm_[channel],
-        0,3.0*data_norm_[channel]);
-    ws.import(*pdf_[channel][0]);
-    ws.import(norm);
-  }
-  else {
-    std::string index_name = "pdfindex_" + name_ +"_" + datacard->channel_name_[channel];
-    std::string model_name = "pdfmodels_" + name_ + "_"+ datacard->channel_name_[channel];
-    RooRealVar norm((PDFName(channel)+"_norm").c_str(),"",data_norm_[channel],
-        0,3.0*data_norm_[channel]);
-    RooCategory pdfindex(index_name.c_str(), index_name.c_str());
-    RooArgList models = RooArgList(model_name.c_str());
-    for (std::shared_ptr<RooAbsPdf> pdf: pdf_[channel]){
-      models.add(*pdf);
-    }
-    RooMultiPdf profile(PDFName(channel).c_str(), PDFName(channel).c_str(), pdfindex, models);
-    //ws.import(*(param_profile_ind_process_[iproc_eff][channel]));
-    ws.import(pdfindex);
-    ws.import(profile);
-    ws.import(norm);
-  }
-  ws.Write();
+void Datacard::DatacardProcessParametric::WriteWorkspace(
+    unsigned int channel) {
+  channel += 0;
 }
 
 //----------------------------------------------------------------------------
 //Datacard
 //----------------------------------------------------------------------------
 
-/*! \brief Constructor for shape-based datacard. Cut-and-count constructor 
-           still to be implemented
+/*! \brief Constructor for shape-based datacard
+
   \param[in] name         datacard name
+
   \param[in] channels     selection list for each channel
+
   \param[in] systematics  list of systematics
+
   \param[in] processes    standard processes including data, signal, and 
                           MC-based backgrounds
+
   \param[in] weight       nominal weight
+
   \param[in] axis         associated histogram axis
 */
+//TODO allow different axes in different categories?
 Datacard::Datacard(const std::string &name,
                    const std::vector<SelectionList> &channels, 
                    const std::vector<Systematic> &systematics,
                    const std::vector<std::shared_ptr<Process>> &processes,
                    const NamedFunc &weight,
-                   const Axis &axis) :
+                   const Axis &axis,
+                   bool save_as_hist) :
     name_(name),
     n_channels_(channels.size()),
     n_processes_(processes.size()),
     n_systematics_(systematics.size()),
-    nominal_weight_(weight),
-    variable_(axis.var_),
-    channel_selection_(),
-    systematic_name_(),
-    systematic_selection_(),
-    systematic_weight_(),
-    datacard_process_(),
-    save_data_as_hist_(false) {
+    axis_(axis),
+    save_data_as_hist_(save_as_hist) {
 
   if (!weight.IsScalar()) {
     throw std::invalid_argument(("Weight NamedFunc "+weight.Name()
                                  +" is not a scalar.").c_str());
   }
-  if (!variable_.IsScalar()) {
-    throw std::invalid_argument(("Signal extraction NamedFunc "+variable_.Name()
+  if (!axis.var_.IsScalar()) {
+    throw std::invalid_argument(("Signal extraction NamedFunc "
+                                 +axis.var_.Name()
                                  +" is not a scalar.").c_str());
   }
 
-  //initialize NamedFunc look-up vectors
   for (const SelectionList &channel_map : channels) {
-    //nominal selection
-    NamedFunc channel_selection(1);
-    for (unsigned isel = 0; isel < channel_map.selection_.size(); isel++) {
-      channel_selection = channel_selection && channel_map.selection_[isel];
-    }
     channel_name_.push_back(channel_map.channel_name_);
-    channel_selection_.push_back(channel_selection);
-    systematic_selection_.push_back(std::vector<NamedFunc>());
-    systematic_weight_.push_back(std::vector<NamedFunc>());
-    for (const Systematic &systematic : systematics) {
-      systematic_name_.push_back(systematic.name_);
-      if (systematic.is_weight_systematic_) {
-        systematic_selection_.back().push_back(channel_selection);
-        systematic_weight_.back().push_back(systematic.content_);
-      }
-      else {
-        NamedFunc systematic_selection(1);
-        for (unsigned isel = 0; isel < channel_map.selection_.size(); isel++) {
-          if (channel_map.name_[isel] == systematic.selection_name_) {
-            systematic_selection = systematic_selection && systematic.content_;
-          }
-          else {
-            systematic_selection = systematic_selection && channel_map.selection_[isel];
-          }
-        }
-        systematic_selection_.back().push_back(systematic_selection);
-        systematic_weight_.back().push_back(nominal_weight_);
-      }
-    }
   }
 
+  //initialize NamedFunc look-up vectors
+  systematics_extended_ = systematics;
+  systematics_extended_.insert(systematics_extended_.begin(), 
+      Systematic("nominal",{},{}));
+  unsigned int ivariation = 0;
+  n_variations_ = 0;
+  for (const Systematic &systematic : systematics_extended_) {
+    std::vector<const std::unordered_map<std::string, 
+        std::shared_ptr<NamedFunc>>*> variations;
+    if (systematic.is_symmetric) {
+      variations.push_back(&systematic.variation_);
+      variation_name_.push_back(systematic.name_);
+    }
+    else {
+      variations.push_back(&systematic.variation_up_);
+      variations.push_back(&systematic.variation_dn_);
+      variation_name_.push_back(systematic.name_+"Up");
+      variation_name_.push_back(systematic.name_+"Down");
+    }
+    for (const std::unordered_map<std::string, std::shared_ptr<NamedFunc>>* 
+        variation : variations) {
+
+      channel_selection_.push_back(std::vector<NamedFunc>());
+      for (const SelectionList &channel_map : channels) {
+        NamedFunc channel_selection(1);
+        for (unsigned isel = 0; isel < channel_map.selection_.size(); isel++) {
+          std::string selection_name = channel_map.name_[isel];
+          if (variation->count(selection_name) != 0) {
+            channel_selection = channel_selection 
+                                && *(variation->at(selection_name));
+          }
+          else {
+            channel_selection = channel_selection 
+                                && channel_map.selection_[isel];
+          }
+        } //loop over selections in list
+        channel_selection_[ivariation].push_back(channel_selection);
+      } //loop over channels (selection lists)
+        
+      if (variation->count("weight") != 0) {
+        weight_.push_back(*(variation->at("weight")));
+      }
+      else {
+        weight_.push_back(weight);
+      }
+      if (variation->count("fitvar") != 0) {
+        fit_var_.push_back(*(variation->at("fitvar")));
+      }
+      else {
+        fit_var_.push_back(axis.var_);
+      }
+        
+      ivariation++;
+      n_variations_++;
+    } //loop over variations (systematics)
+  } //loop over systematics
+  
   //initialize processes
   int n_data = 0;
   for (const std::shared_ptr<Process> & process : processes) {
@@ -535,12 +520,34 @@ Datacard::Datacard(const std::string &name,
       n_data++;
   }
   if (n_data != 1)
-    throw std::invalid_argument("Exactly 1 data process should be provided to datacard.");
+    throw std::invalid_argument("Exactly 1 data process should be provided"
+                                "to datacard.");
+}
+
+/*! \brief Add processes for histogram generation but not datacard
+ 
+  \param[in] processes  processes to add
+ */
+Datacard& Datacard::AddHistOnlyProcesses(
+    const std::vector<std::shared_ptr<Process>> &processes) {
+  //initialize processes
+  for (const std::shared_ptr<Process> & process : processes) {
+    datacard_process_nonparametric_.push_back(
+        std::unique_ptr<DatacardProcessNonparametric>(
+        new DatacardProcessNonparametric(*this, process, axis_, false)));
+    datacard_process_.push_back(datacard_process_nonparametric_.back().get());
+    if (datacard_process_.back()->is_data_)
+      throw std::invalid_argument("Must provide data as datacard process.");
+  }
+  n_processes_ += processes.size();
+  return *this;
 }
 
 /*! \brief Produce and save datacard txt file and associate root files with 
            roofit workspace
+
   \param[in] luminosity   currently unused since lumi implemented via weight
+
   \param[in] subdir       subdirectory to save files to
 */
 void Datacard::Print(double luminosity, const std::string &subdir) {
@@ -553,62 +560,53 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   }
 
   //dummy logic to avoid unused variable needed for interface
-  //TODO: implement lumi multiplication
   luminosity += 0;
 
-  //Provide info about data yields to all processes
-  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    float data_yield = 0;
-    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (datacard_process_[iproc]->is_data_)
-        data_yield = datacard_process_[iproc]->Yield(ichan);
-    }
-    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      datacard_process_[iproc]->data_norm_.push_back(data_yield);
-    }
-  }
-
   //save RooFit workspaces in root file
-  TFile root_file(("datacards/"+subdir_mod+name_+".root").c_str(),"RECREATE"); 
+  //These should contain all histograms needed by HtoZG_fitting to generate
+  //models
+  TFile root_file(("datacards/"+subdir_mod+name_+"_rawdata.root").c_str(),
+                  "RECREATE"); 
   //loop over channels
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    //float lower_edge = datacard_process_[0]->raw_histogram_nom_[ichan]
-    //    .GetXaxis()->GetBinLowEdge(1);
-    //float upper_edge = datacard_process_[0]->raw_histogram_nom_[ichan]
-    //    .GetXaxis()->GetBinUpEdge(datacard_process_[0]->raw_histogram_nom_[ichan]
-    //    .GetXaxis()->GetNbins());
-    //loop over processes, write relevant info for each process/channel to datacard
+    //write the workspace for each process/channel to the datacard
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
       datacard_process_[iproc]->WriteWorkspace(ichan); 
-      //TODO see if this works, make workspace outside function and pass if needed
     }
   }
   root_file.Close();
-  std::cout << "open datacards/"+subdir_mod+name_+".root" << std::endl;
+  std::cout << "open datacards/"+subdir_mod+name_+"_rawdata.root" << std::endl;
 
   //save datacard txt file
   std::ofstream datacard_file;
-  datacard_file.open(("datacards/"+subdir_mod+name_+".txt").c_str(),std::ios::out);
+  datacard_file.open(("datacards/"+subdir_mod+name_+".txt").c_str(),
+                     std::ios::out);
   //header
   datacard_file << "max  " << n_channels_ << " number of categories\n";
   //subtract 1 for data, which is not counted, and 1 for combine conventions
-  datacard_file << "jmax " << n_processes_-2 << " number of samples minus one\n";
-  datacard_file << "kmax " << n_systematics_ <<" number of nuisance parameters\n";
-  datacard_file << "-----------------------------------------------------------------"
-                << "-----------------------------------------------------------------\n";
+  datacard_file << "jmax " << n_processes_-2 
+                << " number of samples minus one\n";
+  datacard_file << "kmax " << n_systematics_ 
+                << " number of nuisance parameters\n";
+  datacard_file << "----------------------------------------------------------"
+                   "----------------------------------------------------------"
+                   "--------------\n";
   //TODO adjust padding to fit strings
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      std::string proc_name = datacard_process_[iproc]->name_;
+      if (datacard_process_[iproc]->in_datacard_) {
+        std::string proc_name = datacard_process_[iproc]->name_;
 
-      datacard_file << "shapes " << std::left << std::setw(19)
-          << proc_name << std::left << std::setw(19) << channel_name_[ichan] 
-          << name_+".root " << datacard_process_[iproc]->WSName(ichan) << ":"
-          << datacard_process_[iproc]->PDFName(ichan) << "\n";
-    }
-  }
-  datacard_file << "-----------------------------------------------------------------"
-                << "-----------------------------------------------------------------\n";
+        datacard_file << "shapes " << std::left << std::setw(19)
+            << proc_name << std::left << std::setw(19) << channel_name_[ichan] 
+            << name_+".root " << datacard_process_[iproc]->WSName(ichan) << ":"
+            << datacard_process_[iproc]->PDFName(ichan) << "\n";
+      } //is data or parametric
+    } //loop over processes
+  } //loop over channels
+  datacard_file << "----------------------------------------------------------"
+                   "----------------------------------------------------------"
+                   "--------------\n";
   //dummy observations
   datacard_file << std::left << std::setw(13) << "bin";
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
@@ -620,158 +618,141 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
     datacard_file << std::left << std::setw(15) << "-1";
   }
   datacard_file << "\n";
-  datacard_file << "-----------------------------------------------------------------"
-                << "-----------------------------------------------------------------\n";
+  datacard_file << "----------------------------------------------------------"
+                   "----------------------------------------------------------"
+                   "--------------\n";
   //process rates
-  datacard_file << std::left << std::setw(33) << "bin";
-  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    for (unsigned iproc = 0; iproc < n_processes_-1; iproc++) {
-      //assume 1 data process
-      datacard_file << std::left << std::setw(19) << channel_name_[ichan];
-    }
-  }
-  datacard_file << "\n";
-  datacard_file << std::left << std::setw(33) << "process";
-  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (datacard_process_[iproc]->is_data_)
-        continue;
-      std::string proc_name = datacard_process_[iproc]->name_;
-      datacard_file << std::left << std::setw(19) << proc_name;
-    }
-  }
-  datacard_file << "\n";
-  datacard_file << std::left << std::setw(33) << "process";
+  ostringstream bin_str, proc_str, index_str, rate_str;
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
     int signal_number = -1;
     int background_number = 1;
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (datacard_process_[iproc]->is_data_) {
-        continue;
-      }
-      else if (datacard_process_[iproc]->is_signal_) {
-        datacard_file << std::left << std::setw(19) << signal_number;
-        signal_number -= 1;
-      }
-      else { //background
-        datacard_file << std::left << std::setw(19) << background_number;
-        background_number += 1;
+      if (datacard_process_[iproc]->in_datacard_ 
+          && !datacard_process_[iproc]->is_data_) {
+        bin_str << std::left << std::setw(19) << channel_name_[ichan];
+        proc_str << std::left << std::setw(19) 
+                 << datacard_process_[iproc]->name_;
+        if (datacard_process_[iproc]->is_signal_) {
+          index_str << std::left << std::setw(19) << signal_number;
+          signal_number -= 1;
+        }
+        else { //background
+          index_str << std::left << std::setw(19) << background_number;
+          background_number += 1;
+        }
+        rate_str << std::left << std::setw(19) 
+                 << datacard_process_[iproc]->Yield(ichan);
       }
     }
   }
-  datacard_file << "\n";
-  datacard_file << std::left << std::setw(33) << "rate";
-  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (datacard_process_[iproc]->is_data_)
-        continue;
-      datacard_file << std::left << std::setw(19) 
-                    << datacard_process_[iproc]->Yield(ichan);
-    }
-  }
-  datacard_file << "\n";
-  datacard_file << "-----------------------------------------------------------------"
-                << "-----------------------------------------------------------------\n";
+  datacard_file << std::left << std::setw(33) << "bin" << bin_str.str() 
+                << "\n";
+  datacard_file << std::left << std::setw(33) << "process" << proc_str.str() 
+                << "\n";
+  datacard_file << std::left << std::setw(33) << "process" << index_str.str() 
+                << "\n";
+  datacard_file << std::left << std::setw(33) << "rate" << rate_str.str() 
+                << "\n";
+  datacard_file << "----------------------------------------------------------"
+                   "----------------------------------------------------------"
+                   "--------------\n";
   //systematics
-  for (unsigned isyst = 0; isyst < n_systematics_; isyst++) {
-    datacard_file << std::left << std::setw(25) << systematic_name_[isyst];
-    datacard_file << std::left << std::setw(8) << "lnN";
-    for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-      for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-        if (datacard_process_[iproc]->is_data_)
-          continue;
-        float syst = datacard_process_[iproc]->Yield(ichan, isyst);
-        if (syst == 1.0)
-          datacard_file << std::left << std::setw(19) << "-";
-        else
-          datacard_file << std::left << std::setw(19) << syst;
-      }
+  unsigned int ivar = 0;
+  for (Systematic& systematic : systematics_extended_) {
+    if (ivar == 0) {
+      ivar++;
+      continue;
     }
-    datacard_file << "\n";
+    if ((systematic.variation_.count("FitVar") == 0)
+        && (systematic.variation_up_.count("FitVar") == 0)) {
+      //only make lnN constraints for non-shape systematics
+      datacard_file << std::left << std::setw(25) << systematic.name_;
+      datacard_file << std::left << std::setw(8) << "lnN";
+      for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+        for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+          if (datacard_process_[iproc]->in_datacard_ 
+              && !datacard_process_[iproc]->is_data_) {
+            if (systematic.is_symmetric) {
+              float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+              float syst = 1.0;
+              if (nom_yield > 0.0)
+                syst = (datacard_process_[iproc]->Yield(ichan, ivar)
+                        /nom_yield);
+              //systematics less than 0.1% are dropped
+              if (fabs(syst-1.0)<1.0e-3)
+                datacard_file << std::left << std::setw(19) << "-";
+              else
+                datacard_file << std::left << std::setw(19) << syst;
+            }
+            else {
+              float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+              float syst_up = 1.0;
+              float syst_dn = 1.0;
+              if (nom_yield > 0.0) {
+                syst_up = (datacard_process_[iproc]->Yield(ichan, ivar)
+                           /nom_yield);
+                syst_dn = (datacard_process_[iproc]->Yield(ichan, ivar+1)
+                           /nom_yield);
+              }
+              //systematics less than 0.1% are dropped
+              if ((fabs(syst_up-1.0)<1.0e-3) && (fabs(syst_dn-1.0)<1.0e-3))
+                datacard_file << std::left << std::setw(19) << "-";
+              else {
+                ostringstream syst_string;
+                syst_string << syst_dn << "/" << syst_up;
+                datacard_file << std::left << std::setw(19) 
+                              << syst_string.str();
+              }
+            } //asymmetric systematic
+          } //process is in syst section
+        } //loop over processes
+      } //loop over channels
+      datacard_file << "\n";
+    } //not shape systematic
+
+    if (systematic.is_symmetric) {
+      ivar++;
+    }
+    else {
+      ivar += 2;
+    }
   }
 
-  //Parameters
-  //Discrete profile indices
-  datacard_file << "\n";
-  for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-      if (datacard_process_[iproc]->is_profiled_[ichan]) {
-        datacard_file << std::left << std::setw(40) 
-                      << "pdfindex_"+datacard_process_[iproc]->name_+"_"+channel_name_[ichan]
-                      << std::left << std::left << std::setw(19) << "discrete" << "\n";
-      }
-    }
-  }
+  //Parameters: deal with this in HtoZG_fitting?
+  //datacard_file << "\n";
+  //for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+  //  for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+  //    if (datacard_process_[iproc]->is_profiled_[ichan]) {
+  //      datacard_file << std::left << std::setw(40) 
+  //                    << ("pdfindex_"+datacard_process_[iproc]->name_+"_"
+  //                        +channel_name_[ichan])
+  //                    << std::left << std::left << std::setw(19) 
+  //                    << "discrete" << "\n";
+  //    }
+  //  }
+  //}
 
   datacard_file.close();
   std::cout << "open datacards/"+subdir_mod+name_+".txt" << std::endl;
 }
 
-/*! \brief Replaces an existing process with a parametric shape, while still 
-           retaining its normalization
-  \param[in] name   Name of process
-  \param[in] pdf    PDF for process
-*/
-Datacard& Datacard::MakeProcessParametric(
-    const std::string &name, 
-    std::vector<std::shared_ptr<RooAbsPdf>> &pdf) {
-  if (pdf.size() != n_channels_) 
-    throw std::invalid_argument(("Wrong PDFs for parametric process "+name).c_str());
-
-  bool found_proc = false;
-  for (std::unique_ptr<DatacardProcessNonparametric> &datacard_process : 
-       datacard_process_nonparametric_) {
-    if (datacard_process->process_->name_ == name) {
-      datacard_process->replace_with_param_ = true;
-      datacard_process->param_pdf_ = pdf;
-      found_proc = true;
-    }
-  }
-  if (!found_proc)
-    throw std::invalid_argument(("No process with name "+name).c_str());
-
-  return *this;
-}
-
 /*! \brief Adds parametric processes
+ 
   \param[in] process  parametric process to add
 */
 Datacard& Datacard::AddParametricProcess(
-    const std::string &name, 
-    std::vector<std::shared_ptr<RooAbsPdf>> &pdf) {
-  //check for errors 
-  if (pdf.size() != n_channels_)
-    throw std::invalid_argument(
-        ("Process "+name+" does not have enough channels.").c_str());
+    const std::string &name) {
   //add
   datacard_process_parametric_.push_back(
         std::unique_ptr<DatacardProcessParametric>(
-        new DatacardProcessParametric(name, pdf, *this)));
-  datacard_process_.push_back(datacard_process_parametric_.back().get());
-  n_processes_++;
-  return *this;
-}
-
-/*! \brief Adds parametric processes
-  \param[in] process  parametric process to add
-*/
-Datacard& Datacard::AddParametricProcess(
-    const std::string &name, 
-    std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> &pdf) {
-  //check for errors 
-  if (pdf.size() != n_channels_)
-    throw std::invalid_argument(
-        ("Process "+name+" does not have enough channels.").c_str());
-  //add
-  datacard_process_parametric_.push_back(
-        std::unique_ptr<DatacardProcessParametric>(
-        new DatacardProcessParametric(name, pdf, *this)));
+        new DatacardProcessParametric(name, *this)));
   datacard_process_.push_back(datacard_process_parametric_.back().get());
   n_processes_++;
   return *this;
 }
 
 /*! \brief Sets whether to save data as RooDataSet or RooDataHist
+ 
   \param[in] save_data_as_hist whether to save data as RooDataHist
 */
 Datacard& Datacard::SaveDataAsHist(bool save_data_as_hist) {
@@ -780,6 +761,7 @@ Datacard& Datacard::SaveDataAsHist(bool save_data_as_hist) {
 }
 
 /*! \brief Dummy logic since this method is just needed for interface
+ 
   \param[in] tag    -
 */
 void Datacard::SetLuminosityTag(const std::string &tag) {
@@ -789,26 +771,29 @@ void Datacard::SetLuminosityTag(const std::string &tag) {
 }
 
 /*! \brief returns the set of processes (not including parametric processes)
+ 
 */
 std::set<const Process*> Datacard::GetProcesses() const {
   std::set<const Process*> processes;
-  for (const std::unique_ptr<Datacard::DatacardProcessNonparametric> &datacard_process : 
-      datacard_process_nonparametric_) {
+  for (const std::unique_ptr<Datacard::DatacardProcessNonparametric> 
+      &datacard_process : datacard_process_nonparametric_) {
     processes.insert(datacard_process->process_.get());
   }
   return processes;
 }
 
 /*! \brief Returns figure component associated with a particular process
+ 
   \param[in] process   process whose figure component to find
 */
 Figure::FigureComponent * Datacard::GetComponent(const Process *process) {
-  for (const std::unique_ptr<Datacard::DatacardProcessNonparametric> &datacard_process : 
-      datacard_process_nonparametric_) {
+  for (const std::unique_ptr<Datacard::DatacardProcessNonparametric> 
+      &datacard_process : datacard_process_nonparametric_) {
     if (datacard_process->process_.get() == process){
       return datacard_process.get();
     }
   }
-  throw std::invalid_argument(("Could not find process "+process->name_).c_str());
+  throw std::invalid_argument(("Could not find process "
+                               +process->name_).c_str());
   return nullptr;
 }

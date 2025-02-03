@@ -28,6 +28,12 @@ namespace ZgFunctions {
   //Run 3 weight-up
   extern const NamedFunc w_run3;
 
+  //requires Z->ee in truth
+  extern const NamedFunc Ztoee;
+
+  //requires Z->mumu in truth
+  extern const NamedFunc ZtoMuMu;
+
   //leading muon pt
   extern const NamedFunc lead_mu_pt;
 

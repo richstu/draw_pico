@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "RooAbsData.h"
 #include "RooAbsPdf.h"
 #include "RooDataSet.h"
 #include "RooRealVar.h"
@@ -18,69 +19,82 @@
 #include "core/process.hpp"
 #include "core/RooMultiPdf.hpp"
 
-/*!\brief Figure subclass used to produce combine datacards (i.e. statistical models)
+/*!\brief Figure subclass that produces combine datacards (statistical models)
 */
 class Datacard final: public Figure{
 public:
 
-  /*!\brief Class used to store selections applied to sample in a way that allows
-   * selection to be replaced for ex. systematics evaluation
+  /*!\brief Class used to store selections applied to sample 
   */
   class SelectionList {
   public:
     SelectionList(const std::string& name);
+    SelectionList(const std::string& name, 
+                  const SelectionList& selection_list);
     SelectionList() = default;
     SelectionList(const SelectionList &) = default;
     SelectionList& operator=(const SelectionList &) = default;
     SelectionList(SelectionList &&) = default;
     SelectionList& operator=(SelectionList &&) = default;
-    SelectionList& AddSelection(const std::string &name, const NamedFunc &selection);
+    SelectionList& AddSelection(const std::string &name, 
+                                const NamedFunc &selection);
     std::string channel_name_;
     std::vector<std::string> name_;
     std::vector<NamedFunc> selection_;
   private:
   };
 
-  /*!\brief Class that stores systematic variations, either in the selections 
-   * or weights applied to each sample
+  /*!\brief Class that stores systematic variations, in the selections, the
+   * weight applied to each sample, or the fit variable
   */
   class Systematic {
   public:
-    Systematic(const std::string &name, const NamedFunc &alternate_weight);
-    Systematic(const std::string &name, const std::string &selection_name, 
-               const NamedFunc &alternate_selection);
+    Systematic(const std::string &name, 
+               const std::vector<std::string> &selection_names, 
+               const std::vector<NamedFunc> &variations);
+
+    Systematic(const std::string &name, 
+               const std::vector<std::string> &selection_names, 
+               const std::vector<NamedFunc> &variations_up,
+               const std::vector<NamedFunc> &variations_dn);
+
     Systematic() = default;
     Systematic(const Systematic &) = default;
     Systematic& operator=(const Systematic &) = default;
     Systematic(Systematic &&) = default;
     Systematic& operator=(Systematic &&) = default;
-    //for now, hardcoded to only affect signal, later allow systematics
-    //affecting specific processes
-    bool is_weight_systematic_;
-    std::string name_;
-    std::string selection_name_;
-    NamedFunc content_;
-  private:
+
+    bool is_symmetric; //!< systematic type
+    std::string name_; //!< systematic name
+                       
+    std::unordered_map<std::string, std::shared_ptr<NamedFunc>> variation_; 
+        //!< map from selection to replace (or "weight") to alternate NamedFunc
+    std::unordered_map<std::string, std::shared_ptr<NamedFunc>> variation_up_;
+        //!< map from selection to replace (or "weight") to alt up NamedFunc
+    std::unordered_map<std::string, std::shared_ptr<NamedFunc>> variation_dn_;
+        //!< map from selection to replace (or "weight") to alt dn NamedFunc
   };
-  //TODO implement asymmetric systematics
 
   /*!\brief Interface representing processes appearing in the datacard, see 
    * below DatacardProcessNonparametric and DatacardProcessParametric classes
   */
   class DatacardProcess : public Figure::FigureComponent{
   public:
-    DatacardProcess(const Figure &figure, const std::shared_ptr<Process> &process);
+    DatacardProcess(const Figure &figure, 
+                    const std::shared_ptr<Process> &process);
     DatacardProcess(const Figure &figure);
     virtual void WriteWorkspace(unsigned int channel) = 0; 
     virtual std::string WSName(unsigned int channel) = 0;
     virtual std::string PDFName(unsigned int channel) = 0;
-    virtual float Yield(unsigned int channel, unsigned int systematic = 999) = 0;
+    virtual float Yield(unsigned int channel, 
+                        unsigned int variation = 0) = 0;
 
     std::string name_;              //!< Process name
     bool is_data_;                  //!< If process is data
     bool is_signal_;                //!< If process is signal
+    bool in_datacard_;              //!< If process is to be included in model
     std::vector<bool> is_profiled_; //!< If each channel is profiled
-    std::vector<float> data_norm_;  //!< Number of events in data for each channel
+    std::vector<float> data_norm_;  //!< Number of data events for each channel
   };
 
   /*!\brief Class representing a nonparametric (i.e. derived at some level
@@ -90,29 +104,35 @@ public:
   public:
     DatacardProcessNonparametric(const Figure &figure,
                                  const std::shared_ptr<Process> &process,
-                                 const Axis &axis);
+                                 const Axis &axis, bool in_datacard=true);
     ~DatacardProcessNonparametric() = default;
     void RecordEvent(const Baby &baby) final;
     void WriteWorkspace(unsigned int channel) final;
     std::string WSName(unsigned int channel) final;
+    std::string DataName(unsigned int channel, unsigned int variation);
     std::string PDFName(unsigned int channel) final;
-    float Yield(unsigned int channel, unsigned int systematic = 999) final;
-    void FitAndFreeze(unsigned int channel);
+    float Yield(unsigned int channel, unsigned int variation = 0) final;
 
-    std::vector<TH1D> raw_histogram_nom_; //!< nominal histogram per channel 
-    std::vector<std::vector<TH1D>> raw_histogram_sys_; //!< histogram per systematic per channel
-    std::vector<RooDataSet> raw_dataset_nom_; //!< RooDataSet used for data
-    std::vector<RooRealVar> var_;       //!< Signal extraction variable
-    RooRealVar weight_;                 //!< Weight variable
-    bool replace_with_param_;           //!< If process should be replaced by parametric model
-    std::vector<std::shared_ptr<RooAbsPdf>> param_pdf_; //!< Parametric model pdf per channel
+    unsigned int n_variations_; //!< Number of datasets to store per channel
+
+    std::vector<std::vector<RooDataSet>> dataset_;
+        //!< data indexed by channel, then variation
+    std::vector<RooRealVar> var_; //!< Signal extraction variable
+
+    RooRealVar rrv_weight_;       //!< Weight variable
+    bool replace_with_param_;     //!< Processis replaced by parametric model
+    std::vector<std::shared_ptr<RooAbsPdf>> param_pdf_; //!< Parametric model
+                                                        //!< by channel
 
   private:
     DatacardProcessNonparametric() = delete;
-    DatacardProcessNonparametric(const DatacardProcessNonparametric &) = delete;
-    DatacardProcessNonparametric& operator=(const DatacardProcessNonparametric &) = delete;
+    DatacardProcessNonparametric(const DatacardProcessNonparametric &) 
+        = delete;
+    DatacardProcessNonparametric& operator=(
+        const DatacardProcessNonparametric &) = delete;
     DatacardProcessNonparametric(DatacardProcessNonparametric &&) = delete;
-    DatacardProcessNonparametric& operator=(DatacardProcessNonparametric &&) = delete;
+    DatacardProcessNonparametric& operator=(DatacardProcessNonparametric &&) 
+        = delete;
   };
 
   /*!\brief Class representing a parametric (i.e. derived purely from a fit
@@ -120,26 +140,23 @@ public:
   */
   class DatacardProcessParametric final: public DatacardProcess{
   public:
-    DatacardProcessParametric(const std::string &name, 
-        std::vector<std::shared_ptr<RooAbsPdf>> &pdf, const Figure& figure); 
-    DatacardProcessParametric(const std::string &name, 
-        std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> &pdf, 
-        const Figure& figure);
+    DatacardProcessParametric(const std::string &name, const Figure& figure); 
     ~DatacardProcessParametric() = default;
     void RecordEvent(const Baby &baby) final;
     void WriteWorkspace(unsigned int channel) final; 
     std::string WSName(unsigned int channel) final; 
     std::string PDFName(unsigned int channel) final; 
-    float Yield(unsigned int channel, unsigned int systematic = 999) final;
+    float Yield(unsigned int channel, unsigned int variation = 0) final;
 
-    std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> pdf_; //!<PDF for each channel
+    std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> pdf_; //!<channel PDF
 
   private:
     static std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> 
         MakeDoubleVector(std::vector<std::shared_ptr<RooAbsPdf>> pdfs);
     DatacardProcessParametric() = delete;
     DatacardProcessParametric(const DatacardProcessParametric &) = delete;
-    DatacardProcessParametric& operator=(const DatacardProcessParametric &) = delete;
+    DatacardProcessParametric& operator=(const DatacardProcessParametric &) 
+        = delete;
     DatacardProcessParametric(DatacardProcessParametric &&) = delete;
     DatacardProcessParametric& operator=(DatacardProcessParametric &&) = delete;
   };
@@ -153,13 +170,11 @@ public:
            const std::vector<Systematic> &systematics,
            const std::vector<std::shared_ptr<Process>> &processes,
            const NamedFunc &weight,
-           const Axis &axis);
-  Datacard& AddParametricProcess(const std::string &name, 
-                                 std::vector<std::shared_ptr<RooAbsPdf>> &pdf);
-  Datacard& AddParametricProcess(const std::string &name, 
-                                 std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> &pdf);
-  Datacard& MakeProcessParametric(const std::string &name, 
-                                  std::vector<std::shared_ptr<RooAbsPdf>> &pdf);
+           const Axis &axis,
+           bool save_as_hist = false);
+  Datacard& AddHistOnlyProcesses(
+      const std::vector<std::shared_ptr<Process>> &processes);
+  Datacard& AddParametricProcess(const std::string &name);
   Datacard& SaveDataAsHist(bool save_data_as_hist = true);
   Datacard(Datacard &&) = default;
   Datacard& operator=(Datacard &&) = default;
@@ -178,19 +193,23 @@ public:
   unsigned int n_channels_;                  //!<Number of channels
   unsigned int n_processes_;                 //!<Number of processes
   unsigned int n_systematics_;               //!<Number of systematics
-  NamedFunc nominal_weight_;                 //!<Nominal weight variable
-  NamedFunc variable_;                       //!<Variable used for signal extraction
-  std::vector<NamedFunc> channel_selection_; //!<Selection for each channel
+  unsigned int n_variations_;                //!<Internal number of systematics
+  Axis axis_; //!< Axis
+                                             
+  std::vector<std::vector<NamedFunc>> channel_selection_;
+      //!< Selections indexed by systematic, then channel
+  std::vector<NamedFunc> fit_var_;           //!< Fitting var by systematic
+  std::vector<NamedFunc> weight_;            //!< Weight indexed by systematic
+                                             
+  std::vector<Systematic> systematics_extended_; //!< systematics + nominal
   std::vector<std::string> channel_name_;    //!<Channel names
-  std::vector<std::string> systematic_name_; //!<Name for each systematic
-  std::vector<std::vector<NamedFunc>> systematic_selection_; //!<Selection variations for systematics
-  std::vector<std::vector<NamedFunc>> systematic_weight_; //!<Weight variations for systematics
-  std::vector<DatacardProcess*> datacard_process_; //!<All Processes in datacard
-  std::vector<std::unique_ptr<DatacardProcessNonparametric>> datacard_process_nonparametric_; 
-      //!<Nonparametric processes in datacard
-  std::vector<std::unique_ptr<DatacardProcessParametric>> datacard_process_parametric_; 
-      //!<Parametric processes in datacard
-  bool save_data_as_hist_;                   //!<Flag indicating to save data as RDataSet or RDataHist
+  std::vector<std::string> variation_name_;  //!<Name for each variation
+  std::vector<DatacardProcess*> datacard_process_; //!<All Processes
+  std::vector<std::unique_ptr<DatacardProcessNonparametric>> 
+      datacard_process_nonparametric_; //!<Nonparametric processes in datacard
+  std::vector<std::unique_ptr<DatacardProcessParametric>> 
+      datacard_process_parametric_; //!<Parametric processes in datacard
+  bool save_data_as_hist_;                   //!<Save data as RooDataHist
 
 private:
 

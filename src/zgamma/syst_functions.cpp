@@ -18,6 +18,173 @@ using NamedFuncUtilities::reduce_subleadfirst;
 
 namespace ZgFunctions {
 
+  //13TeV theory uncertainties from the following pages:
+  //https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageAt13TeV
+  //https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR
+  
+  //weight implementing variations in alphaS
+  const NamedFunc sys_w_alphas("sys_w_alphas",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    float unc = 0.0;
+    //in linear approximation N=xs*BR implies dN/N=dxs/xs+dBR/BR
+    //TODO add 13.6 TeV uncertainties and year check
+    if (b.type() == 200000) //ggF
+      unc = 0.026+0.006;
+    else if (b.type() == 200100) //VBF
+      unc = 0.005+0.006;
+    else if (b.type() == 200200 || b.type() == 200300) //WH
+      unc = 0.009+0.006;
+    else if (b.type() == 200400) //ZH
+      unc = 0.009+0.006;
+    else if (b.type() == 200500) //ttH
+      unc = 2.000+0.006;
+    else if (b.type() == 28500) //ggF H->mumu
+      unc = 0.026+0.006;
+    else if (b.type() == 29500) //VBF H->mumu
+      unc = 0.005+0.006;
+    else if (b.type() == 12500) //WH H->mumu
+      unc = 0.009+0.006;
+    else if (b.type() == 13500) //ZH H->mumu
+      unc = 0.009+0.006;
+    else if (b.type() == 9500) //ttH H->mumu
+      unc = 0.020+0.006;
+    return 1.0+unc;
+  });
+
+  //weight implementing variations in PDFs for ggF
+  const NamedFunc sys_w_pdf_ggf("sys_w_pdf_ggf",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    float unc = 0.0;
+    //in linear approximation N=xs*BR implies dN/N=dxs/xs+dBR/BR
+    //TODO add 13.6 TeV uncertainties and year check
+    if (b.type() == 200000 || b.type() == 28500) //ggF
+      unc = 0.019;
+    return 1.0+unc;
+  });
+
+  //weight implementing variations in PDFs for VBF/WH/ZH
+  const NamedFunc sys_w_pdf_qq("sys_w_pdf_qq",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    float unc = 0.0;
+    if (b.type() == 200100 || b.type() == 29500) //VBF
+      unc = 0.021;
+    else if (b.type() == 200200 || b.type() == 200300 || b.type() == 12500)
+      //WH
+      unc = 0.017;
+    else if (b.type() == 200400 || b.type() == 13500) //ZH
+      unc = 0.013;
+    return 1.0+unc;
+  });
+
+  //weight implementing variations in PDFs for ttH
+  const NamedFunc sys_w_pdf_tth("sys_w_pdf_tth",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    float unc = 0.0;
+    if (b.type() == 200500 || b.type() == 9500) //ttH
+      unc = 0.030;
+    return 1.0+unc;
+  });
+
+  //weight implementing variations in ggF cross section
+  const NamedFunc sys_w_ggf_xs("sys_w_ggf_xs",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200000 || b.type() == 28500) //ggF
+      return 1.039;
+    return 1.0;
+  });
+
+  //weight implementing up variation in VBF cross section
+  const NamedFunc sys_w_vbf_xs_up("sys_w_vbf_xs_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200100 || b.type() == 29500) //VBF
+      return 1.004;
+    return 1.0;
+  });
+
+  //weight implementing down variation in VBF cross section
+  const NamedFunc sys_w_vbf_xs_dn("sys_w_vbf_xs_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200100 || b.type() == 29500) //VBF
+      return 0.997;
+    return 1.0;
+  });
+
+  //weight implementing up variation in WH cross section
+  const NamedFunc sys_w_wh_xs_up("sys_w_wh_xs_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200200 || b.type() == 200300 || b.type() == 12500)
+      return 1.005;
+    return 1.0;
+  });
+
+  //weight implementing down variation in WH cross section
+  const NamedFunc sys_w_wh_xs_dn("sys_w_wh_xs_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200200 || b.type() == 200300 || b.type() == 12500)
+      return 0.993;
+    return 1.0;
+  });
+
+  //weight implementing up variation in ZH cross section
+  const NamedFunc sys_w_zh_xs_up("sys_w_zh_xs_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200400 || b.type() == 13500) //ZH
+      return 1.038;
+    return 1.0;
+  });
+
+  //weight implementing down variation in ZH cross section
+  const NamedFunc sys_w_zh_xs_dn("sys_w_zh_xs_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200400 || b.type() == 13500) //ZH
+      return 0.969;
+    return 1.0;
+  });
+
+  //weight implementing up variation in ttH cross section
+  const NamedFunc sys_w_tth_xs_up("sys_w_tth_xs_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200500 || b.type() == 9500) //ttH
+      return 1.058;
+    return 1.0;
+  });
+
+  //weight implementing down variation in ttH cross section
+  const NamedFunc sys_w_tth_xs_dn("sys_w_tth_xs_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200500 || b.type() == 9500) //ttH
+      return 0.908;
+    return 1.0;
+  });
+
+  //weight implementing variation in H->Zgamma BR
+  const NamedFunc sys_w_htozg_br("sys_w_htozg_br",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() >= 200000 && b.type() < 201000) //H->Zgamma
+      return 1.0571;
+    return 1.0;
+  });
+
+  //weight implementing variation in H->MuMu BR
+  const NamedFunc sys_w_htomumu_br("sys_w_htomumu_br",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 28500 || b.type() == 29500 || b.type() == 12500 
+        || b.type() == 13500 || b.type() == 9500) //H->MuMu
+      return 1.23;
+    return 1.0;
+  });
+
+  //weight implementing variation in mq (mostly mtop)
+  const NamedFunc sys_w_mq("sys_w_mq",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() >= 200000 && b.type() < 201000) //H->Zgamma
+      return 1.01;
+    else if (b.type() == 28500 || b.type() == 29500 || b.type() == 12500 
+        || b.type() == 13500 || b.type() == 9500) //H->MuMu
+      return 1.01;
+    return 1.0;
+  });
+
   //for reference, electrons and muons failing eta, dxy, or dz cuts are dropped from pico lists
 
   //el_sig with electron scale variation up

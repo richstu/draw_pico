@@ -480,7 +480,7 @@ namespace ZgUtilities {
     kin_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
     kin_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
     kin_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
-    kin_bdt_reader->BookMVA("/data2/oshiro/analysis_archive/small_phys_utils_archive/dataset/weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
+    kin_bdt_reader->BookMVA("/homes/oshiro/public_weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
     return kin_bdt_reader;
   }
 
@@ -531,7 +531,7 @@ namespace ZgUtilities {
     vbf_bdt_reader->SetVariable("ptj2",ZgFunctions::lead_jet_pt);
     vbf_bdt_reader->SetVariable("ptj1",ZgFunctions::sublead_jet_pt);
     vbf_bdt_reader->SetVariable("drgj","photon_jet_mindr[0]");
-    vbf_bdt_reader->BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_dijet_BDT.weights.xml");
+    vbf_bdt_reader->BookMVA("/homes/oshiro/public_weights/shuffled_dijet_BDT.weights.xml");
     return vbf_bdt_reader;
   }
 
@@ -561,6 +561,8 @@ namespace ZgUtilities {
     zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton&&stitch",ZgFunctions::HLT_pass_dilepton&&ZgFunctions::stitch);
     zg_sample_loader.LoadNamedFunc("(HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch",
         (ZgFunctions::HLT_pass_dilepton||ZgFunctions::HLT_pass_singlelepton)&&ZgFunctions::stitch);
+    zg_sample_loader.LoadNamedFunc("hzg_elchannel",ZgFunctions::Ztoee);
+    zg_sample_loader.LoadNamedFunc("hzg_muchannel",ZgFunctions::ZtoMuMu);
     //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isjet",
     //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isjet);
     //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isother",

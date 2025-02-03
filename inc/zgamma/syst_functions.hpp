@@ -8,6 +8,54 @@
 
 namespace ZgFunctions {
 
+  //weight implementing variations in alphaS
+  extern const NamedFunc sys_w_alphas;
+
+  //weight implementing variations in PDFs for ggF
+  extern const NamedFunc sys_w_pdf_ggf;
+
+  //weight implementing variations in PDFs for VBF/WH/ZH
+  extern const NamedFunc sys_w_pdf_qq;
+
+  //weight implementing variations in PDFs for ttH
+  extern const NamedFunc sys_w_pdf_tth;
+
+  //weight implementing variations in ggF cross section
+  extern const NamedFunc sys_w_ggf_xs;
+
+  //weight implementing up variation in VBF cross section
+  extern const NamedFunc sys_w_vbf_xs_up;
+
+  //weight implementing down variation in VBF cross section
+  extern const NamedFunc sys_w_vbf_xs_dn;
+
+  //weight implementing up variation in WH cross section
+  extern const NamedFunc sys_w_wh_xs_up;
+
+  //weight implementing down variation in WH cross section
+  extern const NamedFunc sys_w_wh_xs_dn;
+
+  //weight implementing up variation in ZH cross section
+  extern const NamedFunc sys_w_zh_xs_up;
+
+  //weight implementing down variation in ZH cross section
+  extern const NamedFunc sys_w_zh_xs_dn;
+
+  //weight implementing up variation in ttH cross section
+  extern const NamedFunc sys_w_tth_xs_up;
+
+  //weight implementing down variation in ttH cross section
+  extern const NamedFunc sys_w_tth_xs_dn;
+
+  //weight implementing variation in H->Zgamma BR
+  extern const NamedFunc sys_w_htozg_br;
+
+  //weight implementing variation in H->MuMu BR
+  extern const NamedFunc sys_w_htomumu_br;
+
+  //weight implementing variation in mq (mostly mtop)
+  extern const NamedFunc sys_w_mq;
+
   //el_sig with electron scale variation up
   extern const NamedFunc sys_el_sig_scaleup;
 
