@@ -95,13 +95,15 @@ namespace ZgFunctions {
     else if (b.SampleTypeString()=="2018")
       return 59.83;
     else if (b.SampleTypeString()=="2022")
-      return 8.17;
+      return 7.89;
     else if (b.SampleTypeString()=="2022EE")
-      return 27.01;
+      return 26.67;
     else if (b.SampleTypeString()=="2023")
-      return 17.61;
-    //else if (b.SampleTypeString()=="2023BPix")
-    return 9.53;
+      return 17.79;
+    else if (b.SampleTypeString()=="2023BPix")
+      return 9.45;
+    else
+      return 0.;
   });
 
   //year integrated lumi weights
