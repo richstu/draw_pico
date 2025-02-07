@@ -373,7 +373,6 @@ void Hist1D::Print(double luminosity,
       bottom_background.SetMaximum(this_opt_.RatioMaximum());
       bot_plots.pop_back();
     }
-
     TGraphAsymmErrors bkg_error = GetBackgroundError();
 
     StripTopPlotLabels();
@@ -639,6 +638,7 @@ void Hist1D::RefreshScaledHistos(){
   MergeOverflow();
   ScaleHistos();
   StackHistos();
+  NormalizeSignalBackground();
   NormalizeHistos();
   FixAsymmErrors();
 }
@@ -718,13 +718,18 @@ void Hist1D::ScaleHistos() const{
 void Hist1D::StackHistos() const{
   if(this_opt_.Stack() == StackType::signal_overlay
      || this_opt_.Stack() == StackType::signal_on_top
-     || this_opt_.Stack() == StackType::data_norm){
+     || this_opt_.Stack() == StackType::data_norm || this_opt_.Stack() == StackType::prop_shape_stack){
     for(size_t ibkg = backgrounds_.size() - 2; ibkg < backgrounds_.size(); --ibkg){
       backgrounds_.at(ibkg)->scaled_hist_ = backgrounds_.at(ibkg)->scaled_hist_ + backgrounds_.at(ibkg+1)->scaled_hist_;
     }
     if(backgrounds_.size() && this_opt_.Stack() == StackType::signal_on_top){
       for(auto &hist: signals_){
         hist->scaled_hist_ = hist->scaled_hist_ + backgrounds_.front()->scaled_hist_;
+      }
+    }
+    if(this_opt_.Stack() == StackType::prop_shape_stack){
+      for(size_t isig = signals_.size() - 2; isig < signals_.size(); --isig){
+        signals_.at(isig)->scaled_hist_ = signals_.at(isig)->scaled_hist_ + signals_.at(isig+1)->scaled_hist_;
       }
     }
   }
@@ -768,6 +773,30 @@ void Hist1D::NormalizeHistos() const{
     }
   }
 }
+
+/*!\brief Normalize stacked signal and background to 1
+ */
+
+void Hist1D::NormalizeSignalBackground() const{
+mc_scale_ = 1.;
+mc_scale_error_ = 1.;
+if(this_opt_.Stack() == StackType::prop_shape_stack){
+  if(signals_.size() == 0 || backgrounds_.size() == 0) return;
+    int nbins = xaxis_.Nbins();
+    double sig_error, mc_error;
+    double sig_norm = signals_.front()->scaled_hist_.IntegralAndError(1, nbins, sig_error, "width");//Not including over and underflow bins
+    double mc_norm = backgrounds_.front()->scaled_hist_.IntegralAndError(1, nbins, mc_error, "width");//Not including over and underflow bins
+    mc_scale_ = sig_norm/mc_norm;
+    if(this_opt_.PrintVals()){
+      cout << "MC scale factor: " << mc_scale_ << endl;
+    }
+    mc_scale_error_ = hypot(sig_norm*mc_error, mc_norm*sig_error)/(mc_norm*mc_norm);
+    for(auto &hist: backgrounds_){
+      hist->scaled_hist_.Scale(mc_scale_);
+    }
+  }
+}
+
 
 /*!\brief Restore asymmetric error bars if histogram unweighted"
  */
@@ -884,6 +913,8 @@ void Hist1D::StyleHisto(TH1D &h) const{
   case StackType::signal_on_top:
     /* FALLTHRU */
   case StackType::data_norm:
+    /* FALLTHRU */
+  case StackType::prop_shape_stack:
     /* FALLTHRU */
   case StackType::lumi_shapes:
     if(xaxis_.units_ == "" && bin_width == 1){
@@ -1181,6 +1212,7 @@ std::vector<TH1D> Hist1D::GetBottomPlots(double &the_min, double &the_max) const
   case StackType::signal_overlay:
   case StackType::signal_on_top:
   case StackType::data_norm:
+  case StackType::prop_shape_stack:
     stacked = true; break;
   case StackType::lumi_shapes:
   case StackType::shapes:
@@ -1596,6 +1628,8 @@ void Hist1D::AddEntries(vector<shared_ptr<TLegend> > &legends,
           label += " [N=" + FixedDigits(value, 1) + "]";
         }
         break;
+      case StackType::prop_shape_stack:
+        /* FALLTHRU */
       case StackType::lumi_shapes:
         /* FALLTHRU */
       case StackType::shapes:

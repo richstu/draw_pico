@@ -535,6 +535,8 @@ bool PlotOpt::BackgroundsStacked() const{
   case StackType::signal_on_top:
     /* FALLTHRU */
   case StackType::data_norm:
+    /* FALLTHRU */
+  case StackType::prop_shape_stack:
     return true;
   case StackType::lumi_shapes:
     /* FALLTHRU */
@@ -558,6 +560,7 @@ string PlotOpt::TypeString() const{
   case StackType::signal_on_top: out += "sigontop"; break;
   case StackType::data_norm: out += "lumi"; break;
   case StackType::lumi_shapes: out += "lumi_shapes"; break;
+  case StackType::prop_shape_stack: out += "prop_shape_stack"; break;
   case StackType::shapes: out += "shapes"; break;
   }
 
