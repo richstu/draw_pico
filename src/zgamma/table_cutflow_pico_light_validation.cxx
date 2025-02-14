@@ -37,10 +37,6 @@ namespace{
   string tag = "";
 }
 
-bool Contains(const string& text, const string& pattern){
-  return text.find(pattern) != string::npos;
-}
-
 NamedFunc add_cut(NamedFunc & current_cut, NamedFunc additional_cut) {
   current_cut = current_cut && additional_cut;
   return current_cut;

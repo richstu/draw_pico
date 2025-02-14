@@ -35,19 +35,6 @@ envClone.Depends(run_tree_generator, tree_generator_file)
 envClone.Depends(run_tree_generator, tree_variable_files)
 envClone.Depends(run_tree_generator, tree_generator)
 
-# Run genreflex
-reflex_files = ['RooMultiPdf','RooGaussStepBernstein','RooDoubleCBFast']
-reflex_generated_files = []
-run_genreflex = []
-for reflex_file in reflex_files:
-  in_filename = 'core/'+reflex_file+'.hpp'
-  out_filenames = ['src/core/'+reflex_file+'_dict.cpp',
-                   'src/core/'+reflex_file+'_dict_rdict.pcm']
-  reflex_generated_files += out_filenames
-  run_genreflex.append(envClone.Command(out_filenames, [], 'cd inc/ && genreflex '+in_filename+' -o ../$TARGET && cd -'))
-  envClone.Depends(run_genreflex[-1], 'inc/'+in_filename)
-  #	genreflex $(SRC_DIR)/classes.h -s $(SRC_DIR)/classes_def.xml -o $(OBJ_DIR)/a/$(DICTNAME).cc --deep --fail_on_warnings --rootmap=$(OBJ_DIR)/a/$(DICTNAME).rootmap --rootmap-lib=$(SONAME) -I$(PARENT_DIR) 
-
 # Make libraries
 libraries = {}
 envClone.Append(LINKFLAGS='-L'+'lib/'+envClone['kernel'])
@@ -59,14 +46,8 @@ for source_file in tree_generated_files:
   if 'hpp' in source_file: continue
   source_object = envClone.SharedObject(source_file.replace('cpp','os'), '#/'+source_file)
   core_objects.append(source_object)
-# Build reflex objects
-for source_file in reflex_generated_files:
-  if 'pcm' in source_file: continue
-  reflex_flags = '-O2 -isystem `root-config --incdir` `root-config --cflags`'
-  source_object = envClone.SharedObject(source_file.replace('cpp','os'), source_file, CCFLAGS=reflex_flags)
-  core_objects.append(source_object)
 # Build non-baby non-reflex core objects
-for lib_file in Glob("src/core/*.cpp", exclude=tree_generated_files+reflex_generated_files): 
+for lib_file in Glob("src/core/*.cpp", exclude=tree_generated_files): 
   source_object = envClone.SharedObject(lib_file)
   core_objects.append(source_object)
 # Make core library

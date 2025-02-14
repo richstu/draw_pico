@@ -72,7 +72,6 @@
 #include "core/figure.hpp"
 #include "core/named_func.hpp"
 #include "core/process.hpp"
-#include "core/RooMultiPdf.hpp"
 
 //----------------------------------------------------------------------------
 //SelectionList
@@ -622,7 +621,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
                    "----------------------------------------------------------"
                    "--------------\n";
   //process rates
-  ostringstream bin_str, proc_str, index_str, rate_str;
+  std::ostringstream bin_str, proc_str, index_str, rate_str;
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
     int signal_number = -1;
     int background_number = 1;
@@ -698,7 +697,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
               if ((fabs(syst_up-1.0)<1.0e-3) && (fabs(syst_dn-1.0)<1.0e-3))
                 datacard_file << std::left << std::setw(19) << "-";
               else {
-                ostringstream syst_string;
+                std::ostringstream syst_string;
                 syst_string << syst_dn << "/" << syst_up;
                 datacard_file << std::left << std::setw(19) 
                               << syst_string.str();

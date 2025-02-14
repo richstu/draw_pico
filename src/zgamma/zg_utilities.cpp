@@ -12,7 +12,6 @@
 #include "RooArgList.h"
 #include "RooArgSet.h"
 #include "RooFFTConvPdf.h"
-#include "RooGaussian.h"
 #include "RooGenericPdf.h"
 #include "RooRealVar.h"
 
@@ -22,7 +21,6 @@
 #include "core/process.hpp"
 #include "core/sample_loader.hpp"
 #include "core/utilities.hpp"
-#include "core/RooGaussStepBernstein.hpp"
 #include "zgamma/zg_functions.hpp"
 
 namespace ZgUtilities {
@@ -626,146 +624,6 @@ namespace ZgUtilities {
     for (std::shared_ptr<Process> process : processes) {
       process->type_ = Process::Type::background;
     }
-  }
-
-  //Adds second order exponential function convoluted with a Gaussian
-  void AddGaussStepExponential(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
-                               std::vector<std::shared_ptr<RooAbsPdf>> &aux_pdfs,
-                               std::vector<std::shared_ptr<RooRealVar>> &vars,
-                               std::shared_ptr<RooRealVar> &mllg,
-                               std::string category,
-                               unsigned int order) {
-    RooArgList exp_arglist;
-    exp_arglist.add(*mllg);
-    std::string exp_name = "exp"+std::to_string(order);
-    std::shared_ptr<RooRealVar> exp_o1 = std::make_shared<RooRealVar>(
-        (exp_name+"_o1_"+category).c_str(),
-        ("Exponential "+std::to_string(order)+" step").c_str(),90.0,120.0); 
-    vars.push_back(exp_o1); 
-    exp_arglist.add(*exp_o1);
-
-    for (unsigned icoef = 0; icoef<order; icoef++) {
-      std::string p_name = exp_name+"_p"+std::to_string(icoef)
-                           +"_"+category;
-      std::string p_title = "Exponential "+std::to_string(order)
-                            +" factor "+std::to_string(icoef);
-      std::string c_name = exp_name+"_c"+std::to_string(icoef)
-                           +"_"+category;
-      std::string c_title = "Exponential "+std::to_string(order)
-                            +" coefficient "+std::to_string(icoef);
-      float lower_bound = -20.0;
-      float upper_bound = 20.0;
-      if (icoef==0) {
-        lower_bound = 0.5;
-        upper_bound = 0.5;
-      }
-      std::shared_ptr<RooRealVar> exp_pn = std::make_shared<RooRealVar>(
-          p_name.c_str(),p_title.c_str(),-20.0,0.0); 
-      exp_pn->setVal(-0.5);
-      vars.push_back(exp_pn);
-      exp_arglist.add(*exp_pn);
-      std::shared_ptr<RooRealVar> exp_cn = std::make_shared<RooRealVar>(
-          c_name.c_str(),c_title.c_str(),lower_bound,upper_bound); 
-      if (icoef!=0) {
-        exp_cn->setVal(0.1);
-      }
-      vars.push_back(exp_cn);
-      exp_arglist.add(*exp_cn);
-    }
-
-    std::stringstream str_stream;
-    str_stream << std::fixed << std::setprecision(1) << mllg->getMin();
-    std::string offset = str_stream.str();
-    str_stream.str(std::string());
-    str_stream << std::fixed << std::setprecision(1) 
-               << (mllg->getMax()-mllg->getMin());
-    std::string range = str_stream.str();
-    std::string scaled_arg = "(@0-"+offset+")/"+range;
-    std::string exp_def = "(@0<@1 ? 0.0 : (@0<(@1+1) ? (@0-@1) : 1))*(";
-    for (unsigned iterm = 0; iterm<order; iterm++) {
-      if (iterm != 0) exp_def += "+";
-      exp_def += ("@"+std::to_string(iterm*2+3)+"*exp(@"
-                  +std::to_string(iterm*2+2)+"*"+scaled_arg+")");
-    }
-    exp_def += ")";
-    std::cout << "DEBUG: " << exp_def << std::endl;
-    std::shared_ptr<RooGenericPdf> step_exp = std::make_shared<RooGenericPdf>(
-        ("stepexp_"+category+"_"+exp_name).c_str(),"stepexp",
-        exp_def.c_str(), exp_arglist);
-    aux_pdfs.push_back(step_exp);
-
-    std::shared_ptr<RooRealVar> exp_w1 = std::make_shared<RooRealVar>(
-        (exp_name+"_w1_"+category).c_str(),
-        ("Exponential "+std::to_string(order)+" gauss width").c_str(),0.05,20.0); 
-    vars.push_back(exp_w1); 
-    std::shared_ptr<RooRealVar> exp_m1 = std::make_shared<RooRealVar>(
-        (exp_name+"_m1_"+category).c_str(),
-        ("Exponential "+std::to_string(order)+" gauss mean").c_str(),0.0,0.0); 
-    vars.push_back(exp_m1); 
-    exp_o1->setVal(105);
-    exp_w1->setVal(0.05);
-
-    std::shared_ptr<RooGaussian> gauss = std::make_shared<RooGaussian>(("gauss_"+exp_name+"_"+category).c_str(),"gauss",
-                      *mllg, *exp_m1, *exp_w1);
-    aux_pdfs.push_back(gauss);
-
-    //set large number of points for FFT
-    mllg->setBins(20000,"cache");
-    std::shared_ptr<RooFFTConvPdf> step_exp_pdf = std::make_shared<RooFFTConvPdf>(
-        ("pdf_background_"+category+"_"+exp_name).c_str(),
-        "bkg_pdf", *mllg, *step_exp, *gauss);
-    step_exp_pdf->setBufferFraction(0.5);
-
-    pdfs.push_back(step_exp_pdf);
-  }
-
-  //Adds Bernstein polynomial times a step function convoluted with a 
-  //Gaussian to the list of RooAbsPdfs
-  void AddGaussStepBernstein(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
-                             std::vector<std::shared_ptr<RooRealVar>> &vars,
-                             std::shared_ptr<RooRealVar> &mllg,
-                             std::string category,
-                             unsigned int order) {
-    RooArgSet bern_argset;
-    for (unsigned icoef = 0; icoef<=order; icoef++) {
-      std::string var_name = "b"+std::to_string(order)
-                             +"_c"+std::to_string(icoef)
-                             +"_"+category;
-      std::string var_title = "Bernstein "+std::to_string(order)
-                              +" coefficient "+std::to_string(icoef);
-      float lower_bound = -20.0;
-      float upper_bound = 20.0;
-      if (icoef==0) {
-        lower_bound = 0.3;
-        upper_bound = 0.3;
-      }
-      std::shared_ptr<RooRealVar> b_cn = std::make_shared<RooRealVar>(
-          var_name.c_str(),var_title.c_str(),lower_bound,upper_bound); 
-      vars.push_back(b_cn); 
-      bern_argset.add(*b_cn);
-      if (icoef!=0) {
-        b_cn->setVal(0.01);
-      }
-    }
-    std::shared_ptr<RooRealVar> b_o1 = std::make_shared<RooRealVar>(
-        ("b"+std::to_string(order)+"_o1_"+category).c_str(),
-        ("Bernstein "+std::to_string(order)+" step").c_str(),90.0,120.0); 
-    vars.push_back(b_o1); 
-    std::shared_ptr<RooRealVar> b_w1 = std::make_shared<RooRealVar>(
-        ("b"+std::to_string(order)+"_w1_"+category).c_str(),
-        ("Bernstein "+std::to_string(order)+" gauss width").c_str(),0.05,20.0); 
-    vars.push_back(b_w1); 
-    std::shared_ptr<RooRealVar> b_m1 = std::make_shared<RooRealVar>(
-        ("b"+std::to_string(order)+"_m1_"+category).c_str(),
-        ("Bernstein "+std::to_string(order)+" gauss mean").c_str(),0.0,0.0); 
-    vars.push_back(b_m1); 
-    b_o1->setVal(105);
-    b_w1->setVal(0.05);
-    std::shared_ptr<RooGaussStepBernstein> pdf_bkg_cat_bern = 
-        std::make_shared<RooGaussStepBernstein>(
-        ("pdf_background_"+category+"_bern_"+std::to_string(order)).c_str(),
-        "bkg_pdf", *mllg, *b_m1, *b_w1, *b_o1, bern_argset);
-    pdfs.push_back(pdf_bkg_cat_bern);
   }
 
 }

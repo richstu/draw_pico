@@ -17,7 +17,6 @@
 #include "core/figure.hpp"
 #include "core/named_func.hpp"
 #include "core/process.hpp"
-#include "core/RooMultiPdf.hpp"
 
 /*!\brief Figure subclass that produces combine datacards (statistical models)
 */
