@@ -59,15 +59,15 @@ int main() {
 
   vector<shared_ptr<Process>> procs_llskim_reduced = ZgSampleLoader()
       .SetMacro("YEARS",years)
-      .LoadSamples("txt/samples_zgamma.txt","ReducedDatallskim");
+      .LoadSamples("txt/samples_zgamma.txt","llcr");
 
   vector<shared_ptr<Process>> procs_llskim_reduced_mc = ZgSampleLoader()
       .SetMacro("YEARS",years)
-      .LoadSamples("txt/samples_zgamma.txt","ReducedMCllskim");
+      .LoadMCSamples("txt/samples_zgamma.txt","llcr");
 
   vector<shared_ptr<Process>> procs_llskim_inchmumu = ZgSampleLoader()
       .SetMacro("YEARS",years)
-      .LoadSamples("txt/samples_zgamma.txt","HMuMullskim");
+      .LoadMCSamples("txt/samples_zgamma.txt","HMuMullskim");
   procs_llskim_inchmumu.insert(procs_llskim_inchmumu.end(), 
                                procs_llskim_reduced_mc.begin(), 
                                procs_llskim_reduced_mc.end());

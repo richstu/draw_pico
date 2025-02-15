@@ -50,16 +50,15 @@ using namespace ZgUtilities;
 
 int main() {
 
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   //                                    initialization
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
 
   //setup
   gErrorIgnoreLevel = 6000;
 
   std::string year = "2018";
 
-  //std::vector<std::shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMoreTrigs");
   //reshuffle DY and ZG into real and fake photons
   string prod_folder("/net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v3/");
   //std::set<std::string> years = {"2016APV","2016","2017","2018"};
@@ -91,7 +90,7 @@ int main() {
   vector<shared_ptr<Process>> procs_dy = {proc_dy_unskimmed};
   vector<shared_ptr<Process>> procs_zg = {proc_zg_unskimmed};
   std::vector<std::shared_ptr<Process>> procs_check = 
-      ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMoreTrigsData");
+      ZgUtilities::ZgSampleLoader().LoadMCSamples("txt/samples_zgamma.txt","All");
 
   std::vector<PlotOpt> ops = {PlotOpt("txt/plot_styles.txt","LinLumi").Overflow(OverflowType::none)}; 
   std::vector<PlotOpt> ops_data = {PlotOpt("txt/plot_styles.txt","LinLumiData").Overflow(OverflowType::none).FileExtensions({"pdf","root"})}; 

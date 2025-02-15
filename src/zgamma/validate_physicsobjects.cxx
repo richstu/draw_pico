@@ -43,23 +43,21 @@ using ZgFunctions::sublead_jet_phi;
 using ZgFunctions::sublead_jet_m;
 using ZgFunctions::w_years;
 using ZgFunctions::photon_relpterr;
-using ZgUtilities::GetBackgroundProcesses;
-using ZgUtilities::GetDataProcesses;
 using ZgUtilities::SetProcessesBackground;
 using ZgUtilities::ZgSampleLoader;
 
 int main() {
 
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   //                                       settings
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
 
   string production = "pinnaclesv0";
   string years = "2016";
 
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   //                                    initialization
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
 
   gErrorIgnoreLevel = 6000;
 
@@ -134,48 +132,53 @@ int main() {
   if (production == "pinnaclesv0") {
     procs = ZgSampleLoader().SetMacro("YEARS",year_set)
         .SetMacro("DATA_PRODUCTION_YEARS",data_dirs)
-        .LoadSamples("txt/samples_zgamma_pinnaclesv0.txt","llcr");
-    procs_mc = GetBackgroundProcesses(
-        ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma.txt","llcr");
+    procs_mc = ZgSampleLoader().SetMacro("YEARS",year_set)
         .SetMacro("DATA_PRODUCTION_YEARS",data_dirs)
-        .LoadSamples("txt/samples_zgamma_pinnaclesv0.txt","llcr"));
-    procs_data = GetDataProcesses(
-        ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma.txt","llcr",
+        {Process::Type::background});
+    procs_data = ZgSampleLoader().SetMacro("YEARS",year_set)
         .SetMacro("DATA_PRODUCTION_YEARS",data_dirs)
-        .LoadSamples("txt/samples_zgamma_pinnaclesv0.txt","llcr"));
+        .LoadSamples("txt/samples_zgamma.txt","llcr",
+        {Process::Type::data});
     SetProcessesBackground(procs_data);
   }
   else if (production == "lassenv0") {
+    set<string> production_names = {
+        "/net/cms11/cms11r0/pico/NanoAODv9/htozgamma_lassen_v0/",
+        "/net/cms11/cms11r0/pico/NanoAODv11p9/htozgamma_lassen_v0/"};
     procs = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .SetMacro("PRODUCITON_NAME",production_names)
         .LoadSamples("txt/samples_zgamma.txt","llcr");
-    procs_mc = GetBackgroundProcesses(
-        ZgSampleLoader().SetMacro("YEARS",year_set)
-        .LoadSamples("txt/samples_zgamma.txt","llcr"));
-    procs_data = GetDataProcesses(
-        ZgSampleLoader().SetMacro("YEARS",year_set)
-        .LoadSamples("txt/samples_zgamma.txt","llcr"));
+    procs_mc = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .SetMacro("PRODUCITON_NAME",production_names)
+        .LoadSamples("txt/samples_zgamma.txt","llcr",
+        {Process::Type::background});
+    procs_data = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .SetMacro("PRODUCITON_NAME",production_names)
+        .LoadSamples("txt/samples_zgamma.txt","llcr",{Process::Type::data});
     SetProcessesBackground(procs_data);
   }
   else if (production == "kingscanyonv1") {
     procs = ZgSampleLoader().SetMacro("YEARS",year_set)
         .LoadSamples("txt/samples_zgamma_kingscanyonv1.txt","llcr");
-    procs_mc = GetBackgroundProcesses(
-        ZgSampleLoader().SetMacro("YEARS",year_set)
-        .LoadSamples("txt/samples_zgamma_kingscanyonv1.txt","llcr"));
-    procs_data = GetDataProcesses(
-        ZgSampleLoader().SetMacro("YEARS",year_set)
-        .LoadSamples("txt/samples_zgamma_kingscanyonv1.txt","llcr"));
+    procs_mc = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma_kingscanyonv1.txt","llcr",
+        {Process::Type::background});
+    procs_data = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma_kingscanyonv1.txt","llcr",
+        {Process::Type::data});
     SetProcessesBackground(procs_data);
   }
   else if (production == "kingscanyonv0") {
     procs = ZgSampleLoader().SetMacro("YEARS",year_set)
         .LoadSamples("txt/samples_zgamma_kingscanyonv0.txt","llcr");
-    procs_mc = GetBackgroundProcesses(
-        ZgSampleLoader().SetMacro("YEARS",year_set)
-        .LoadSamples("txt/samples_zgamma_kingscanyonv0.txt","llcr"));
-    procs_data = GetDataProcesses(
-        ZgSampleLoader().SetMacro("YEARS",year_set)
-        .LoadSamples("txt/samples_zgamma_kingscanyonv0.txt","llcr"));
+    procs_mc = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma_kingscanyonv0.txt","llcr",
+        {Process::Type::background});
+    procs_data = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma_kingscanyonv0.txt","llcr",
+        {Process::Type::data});
     SetProcessesBackground(procs_data);
   }
   else {

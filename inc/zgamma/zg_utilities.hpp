@@ -73,14 +73,6 @@ namespace ZgUtilities {
   SampleLoader ZgSampleLoader();
   int get_btag_wp_deepjet(int year, float discriminator_value);
 
-  //returns a list of just background processes from a list of processes
-  std::vector<std::shared_ptr<Process>> GetBackgroundProcesses(
-      std::vector<std::shared_ptr<Process>> processes);
-
-  //returns a list of just data processes from a list of processes
-  std::vector<std::shared_ptr<Process>> GetDataProcesses(
-      std::vector<std::shared_ptr<Process>> processes);
-
   //sets all processes to background, useful for making colz 2D plots of data
   void SetProcessesBackground(
       std::vector<std::shared_ptr<Process>> &processes);

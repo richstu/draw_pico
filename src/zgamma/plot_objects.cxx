@@ -342,7 +342,7 @@ int main(){
   //vector<shared_ptr<Process>> procs = {proc_dy, proc_tt, proc_smzg, proc_tt1l, proc_hzg};
   vector<shared_ptr<Process>> procs = {};
 
-  //vector<shared_ptr<Process>> procs_all = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMoreTrigs");
+  //vector<shared_ptr<Process>> procs_all = ZgUtilities::ZgSampleLoader().LoadMCSamples("txt/samples_zgamma.txt","All");
   vector<shared_ptr<Process>> procs_all = {};
 
   auto proc_gghzg = Process::MakeShared<Baby_pico>("gg#rightarrow H#rightarrow Z#gamma", sig, kRed,

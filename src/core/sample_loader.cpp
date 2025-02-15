@@ -116,9 +116,21 @@ SampleLoader & SampleLoader::LoadNamedFunc(const string &name,
     \param[in] config_name Name of configuration in file
   */
 vector<shared_ptr<Process>> SampleLoader::LoadSamples(const string &file_name, 
-    const string &config_name){
+    const string &config_name, const std::set<Process::Type> types){
   ParseFile(file_name, config_name);
-  return GetSamples();
+  return GetSamples(types);
+}
+
+
+/*!\brief Loads samples from file and returns vector of Processes (skips data)
+
+    \param[in] file_name Name of file to load from
+    \param[in] config_name Name of configuration in file
+  */
+vector<shared_ptr<Process>> SampleLoader::LoadMCSamples(
+    const string &file_name, const string &config_name) {
+  return LoadSamples(file_name, config_name, 
+                     {Process::Type::background, Process::Type::signal});
 }
 
 /*!\brief Retreives sample information from file
@@ -186,7 +198,8 @@ SampleLoader & SampleLoader::ParseFile(const string &file_name,
 /*!\brief Returns vector of Processes for currently loaded samples
 
   */
-vector<shared_ptr<Process>> SampleLoader::GetSamples() {
+vector<shared_ptr<Process>> SampleLoader::GetSamples(
+    const std::set<Process::Type> types) {
   vector<shared_ptr<Process>> processes;
   for (DataSample this_sample : samples_) {
     //currently only picos supported; easy enough to add more Baby children, though
@@ -194,10 +207,16 @@ vector<shared_ptr<Process>> SampleLoader::GetSamples() {
       if (verbose_) {
         std::cout << this_sample.name_ << "\n";
       }
-      processes.push_back(Process::MakeShared<Baby_pico>(this_sample.name_,
-          this_sample.type_, this_sample.color_, this_sample.files_, 
-          this_sample.selection_));
-      processes.back()->SetLineColor(this_sample.color_);
+      if (types.count(this_sample.type_)>0) {
+        processes.push_back(Process::MakeShared<Baby_pico>(this_sample.name_,
+            this_sample.type_, this_sample.color_, this_sample.files_, 
+            this_sample.selection_));
+        processes.back()->SetLineColor(this_sample.color_);
+      }
+    }
+    else {
+      std::cout << "ERROR: SampleLoader found non-pico n-tuple" << std::endl;
+      throw;
     }
   }
   return processes;

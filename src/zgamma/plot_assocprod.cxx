@@ -40,17 +40,17 @@ using namespace ZgUtilities;
 
 int main() {
 
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   //                                    initialization
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
 
   //setup
   gErrorIgnoreLevel = 6000;
 
-  std::vector<std::shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMC");
-  std::vector<std::shared_ptr<Process>> procs_tth = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMC");
-  std::vector<std::shared_ptr<Process>> procs_vh = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMC");
-  std::vector<std::shared_ptr<Process>> procs_vbf = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","AllMC");
+  std::vector<std::shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadMCSamples("txt/samples_zgamma.txt","All");
+  std::vector<std::shared_ptr<Process>> procs_tth = ZgUtilities::ZgSampleLoader().LoadMCSamples("txt/samples_zgamma.txt","All");
+  std::vector<std::shared_ptr<Process>> procs_vh = ZgUtilities::ZgSampleLoader().LoadMCSamples("txt/samples_zgamma.txt","All");
+  std::vector<std::shared_ptr<Process>> procs_vbf = ZgUtilities::ZgSampleLoader().LoadMCSamples("txt/samples_zgamma.txt","All");
   std::vector<std::shared_ptr<Process>> proc_zg_tth = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","ttHtoZG");
   std::vector<std::shared_ptr<Process>> proc_zg_vh = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","VHtoZG");
   std::vector<std::shared_ptr<Process>> proc_zg_vbf = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","VBFHtoZG");

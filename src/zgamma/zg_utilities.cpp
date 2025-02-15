@@ -596,28 +596,6 @@ namespace ZgUtilities {
     return 0;
   }
 
-  //returns a list of just background processes from a list of processes
-  std::vector<std::shared_ptr<Process>> GetBackgroundProcesses(
-      std::vector<std::shared_ptr<Process>> processes) {
-    std::vector<std::shared_ptr<Process>> bkg_processes;
-    for (std::shared_ptr<Process> &process : processes) {
-      if (process->type_ == Process::Type::background)
-        bkg_processes.push_back(process);
-    }
-    return bkg_processes;
-  }
-
-  //returns a list of just data processes from a list of processes
-  std::vector<std::shared_ptr<Process>> GetDataProcesses(
-      std::vector<std::shared_ptr<Process>> processes) {
-    std::vector<std::shared_ptr<Process>> data_processes;
-    for (std::shared_ptr<Process> &process : processes) {
-      if (process->type_ == Process::Type::data)
-        data_processes.push_back(process);
-    }
-    return data_processes;
-  }
-
   //sets all processes to background, useful for making colz 2D plots of data
   void SetProcessesBackground(
       std::vector<std::shared_ptr<Process>> &processes) {

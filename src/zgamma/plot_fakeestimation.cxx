@@ -104,7 +104,7 @@ int main() {
 
   //vector<shared_ptr<Process>> procs_llskim_reduced = ZgSampleLoader()
   //    //.SetMacro("YEARS",{"2018"})
-  //    .LoadSamples("txt/samples_zgamma.txt","ReducedDatallskim");
+  //    .LoadSamples("txt/samples_zgamma.txt","llcr");
 
   string prod_folder("/net/cms11/cms11r0/pico/NanoAODv9/htozgamma_kingscanyon_v1/");
   Palette mc_colors("txt/colors_zgamma.txt","default");
