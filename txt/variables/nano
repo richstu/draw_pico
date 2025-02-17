@@ -43,6 +43,7 @@ std::array<float> Electron_mvaFall17V1Iso
 std::array<float> Electron_mvaFall17V1noIso
 std::array<float> Electron_mvaFall17V2Iso
 std::array<float> Electron_mvaFall17V2noIso
+std::array<float> Electron_mvaHZZIso
 std::array<float> Electron_pfRelIso03_all
 std::array<float> Electron_pfRelIso03_chg
 std::array<float> Electron_phi

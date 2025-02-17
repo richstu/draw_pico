@@ -96,6 +96,9 @@ namespace ZgFunctions {
   //relative pt uncertainty of lead photon
   extern const NamedFunc photon_relpterr;
 
+  //if photon is also a signal electron
+  extern const NamedFunc photon_sigel;
+
   //lead lepton eta (=lep_eta[0], but this isn't saved in slims =( )
   //only works for 2 lepton events
   extern const NamedFunc lead_lepton_eta;

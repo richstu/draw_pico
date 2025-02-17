@@ -19,14 +19,21 @@ namespace ZgFunctions {
 
   //isolated dielectron triggers for run 2
   const NamedFunc HLT_pass_dielectron("dielectron triggers",[](const Baby &b) -> NamedFunc::ScalarType{
-    return b.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL()||b.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ();
+    if (abs(b.SampleType())==2016)
+      return b.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ();
+    return b.HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL();
   });
 
   //isolated dimuon triggers for run 2
   const NamedFunc HLT_pass_dimuon("dimuon triggers",[](const Baby &b) -> NamedFunc::ScalarType{
     if (abs(b.SampleType())==2016)
-      return b.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ()||b.HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ();
-    return b.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8()||b.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8();
+      return (b.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL()
+              || b.HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL()
+              || b.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ()
+              || b.HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ());
+    else if (abs(b.SampleType())==2017)
+      return b.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8()||b.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8();
+    return b.HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8();
   });
 
   //isolated dilepton triggers for run 2
@@ -36,17 +43,22 @@ namespace ZgFunctions {
   const NamedFunc HLT_pass_singleelectron("single electron triggers",[](const Baby &b) -> NamedFunc::ScalarType{
     if (abs(b.SampleType())==2016)
       return b.HLT_Ele27_WPTight_Gsf();
+    //NB this function is for legacy productions without the trig_singleel
+    //branch. Ele32_WPTight_Gsf cannot be emulated in these branches, so this
+    //is used instead
     if (abs(b.SampleType())==2017)
-      return b.HLT_Ele35_WPTight_Gsf()||b.HLT_Ele32_WPTight_Gsf_L1DoubleEG();
-    return b.HLT_Ele32_WPTight_Gsf();
+      return b.HLT_Ele32_WPTight_Gsf_L1DoubleEG();
+    if (abs(b.SampleType())==2018)
+      return b.HLT_Ele32_WPTight_Gsf();
+    return b.HLT_Ele30_WPTight_Gsf();
   });
 
   //isolated single muon triggers for run 2
   const NamedFunc HLT_pass_singlemuon("single muon triggers",[](const Baby &b) -> NamedFunc::ScalarType{
     if (abs(b.SampleType())==2016)
-      return b.HLT_IsoMu24();
+      return b.HLT_IsoMu24()||b.HLT_IsoTkMu24();
     if (abs(b.SampleType())==2017)
-      return b.HLT_IsoMu27()||b.HLT_IsoMu24();
+      return b.HLT_IsoMu27();
     return b.HLT_IsoMu24();
   });
 
@@ -267,6 +279,21 @@ namespace ZgFunctions {
   //relative pt uncertainty of lead photon
   const NamedFunc photon_relpterr("photon_relpterr",[](const Baby &b) -> NamedFunc::ScalarType{
     return b.photon_energyErr()->at(0)/(b.photon_pt()->at(0)*TMath::CosH(b.photon_eta()->at(0)));
+  });
+
+  //if photon is also a signal electron
+  const NamedFunc photon_sigel("photon_sigel",[](const Baby &b) -> NamedFunc::VectorType{
+    std::vector<double> sigel;
+    for (unsigned iph = 0; iph < b.photon_elidx()->size(); iph++) {
+      double el_sig = 0;
+      if (b.photon_elidx()->at(iph)>=0) {
+        if (b.el_sig()->at(b.photon_elidx()->at(iph))) {
+          el_sig = 1;
+        }
+      }
+      sigel.push_back(el_sig);
+    }
+    return sigel;
   });
 
   //lead lepton eta (=lep_eta[0], but this isn't saved in slims =( )

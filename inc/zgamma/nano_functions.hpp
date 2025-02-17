@@ -1,6 +1,11 @@
 #ifndef H_NANO_FUNCTIONS
 #define H_NANO_FUNCTIONS
 
+#include <vector>
+
+#include "Math/Vector4D.h"
+
+#include "core/baby.hpp"
 #include "core/named_func.hpp"
 
 //Namedfuncs that replicate standard nano2pico behavior
@@ -105,6 +110,9 @@ namespace NanoFunctions {
   //signal jet eta
   extern const NamedFunc SignalJet_eta;
 
+  //signal jet phi
+  extern const NamedFunc SignalJet_phi;
+
   //number of deep jet/flavor medium-tagged jets
   extern const NamedFunc nJet_bdfm;
 
@@ -161,6 +169,12 @@ namespace NanoFunctions {
   private:
     std::vector<std::vector<int>> VVRunLumi;
   };
+
+  float ConvertHZZMVA(float mva_mini);
+
+  bool HzzId_WP2022(float pt, float etasc, float hzzmvaid);
+
+  ROOT::Math::PtEtaPhiMVector GetZCandidateP4(const Baby &b);
 
 }
 

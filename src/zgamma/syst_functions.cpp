@@ -6,6 +6,7 @@
 #include "core/named_func.hpp"
 #include "core/named_func_utilities.hpp"
 #include "zgamma/syst_functions.hpp"
+#include "zgamma/zg_functions.hpp"
 
 using NamedFuncUtilities::FilterNamedFunc;
 using NamedFuncUtilities::MultiReduceNamedFunc;
@@ -295,17 +296,17 @@ namespace ZgFunctions {
 
   //for reference, photons failing origin eta cuts are dropped from pico list
 
-  //photon_sig with photon scale variation down
-  const NamedFunc sys_photon_sig_scaleup = NamedFunc("(sys_photon_pt_scaleup>15)&&photon_elveto&&(photon_drmin>0.4)&&((photon_isScEtaEB&&(photon_idmva>-0.4))||(photon_isScEtaEE&&(photon_idmva>-0.58)))").Name("sys_photon_sig_elscaleup");
+  //photon_sig with photon scale variation up
+  const NamedFunc sys_photon_sig_scaleup = NamedFunc("(sys_photon_pt_scaleup>15)&&photon_elveto&&(photon_drmin>0.3)&&photon_id80"&&!photon_sigel).Name("sys_photon_sig_elscaleup");
 
   //photon_sig with photon scale variation down
-  const NamedFunc sys_photon_sig_scaledn = NamedFunc("(sys_photon_pt_scaledn>15)&&photon_elveto&&(photon_drmin>0.4)&&((photon_isScEtaEB&&(photon_idmva>-0.4))||(photon_isScEtaEE&&(photon_idmva>-0.58)))").Name("sys_photon_sig_elscaledn");
+  const NamedFunc sys_photon_sig_scaledn = NamedFunc("(sys_photon_pt_scaledn>15)&&photon_elveto&&(photon_drmin>0.3)&&photon_id80"&&!photon_sigel).Name("sys_photon_sig_elscaledn");
+
+  //photon_sig with photon resolution variation up
+  const NamedFunc sys_photon_sig_resup = NamedFunc("(sys_photon_pt_resup>15)&&photon_elveto&&(photon_drmin>0.3)&&photon_id80"&&!photon_sigel).Name("sys_photon_sig_elresup");
 
   //photon_sig with photon resolution variation down
-  const NamedFunc sys_photon_sig_resup = NamedFunc("(sys_photon_pt_resup>15)&&photon_elveto&&(photon_drmin>0.4)&&((photon_isScEtaEB&&(photon_idmva>-0.4))||(photon_isScEtaEE&&(photon_idmva>-0.58)))").Name("sys_photon_sig_elresup");
-
-  //photon_sig with photon resolution variation down
-  const NamedFunc sys_photon_sig_resdn = NamedFunc("(sys_photon_pt_resdn>15)&&photon_elveto&&(photon_drmin>0.4)&&((photon_isScEtaEB&&(photon_idmva>-0.4))||(photon_isScEtaEE&&(photon_idmva>-0.58)))").Name("sys_photon_sig_elresdn");
+  const NamedFunc sys_photon_sig_resdn = NamedFunc("(sys_photon_pt_resdn>15)&&photon_elveto&&(photon_drmin>0.3)&&photon_id80"&&!photon_sigel).Name("sys_photon_sig_elresdn");
 
   //nphoton with photon scale variation up
   const NamedFunc sys_nphoton_scaleup = ReduceNamedFunc(sys_photon_sig_scaleup,reduce_sum).Name("sys_nphoton_scaleup");

@@ -1,6 +1,7 @@
 #include "zgamma/zg_utilities.hpp"
 
 #include <algorithm>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -573,26 +574,27 @@ namespace ZgUtilities {
     return zg_sample_loader;
   }
 
-  //0 is untagged, 1 is loose, 2 is medium, 3 is tight
-  int get_btag_wp_deepjet(int year, float discriminator_value) {
-    if (abs(year)==2016) {
-      if (discriminator_value > 0.7221) return 3;
-      else if (discriminator_value > 0.3093) return 2;
-      else if (discriminator_value > 0.0614) return 1;
+  const std::map<std::string, std::vector<float>> btag_df_wpts{
+      {"2016APV", std::vector<float>({0.0508, 0.2598, 0.6502})},
+      {"2016", std::vector<float>({0.0480, 0.2489, 0.6377})},
+      {"2017", std::vector<float>({0.0532, 0.3040, 0.7476})},
+      {"2018", std::vector<float>({0.0490, 0.2783, 0.7100})},
+      {"2022", std::vector<float>({0.0583, 0.3086, 0.7183})},
+      {"2022EE", std::vector<float>({0.0614, 0.3196, 0.73})},
+      {"2023", std::vector<float>({0.0479, 0.2431, 0.6553})},
+      {"2023BPix", std::vector<float>({0.048, 0.2435, 0.6563})}
+      };
+
+  //returns WP. 1 is loose, 2 is medium, 3 is tight
+  float get_btag_wp_deepjet(const std::string& year, int wp) {
+    if (wp<1 || wp>3)
       return 0;
+    std::string year_clean(year);
+    if (year_clean[0]=='-') {
+      year_clean = year_clean.substr(1, string::npos);
     }
-    else if (abs(year)==2017) {
-      if (discriminator_value > 0.7489) return 3;
-      else if (discriminator_value > 0.3033) return 2;
-      else if (discriminator_value > 0.0521) return 1;
-      return 0;
-    }
-    else if (abs(year)==2018) {
-      if (discriminator_value > 0.7264) return 3;
-      else if (discriminator_value > 0.2770) return 2;
-      else if (discriminator_value > 0.0494) return 1;
-      return 0;
-    }
+    if (btag_df_wpts.count(year_clean)>0)
+      return btag_df_wpts.at(year_clean).at(wp-1);
     return 0;
   }
 

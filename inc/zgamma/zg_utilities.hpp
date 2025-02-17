@@ -71,7 +71,9 @@ namespace ZgUtilities {
 
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader();
-  int get_btag_wp_deepjet(int year, float discriminator_value);
+
+  //returns WP. 1 is loose, 2 is medium, 3 is tight
+  float get_btag_wp_deepjet(const std::string& year, int wp);
 
   //sets all processes to background, useful for making colz 2D plots of data
   void SetProcessesBackground(

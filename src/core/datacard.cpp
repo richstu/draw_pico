@@ -717,7 +717,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
     }
   }
 
-  //Parameters: deal with this in HtoZG_fitting?
+  //Parameters: deal with this in HtoZG_fitting
   //datacard_file << "\n";
   //for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
   //  for (unsigned iproc = 0; iproc < n_processes_; iproc++) {

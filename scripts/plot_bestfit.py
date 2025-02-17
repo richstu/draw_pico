@@ -8,6 +8,7 @@ from math import sqrt
 from subprocess import check_call
 import ROOT
 import ctypes
+from statistics import mean, stdev
 
 ROOT.gInterpreter.Declare("""
 
@@ -66,23 +67,6 @@ def get_tgraph_maximum(graph):
     if yi.value > maximum:
       maximum = yi.value+0.0
   return maximum
-
-def get_mean(lst):
-  '''Get mean from Python list'''
-  lst_sum = 0
-  for i in lst:
-    lst_sum += i
-  return lst_sum/float(len(lst))
-
-def get_stddev(lst):
-  '''Get std deviation from Python list'''
-  lst_sum = 0
-  lst_sumsq = 0
-  for i in lst:
-    lst_sum += i
-    lst_sumsq += i*i
-  lst_len = float(len(lst))
-  return sqrt(lst_sumsq/lst_len-(lst_sum/lst_len)**2)
 
 if __name__ == '__main__':
 
@@ -178,8 +162,8 @@ if __name__ == '__main__':
     difference_hist.GetYaxis().SetNdivisions(606)
     difference_hist.GetXaxis().SetTitle('m_{ll#gamma} [GeV]')
     difference_hist.SetLabelSize(0.035,'y')
-    difference_hist.SetMinimum(-3.0*get_stddev(diffs))
-    difference_hist.SetMaximum(3.0*get_stddev(diffs))
+    difference_hist.SetMinimum(-3.0*stdev(diffs))
+    difference_hist.SetMaximum(3.0*stdev(diffs))
     difference_hist.SetLineColor(ROOT.kBlack)
     difference_hist.SetLineWidth(2)
     difference_hist.SetMarkerColor(ROOT.kBlack)
@@ -259,7 +243,7 @@ if __name__ == '__main__':
       significances.append(event.limit)
     f_sig.Close()
     print('Significance from asimov: '+str(asimov_significance))
-    print('Significance from toys: '+str(get_mean(significances))+' +- '+str(get_stddev(significances)))
+    print('Significance from toys: '+str(mean(significances))+' +- '+str(stdev(significances)))
 
   if (not args.leaveoutput):
     check_call('rm higgsCombine.bestfit.MultiDimFit.mH120.root'.split())
