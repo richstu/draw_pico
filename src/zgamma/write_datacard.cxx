@@ -1,254 +1,211 @@
 /**
- * This script generates a histograms needed to build a H->Zgamma datacard
+ * Script to write datacard for H->Zgamma analysis
  */
 
-#include "core/test.hpp"
-
-#include <fstream>
-#include <iomanip>
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
-#include <unistd.h>
-#include <getopt.h>
-
-#include "TColor.h"
-#include "TDirectory.h"
 #include "TError.h"
-#include "TFile.h"
-#include "TH1.h"
+#include "TColor.h"
 
-#include "core/baby.hpp"
-#include "core/hist1d.hpp"
-#include "core/hist2d.hpp"
-#include "core/mva_wrapper.hpp"
+#include "core/axis.hpp"
+#include "core/baby_pico.hpp"
+#include "core/datacard.hpp"
 #include "core/named_func.hpp"
-#include "core/named_func_utilities.hpp"
-#include "core/palette.hpp"
 #include "core/plot_maker.hpp"
-#include "core/plot_opt.hpp"
 #include "core/process.hpp"
-#include "core/table.hpp"
 #include "core/utilities.hpp"
-#include "zgamma/apply_zg_trigeffs.hpp"
+#include "zgamma/syst_functions.hpp"
 #include "zgamma/zg_functions.hpp"
+#include "zgamma/zg_utilities.hpp"
 
-using namespace ZgFunctions;
-using namespace std;
-using namespace PlotOptTypes;
+using std::make_shared;
+using std::set;
+using std::shared_ptr;
+using std::string;
+using std::vector;
+using ZgFunctions::llphoton_pttmod;
+using ZgFunctions::max_lep_miniso;
+using ZgFunctions::trig_plateau_cuts;
+using ZgFunctions::w_years;
+using ZgFunctions::sys_w_alphas;
+using ZgFunctions::sys_w_pdf_ggf;
+using ZgFunctions::sys_w_pdf_qq;
+using ZgFunctions::sys_w_pdf_tth;
+using ZgFunctions::sys_w_ggf_xs;
+using ZgFunctions::sys_w_vbf_xs_up;
+using ZgFunctions::sys_w_vbf_xs_dn;
+using ZgFunctions::sys_w_wh_xs_up;
+using ZgFunctions::sys_w_wh_xs_dn;
+using ZgFunctions::sys_w_zh_xs_up;
+using ZgFunctions::sys_w_zh_xs_dn;
+using ZgFunctions::sys_w_tth_xs_up;
+using ZgFunctions::sys_w_tth_xs_dn;
+using ZgFunctions::sys_w_htozg_br;
+using ZgFunctions::sys_w_htomumu_br;
+using ZgFunctions::sys_w_mq;
+using ZgUtilities::ZgSampleLoader;
+using ZgUtilities::KinematicBdt;
+using ZgUtilities::category_ggh4;
+using ZgUtilities::category_ggh3;
+using ZgUtilities::category_ggh2;
+using ZgUtilities::category_ggh1;
+using ZgUtilities::VbfBdt;
+using ZgUtilities::category_vbf3;
+using ZgUtilities::category_vbf2;
+using ZgUtilities::category_vbf1;
+using ZgUtilities::AddGaussStepExponential;
+using ZgUtilities::AddGaussStepBernstein;
+using SelectionList = Datacard::SelectionList;
+using Systematic = Datacard::Systematic;
+//const Process::Type data = Process::Type::data;
+const Process::Type signal = Process::Type::signal;
+const Process::Type background = Process::Type::background;
 
-//int main(int argc, char *argv[]){
-int main(){
-  //------------------------------------------------------------------------------------
-  //                                   NamedFuncs
-  //------------------------------------------------------------------------------------
-  
-  const NamedFunc w_sigx20("w_sigx20",[](const Baby &b) -> NamedFunc::ScalarType{
-    if(b.type() >= 200000 && b.type() <= 205000)
-      return 20.0;
-    return 1.0;
+int main() {
+
+  //setup
+  gErrorIgnoreLevel = 6000;
+
+  //Define processes
+  vector<shared_ptr<Process>> processes = ZgSampleLoader() 
+        .SetMacro("YEARS",{"2018"})
+        .LoadSamples("txt/samples_zgamma.txt","Datacard");
+
+  vector<shared_ptr<Process>> processes_aux = ZgSampleLoader() 
+        .SetMacro("YEARS",{"2018"})
+        .LoadSamples("txt/samples_zgamma.txt","DatacardAux");
+
+  //Define NamedFuncs
+  NamedFunc mllg = NamedFunc("llphoton_m[0]").Name("mllg");
+  NamedFunc mllg_range_cut = NamedFunc("llphoton_m[0]>100&&llphoton_m[0]<180");
+
+  shared_ptr<MVAWrapper> kinematic_bdt = KinematicBdt();
+  NamedFunc ggh4 = category_ggh4(kinematic_bdt);
+  NamedFunc ggh3 = category_ggh3(kinematic_bdt);
+  NamedFunc ggh2 = category_ggh2(kinematic_bdt);
+  NamedFunc ggh1 = category_ggh1(kinematic_bdt);
+
+  shared_ptr<MVAWrapper> vbf_bdt = VbfBdt();
+  NamedFunc vbf3 = category_vbf3(vbf_bdt);
+  NamedFunc vbf2 = category_vbf2(vbf_bdt);
+  NamedFunc vbf1 = category_vbf1(vbf_bdt);
+
+  //weight with some clipping/regularization
+  const NamedFunc weight_reg("weight_reg",[](const Baby &b) -> NamedFunc::ScalarType{
+    if (fabs(b.weight())>5) return 0.0;
+    return b.weight();
   });
 
-  const NamedFunc ggf_only = NamedFunc("nlep==2&&njet<2&&nbdfm==0&&met<80").Name("ggf_only");
+  //Define weight
+  NamedFunc weight(w_years*weight_reg); 
 
-  const NamedFunc trig = HLT_pass_dilepton; //||HLT_pass_singlelepton;
+  //Define channels
+  SelectionList baseline("baseline");
+  baseline.AddSelection("objectreq","nphoton>=1&&nlep>=2");
+  baseline.AddSelection("lepptcuts",trig_plateau_cuts);
+  baseline.AddSelection("zmassreq","ll_m[0]>80&&ll_m[0]<100");
+  baseline.AddSelection("photonptreq","(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
+  baseline.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
+  baseline.AddSelection("photonidreq","photon_id80[0]");
+  baseline.AddSelection("mllgrange",mllg_range_cut);
 
-  MVAWrapper kin_bdt_reader("kinematic_bdt");
-  kin_bdt_reader.SetVariable("photon_mva","photon_idmva[0]");
-  kin_bdt_reader.SetVariable("min_dR","photon_drmin[0]");
-  kin_bdt_reader.SetVariable("max_dR",photon_drmax);
-  kin_bdt_reader.SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
-  kin_bdt_reader.SetVariable("cosTheta","llphoton_cosTheta[0]");
-  kin_bdt_reader.SetVariable("costheta","llphoton_costheta[0]");
-  kin_bdt_reader.SetVariable("phi","llphoton_psi[0]");
-  kin_bdt_reader.SetVariable("photon_res","photon_pterr[0]/photon_pt[0]");
-  kin_bdt_reader.SetVariable("photon_rapidity","photon_eta[0]");
-  kin_bdt_reader.SetVariable("l1_rapidity",lead_lepton_eta);
-  kin_bdt_reader.SetVariable("l2_rapidity",sublead_lepton_eta);
-  //kin_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_kinbdt_masscut_idmvacut_run2_BDT.weights.xml");
-  kin_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_kinbdt_masscut_run2_BDT.weights.xml");
-  //kin_bdt_reader.BookMVA("/homes/abarzdukas/ZGamma/MVA_Training/IDMVA_Training/test/dataset/weights/TMVAClassification_TightIDMVA_mll_lDR_mreW_BDTG.weights.xml");
-  NamedFunc bdt_score = kin_bdt_reader.GetDiscriminant();
+  SelectionList category_ggh4("cat_ggh4",baseline);
+  SelectionList category_ggh3("cat_ggh3",baseline);
+  SelectionList category_ggh2("cat_ggh2",baseline);
+  SelectionList category_ggh1("cat_ggh1",baseline);
+  SelectionList category_vbf3("cat_vbf3",baseline);
+  SelectionList category_vbf2("cat_vbf2",baseline);
+  SelectionList category_vbf1("cat_vbf1",baseline);
+  SelectionList category_vhmet("cat_vhmet",baseline);
+  SelectionList category_vh3l("cat_vh3l",baseline);
+  SelectionList category_tthhad("cat_tthhad",baseline);
+  SelectionList category_tthlep("cat_tthlep",baseline);
 
-  MVAWrapper ph_bdt_reader("photon_bdt");
-  ph_bdt_reader.SetVariable("photon_ptransverse","photon_pt[0]");
-  ph_bdt_reader.SetVariable("photon_rapidity","photon_eta[0]");
-  ph_bdt_reader.SetVariable("ph_irel","photon_reliso[0]");
-  ph_bdt_reader.SetVariable("ph_r9","photon_r9[0]");
-  ph_bdt_reader.SetVariable("ph_sieie","photon_sieie[0]");
-  ph_bdt_reader.SetVariable("ph_hoe","photon_hoe[0]");
-  ph_bdt_reader.SetVariable("photon_mva","photon_idmva[0]");
-  ph_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phtree_ph_BDT.weights.xml");
-  NamedFunc ph_bdt_score = ph_bdt_reader.GetDiscriminant();
+  category_ggh4.AddSelection("catobjectreq","nlep==2&&njet<2&&met<90");
+  category_ggh4.AddSelection("bdtcuts",ggh4);
+  category_ggh3.AddSelection("catobjectreq","nlep==2&&njet<2&&met<90");
+  category_ggh3.AddSelection("bdtcuts",ggh3);
+  category_ggh2.AddSelection("catobjectreq","nlep==2&&njet<2&&met<90");
+  category_ggh2.AddSelection("bdtcuts",ggh2);
+  category_ggh1.AddSelection("catobjectreq","nlep==2&&njet<2&&met<90");
+  category_ggh1.AddSelection("bdtcuts",ggh1);
 
-  MVAWrapper ph_kin_bdt_reader("photon_kinematic_bdt");
-  ph_kin_bdt_reader.SetVariable("photon_newmva",ph_bdt_score);
-  ph_kin_bdt_reader.SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
-  ph_kin_bdt_reader.SetVariable("min_dR","photon_drmin[0]");
-  ph_kin_bdt_reader.SetVariable("max_dR",photon_drmax);
-  ph_kin_bdt_reader.SetVariable("cosTheta","llphoton_cosTheta[0]");
-  ph_kin_bdt_reader.SetVariable("costheta","llphoton_costheta[0]");
-  ph_kin_bdt_reader.SetVariable("phi","llphoton_psi[0]");
-  ph_kin_bdt_reader.BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phtree_bdt_comb_BDT.weights.xml");
-  NamedFunc phkin_bdt_score = ph_kin_bdt_reader.GetDiscriminant();
+  category_vbf3.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbm==0");
+  category_vbf3.AddSelection("bdtcuts",vbf3);
+  category_vbf2.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbm==0");
+  category_vbf2.AddSelection("bdtcuts",vbf2);
+  category_vbf1.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbm==0");
+  category_vbf1.AddSelection("bdtcuts",vbf1);
 
-  //------------------------------------------------------------------------------------
-  //                                    initialization
-  //------------------------------------------------------------------------------------
+  category_vhmet.AddSelection("catobjectreq","nlep==2&&njet<2&&met>90");
+  category_vhmet.AddSelection("pttmodreq",llphoton_pttmod<60.0);
+  category_vhmet.AddSelection("ptllgreq","llphoton_pt[0]/llphoton_m[0]>0.4");
 
-  gErrorIgnoreLevel = 6000;
-  Process::Type back =  Process::Type::background;
-  Process::Type sig =  Process::Type::signal;
-  Process::Type data =  Process::Type::data;
+  category_vh3l.AddSelection("catobjectreq",
+                             "nphoton>=1&&nlep>=3&&nbm==0&&met>30");
+  category_vh3l.AddSelection("zmassreq","ll_m[0]>85&&ll_m[0]<95");
+  category_vh3l.AddSelection("minisoreq",max_lep_miniso<0.15);
+  category_vh3l.AddSelection("ptllgreq","llphoton_pt[0]/llphoton_m[0]>0.3");
 
-  string prod_folder("/net/cms17/cms17r0/pico/NanoAODv9/htozgamma_deathvalley_v2/");
-  std::set<int> years = {2016,2017,2018};
-  std::string lumi_string = "340";
+  category_tthhad.AddSelection("catobjectreq","nlep==2&&njet>=5&&nbm>=1");
+  category_tthhad.AddSelection("zmassreq","ll_m[0]>85&&ll_m[0]<95");
 
-  NamedFunc weight = "w_lumi"*w_years*w_run3;
-  Palette mc_colors("txt/colors_zgamma.txt","default");
+  category_tthlep.AddSelection("catobjectreq",
+      "(nlep==3&&njet>=3&&nbm>=1)||(nlep>=4&&njet>=1&&nbm>=1)");
+  category_tthlep.AddSelection("zmassreq","ll_m[0]>85&&ll_m[0]<95");
+  category_tthlep.AddSelection("minisoreq",max_lep_miniso<0.1);
 
-  auto proc_dy          = Process::MakeShared<Baby_pico>("Z+Fake Photon", back, mc_colors("dyjets"),
-                             attach_folder(prod_folder,years,"mc/merged_zgmc_llg",{"*DYJets*"}), 
-                             trig&&"stitch_dy");
-  auto proc_tt          = Process::MakeShared<Baby_pico>("Other", back, mc_colors("tt"),
-                             attach_folder(prod_folder,years,"mc/merged_zgmc_llg",{"*TTTo2L2Nu*"}), 
-                             trig);
-  auto proc_smzg        = Process::MakeShared<Baby_pico>("Z+#gamma", back, mc_colors("zgtollg"),
-                             attach_folder(prod_folder,years,"mc/merged_zgmc_llg",{"*ZGToLLG*"}), 
-                             trig);
-  //auto proc_bkg         = Process::MakeShared<Baby_pico>("Background", back, mc_colors("zgtollg"),
-  //                          attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
-  //                          {"*ZGToLLG*","*DYJets*","*TTTo2L2Nu*"}), 
-  //                          trig&&stitch);
-  auto proc_hzg         = Process::MakeShared<Baby_pico>("H#rightarrow Z#gamma", sig, kRed,
-                             attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
-                             {"*HToZG*M-125*","*HToZG_M125*"}), trig);
-  auto proc_pseudodata  = Process::MakeShared<Baby_pico>("pseudodata", data, kBlack,
-                             attach_folder(prod_folder,years,"mc/merged_zgmc_llg",
-                             {"*ZGToLLG*","*DYJets*","*TTTo2L2Nu*","*HToZG*M-125*","*HToZG_M125*"}), 
-                             trig&&stitch);
+  vector<SelectionList> channels = {category_ggh4,category_ggh3,category_ggh2,
+                                    category_ggh1,category_vbf3,category_vbf2,
+                                    category_vbf1,category_vh3l,category_vhmet,
+                                    category_tthhad,category_tthlep};
 
-  //need to get the histograms out, so no SampleLoader for now
-  //vector<shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().GetSamples("txt/zg_samples.txt","FitStudies");
-  vector<shared_ptr<Process>> procs = {proc_dy, proc_tt, proc_smzg, proc_hzg, proc_pseudodata};
-  vector<shared_ptr<Process>> procs_nodata = {proc_dy, proc_tt, proc_smzg, proc_hzg};
-  vector<shared_ptr<Process>> procs_bak = {proc_dy, proc_tt, proc_smzg};
+  //Define systematics
 
-  std::vector<PlotOpt> ops = {PlotOpt("txt/plot_styles.txt","MassFitPlot")};
-  std::vector<PlotOpt> ops_nobottom = {PlotOpt("txt/plot_styles.txt","MassFitPlot").Bottom(BottomType::off)};
-  std::vector<PlotOpt> ops_2d = {PlotOpt("txt/plot_styles.txt","Scatter")};
-  std::vector<PlotOpt> ops_shapes = {PlotOpt("txt/plot_styles.txt","Shapes")};
+  vector<Systematic> systematics;
+  //no CAT guidance on alphaS naming
+  systematics.push_back(Systematic("alphas",{"weight"},{weight*sys_w_alphas}));
+  systematics.push_back(Systematic("pdf_Higgs_gg",{"weight"},
+                                   {weight*sys_w_pdf_ggf}));
+  systematics.push_back(Systematic("pdf_Higgs_qqbar",{"weight"},
+                                   {weight*sys_w_pdf_qq}));
+  systematics.push_back(Systematic("pdf_Higgs_ttH",{"weight"},
+                                   {weight*sys_w_pdf_tth}));
+  systematics.push_back(Systematic("QCD_scale_ggH",{"weight"},
+                                   {weight*sys_w_ggf_xs}));
+  systematics.push_back(Systematic("QCD_scale_qqH",{"weight"},
+                                   {weight*sys_w_vbf_xs_up},
+                                   {weight*sys_w_vbf_xs_dn}));
+  systematics.push_back(Systematic("QCD_scale_VH",{"weight"},
+                                   {weight*sys_w_wh_xs_up*sys_w_zh_xs_up},
+                                   {weight*sys_w_wh_xs_dn*sys_w_zh_xs_dn}));
+  systematics.push_back(Systematic("QCD_scale_ttH",{"weight"},
+                                   {weight*sys_w_tth_xs_up},
+                                   {weight*sys_w_tth_xs_dn}));
+  systematics.push_back(Systematic("BR_hzg",{"weight"},
+                                   {weight*sys_w_htozg_br}));
+  systematics.push_back(Systematic("BR_hmm",{"weight"},
+                                   {weight*sys_w_htomumu_br}));
+  //no CAT guidance on mq naming
+  systematics.push_back(Systematic("mq",{"weight"},
+                                   {weight*sys_w_mq}));
 
-  //------------------------------------------------------------------------------------
-  //                                   plots and tables
-  //------------------------------------------------------------------------------------
-  
-  std::string version_num_str = "10";
-  int nbins = 4;
-  
+  //Make datacard
   PlotMaker pm;
-
-  //BDT discriminant
-  //pm.Push<Hist1D>(Axis(120, -1.1, 1.1, bdt_score, "BDT Discriminant", {}),
-  //      zg_baseline&&"photon_idmva[0]>0.5",
-  //      procs, ops_shapes).Weight(weight).Tag("FixName:zgdatacard_bdt_ver"+version_num_str);
-  //pm.Push<Hist2D>(Axis(20, 100.0, 160.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-  //      Axis(120, -1.1, 1.1, bdt_score, "BDT Discriminant", {}),
-  //      zg_baseline&&"photon_idmva[0]>0.5",
-  //      procs_bak, ops_2d).Weight(weight).Tag("FixName:zgdatacard_bdt_mll_corr_ver"+version_num_str);
-  //histograms for datacard
-  //pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-  //      NamedFunc(zg_baseline&&"photon_idmva[0]>0.5").Name("modified_baseline"),
-  //      //zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score<-0.12,
-  //      procs_nodata, ops_nobottom).Weight(weight).Tag("FixName:zgdatacardhist_thesis_ver"+version_num_str);
-  //pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-  //      zg_baseline&&"photon_idmva[0]>0.5",
-  //      //zg_baseline&&ggf_only&&"photon_idmva[0]>0.5"&&bdt_score<-0.12,
-  //      procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin0_ver"+version_num_str);
-  pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-        zg_baseline&&bdt_score<0.02,
-        procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin0_ver"+version_num_str);
-  pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-        zg_baseline&&ggf_only&&bdt_score>0.02&&bdt_score<0.28,
-        procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin1_ver"+version_num_str);
-  pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-        zg_baseline&&ggf_only&&bdt_score>0.28&&bdt_score<0.52,
-        procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin2_ver"+version_num_str);
-  pm.Push<Hist1D>(Axis(70, 100.0, 170.0, "llphoton_m[0]", "m_{ll#gamma} [GeV]", {}),
-        zg_baseline&&ggf_only&&bdt_score>0.52,
-        procs, ops).Weight(weight).Tag("FixName:zgdatacardhist_bdtbin3_ver"+version_num_str);
-  
-  pm.multithreaded_ = false; //BDTs only handle single threads
+  pm.multithreaded_ = false;
   pm.min_print_ = true;
-  pm.SetLuminosityTag(lumi_string).MakePlots(1.);
 
-  //unique_ptr's were confusing ROOT so back to ordinary pointers it is
-  TFile* out_file = TFile::Open(("test_templatefit_ver"+version_num_str+".root").c_str(),"RECREATE");
-  std::vector<float> dat_yields;
-  std::vector<float> sig_yields;
-  std::vector<float> bak_yields;
-  for (int ibin = 0; ibin < nbins; ibin++) {
-    std::string bin_num = std::to_string(ibin);
-    Hist1D* metnb_hist1d = static_cast<Hist1D*>(pm.GetFigure("zgdatacardhist_bdtbin"+bin_num+"_ver"+version_num_str).get());
-    //note: the histograms from GetComponent->scaled_hist_ are stacked!
-    //this means that the proc_dy TH1D has ZG and TTbar added to it
-    TH1D* sig_hist = new TH1D((static_cast<Hist1D::SingleHist1D*>(metnb_hist1d->GetComponent(proc_hzg.get())))->scaled_hist_);
-    TH1D* bak_hist = new TH1D((static_cast<Hist1D::SingleHist1D*>(metnb_hist1d->GetComponent(proc_dy.get())))->scaled_hist_);
-    bak_hist->Smooth(8);
-    TH1D* dat_hist = static_cast<TH1D*>(bak_hist->Clone("dat_hist"));
-    dat_hist->Add(sig_hist);
-    sig_yields.push_back(sig_hist->Integral());
-    bak_yields.push_back(bak_hist->Integral());
-    dat_yields.push_back(dat_hist->Integral());
-    TDirectory * bin0_dir = out_file->mkdir(("bin"+bin_num).c_str());
-    bin0_dir->WriteObject(sig_hist, "sig");
-    bin0_dir->WriteObject(bak_hist, "bkg");
-    bin0_dir->WriteObject(dat_hist, "data_obs");
-    delete sig_hist;
-    delete bak_hist;
-    delete dat_hist;
-  }
-  out_file->Write();
+  pm.Push<Datacard>("test_datacard2", channels, systematics, processes, weight,
+      Axis(80, 100.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
+      .AddHistOnlyProcesses(processes_aux)
+      .AddParametricProcess("background");
 
-  std::cout << "Writing datacard out" << std::endl;
-  ofstream datacard_file;
-  datacard_file.open(("test_datacard_ver"+version_num_str+".txt").c_str(),ios::out);
-  datacard_file << "max  1  number of categories\n";
-  datacard_file << "jmax 1  number of samples minus one\n";
-  datacard_file << "kmax *  number of nuisance parameters\n\n";
-  datacard_file << "shapes * * test_templatefit_ver" << version_num_str << ".root $CHANNEL/$PROCESS $CHANNEL/$PROCESS_$SYSTEMATIC\n\n";
-  datacard_file << std::right << std::setw(26) << "bin";
-  for (int ibin = 0; ibin < nbins; ibin++)
-    datacard_file << std::right << std::setw(26) << "bin"+std::to_string(ibin);
-  datacard_file << "\n";
-  datacard_file << std::right << std::setw(26) << "Observation" ;
-  for (int ibin = 0; ibin < nbins; ibin++)
-    datacard_file << std::right << std::setw(26) << static_cast<int>(dat_yields[ibin]+0.5);
-  datacard_file << "\n\n";
-  datacard_file << std::right << std::setw(26) << "bin";
-  for (int ibin = 0; ibin < nbins; ibin++)
-    datacard_file << std::right << std::setw(26) << "bin"+std::to_string(ibin)
-                  << std::right << std::setw(26) << "bin"+std::to_string(ibin);
-  datacard_file << "\n";
-  datacard_file << std::right << std::setw(26) << "process";
-  for (int ibin = 0; ibin < nbins; ibin++)
-    datacard_file << std::right << std::setw(26) << "sig"
-                  << std::right << std::setw(26) << "bkg";
-  datacard_file << "\n";
-  datacard_file << std::right << std::setw(26) << "process";
-  for (int ibin = 0; ibin < nbins; ibin++)
-    datacard_file << std::right << std::setw(26) << "0"
-                  << std::right << std::setw(26) << "1";
-  datacard_file << "\n";
-  datacard_file << std::right << std::setw(26) << "rate";
-  for (int ibin = 0; ibin < nbins; ibin++)
-    datacard_file << std::right << std::setw(26) << sig_yields[ibin]
-                  << std::right << std::setw(26) << bak_yields[ibin];
-  datacard_file << "\n";
-  datacard_file.close();
+  pm.MakePlots(1.0);
 
+  return 0;
 }

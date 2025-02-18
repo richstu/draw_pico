@@ -219,6 +219,7 @@ string CodeToRootTex(string code){
   ReplaceAll(code, "nvlep", "N_{lep}");
   ReplaceAll(code, "nmu", "N_{#mu}");
   ReplaceAll(code, "nel", "N_{e}");
+  ReplaceAll(code, "nphoton", "N_{#gamma}");
   ReplaceAll(code, "nvmu", "N^{veto}_{#mu}");
   ReplaceAll(code, "nvel", "N^{veto}_{e}");
   ReplaceAll(code, "ntrulep", "N^{true}_{lep}");
@@ -345,7 +346,8 @@ void Normalize(TH1D &h, double normalization, bool norm_per_avg_width){
   double width = (high-low)/nbins;
   if(norm_per_avg_width) normalization *= width;
   double integral = h.Integral("width");
-  h.Scale(normalization/integral);
+  if (integral != 0)
+    h.Scale(normalization/integral);
 }
 
 void MergeOverflow(TH1D &h, bool merge_underflow, bool merge_overflow){
