@@ -91,14 +91,14 @@ int main(int argc, char *argv[]) {
   //Uses first input to determine whether or not to use run2 or run3 samples.
   //The second input (if there) will instead plot VBF plots
   string plot_option = "";
-  //bool ggf_cat = true;
+  //bool vbf_cat = true;
   if(argc>1){ plot_option=argv[1]; }
-  //if(argc>2){ ggf_cat = false;}
-  cout << "Rui" << endl;
+  //if(argc>2){ vbf_cat = false;}
+
   //Declares the samples
+  cout << "Rui" << endl;
   //  vector<shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","MinimalMoreTrigsData");//"AllMoreTrigsData");
   string plot_names = "_run2";
-  cout << "Rui" << endl;
   string lumi_label = "137.61";
   vector<shared_ptr<Process>> procs_mc = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","AllSplit");
   cout << "Rui" << endl;
@@ -110,28 +110,27 @@ int main(int argc, char *argv[]) {
   }else{
     cout << "Plotting Run 2" << endl;
   }
-  cout << "Rui" << endl;
  
-  //Define and name the BDT that will be used. Change the path of BookMVA to your own BDT and change the ggf_bin_boundaries to the optimized values.
+  //Define and name the BDT that will be used. Change the path of BookMVA to your own BDT and change the vbf_bin_boundaries to the optimized values.
   //One step I will likely take is find a way to condense this down.
-  // MVAWrapper ggf_bdt_reader("ggf_01j_bdt");
-  // ggf_bdt_reader.SetVariable("y_mva","photon_idmva[0]"); //1
-  // ggf_bdt_reader.SetVariable("yl_drmin","photon_drmin[0]"); //2
-  // ggf_bdt_reader.SetVariable("yl_drmax","photon_drmax[0]"); //3
-  // ggf_bdt_reader.SetVariable("cosTheta","llphoton_cosTheta[0]"); //4
-  // ggf_bdt_reader.SetVariable("costheta","llphoton_costheta[0]"); //5
-  // ggf_bdt_reader.SetVariable("phi","llphoton_psi[0]"); //6 
-  // ggf_bdt_reader.SetVariable("lly_ptmass","llphoton_pt[0]/llphoton_m[0]"); //7
-  // ggf_bdt_reader.SetVariable("y_res",photon_energyerr); //8
-  // ggf_bdt_reader.SetVariable("y_eta","photon_eta[0]"); //9 
-  // ggf_bdt_reader.SetVariable("l1_eta",l1_eta); //10
-  // ggf_bdt_reader.SetVariable("l2_eta",l2_eta); //11
-  // ggf_bdt_reader.SetSpectator("sampleID","type");
-  // ggf_bdt_reader.BookMVA("/net/cms27/cms27r0/abarzdukas/bdttools/htozgamma_mva/ggfvbf/tmva_bdta_ggfvbf_tight_01j_higwindow_var11_model/weights/TMVAClassification_BDT.weights.xml");
-  //  NamedFunc ggf_bdt_score = ggf_bdt_reader.GetDiscriminant();
-  //  vector<double> ggf_bin_boundaries={0.042, 0.094, 0.29};
-  //  vector<NamedFunc> ggf_categories = {ggf_bdt_score < ggf_bin_boundaries[0], ggf_bdt_score > ggf_bin_boundaries[0] && ggf_bdt_score < ggf_bin_boundaries[1], 
-  //                                      ggf_bdt_score > ggf_bin_boundaries[1] && ggf_bdt_score < ggf_bin_boundaries[2], ggf_bdt_score > ggf_bin_boundaries[2]}; 
+  // MVAWrapper vbf_bdt_reader("vbf_01j_bdt");
+  // vbf_bdt_reader.SetVariable("y_mva","photon_idmva[0]"); //1
+  // vbf_bdt_reader.SetVariable("yl_drmin","photon_drmin[0]"); //2
+  // vbf_bdt_reader.SetVariable("yl_drmax","photon_drmax[0]"); //3
+  // vbf_bdt_reader.SetVariable("cosTheta","llphoton_cosTheta[0]"); //4
+  // vbf_bdt_reader.SetVariable("costheta","llphoton_costheta[0]"); //5
+  // vbf_bdt_reader.SetVariable("phi","llphoton_psi[0]"); //6 
+  // vbf_bdt_reader.SetVariable("lly_ptmass","llphoton_pt[0]/llphoton_m[0]"); //7
+  // vbf_bdt_reader.SetVariable("y_res",photon_energyerr); //8
+  // vbf_bdt_reader.SetVariable("y_eta","photon_eta[0]"); //9 
+  // vbf_bdt_reader.SetVariable("l1_eta",l1_eta); //10
+  // vbf_bdt_reader.SetVariable("l2_eta",l2_eta); //11
+  // vbf_bdt_reader.SetSpectator("sampleID","type");
+  // vbf_bdt_reader.BookMVA("/net/cms27/cms27r0/abarzdukas/bdttools/htozgamma_mva/vbfvbf/tmva_bdta_vbfvbf_tight_01j_higwindow_var11_model/weights/TMVAClassification_BDT.weights.xml");
+  //  NamedFunc vbf_bdt_score = vbf_bdt_reader.GetDiscriminant();
+  //  vector<double> vbf_bin_boundaries={0.042, 0.094, 0.29};
+  //  vector<NamedFunc> vbf_categories = {vbf_bdt_score < vbf_bin_boundaries[0], vbf_bdt_score > vbf_bin_boundaries[0] && vbf_bdt_score < vbf_bin_boundaries[1], 
+  //                                      vbf_bdt_score > vbf_bin_boundaries[1] && vbf_bdt_score < vbf_bin_boundaries[2], vbf_bdt_score > vbf_bin_boundaries[2]}; 
 
 
   //VBF BDT declaration. Commented out but feel free to use.
@@ -160,7 +159,7 @@ int main(int argc, char *argv[]) {
   vbf_bdt_reader.SetVariable("llyjj_ptbal","llphoton_dijet_balance[0]"); //20
   vbf_bdt_reader.SetVariable("yjj_zep","photon_zeppenfeld[0]"); //21
   vbf_bdt_reader.SetSpectator("sampleID","type");
-  vbf_bdt_reader.BookMVA("/net/cms27/cms27r0/abarzdukas/bdttools/htozgamma_mva/ggfvbf/tmva_bdta_ggfvbf_tight_2j_higwindow_var21_model/weights/TMVAClassification_BDT.weights.xml");
+  vbf_bdt_reader.BookMVA("/net/cms27/cms27r0/abarzdukas/bdttools/htozgamma_mva/vbfvbf/tmva_bdta_vbfvbf_tight_2j_higwindow_var21_model/weights/TMVAClassification_BDT.weights.xml");
   NamedFunc vbf_bdt_score = vbf_bdt_reader.GetDiscriminant();
   vector<double> vbf_bin_boundaries={0.057,0.165,0.317};
   vector<NamedFunc> vbf_categories = {vbf_bdt_score < vbf_bin_boundaries[0], vbf_bdt_score > vbf_bin_boundaries[0] && vbf_bdt_score < vbf_bin_boundaries[1], 
@@ -201,13 +200,13 @@ int main(int argc, char *argv[]) {
     .CanvasWidth(1077)
     .CanvasWidth(900)
     .Stack(StackType::prop_shape_stack)
-    //    .Bottom(PlotOptTypes::BottomType::none) 
     .FileExtensions({"pdf"});
 
 
   //Ops vector used for plots
-  vector<PlotOpt> ops = {lin_lumi};//{lin_lumi_shape};
+  vector<PlotOpt> ops = {lin_lumi};
   vector<PlotOpt> ops_shape = {lin_lumi_shape};
+
   //Baseline selection used for the plots
   //  NamedFunc baseline = ZgFunctions::tightened_baseline_pinnacles;
   //NamedFunc baseline = ZgFunctions::tightened_baseline; //<--- IF USING LASSEN_V0 OR EARLIER USE THIS
@@ -221,17 +220,17 @@ int main(int argc, char *argv[]) {
   vector<string> leps_str= {"_ee","_mumu","_ll"};
 
   //Declaring & filling vectors used to loop over during plotting
-  std::vector<NamedFunc> ggf_categories_vector    = {};
-  std::vector<string> ggf_categories_name_vector  = {};
+  std::vector<NamedFunc> vbf_categories_vector    = {};
+  std::vector<string> vbf_categories_name_vector  = {};
   std::vector<string> string_vector               = {"_bin1","_bin2","_bin3","_bin4"};
-  //  for(unsigned int idx_i = 0; idx_i < ggf_categories.size(); idx_i++){
-  //      ggf_categories_vector.push_back(baseline && cat_ggF && ggf_categories[idx_i] );
-  //      ggf_categories_name_vector.push_back("ggF" + string_vector[idx_i] + plot_names );
+  //  for(unsigned int idx_i = 0; idx_i < vbf_categories.size(); idx_i++){
+  //      vbf_categories_vector.push_back(baseline && cat_vbf && vbf_categories[idx_i] );
+  //      vbf_categories_name_vector.push_back("vbf" + string_vector[idx_i] + plot_names );
 
       //Alternative looping over lepton flavor
       //for(unsigned int idx_lep = 0; idx_lep < leps.size(); idx_lep++){
-      //  ggf_categories_vector.push_back(baseline && cat_ggF && leps[idx_lep] && ggf_categories[idx_i] );
-      //  ggf_categories_name_vector.push_back("ggF" + string_vector[idx_i] + leps_str[idx_lep] + plot_names );
+      //  vbf_categories_vector.push_back(baseline && cat_vbf && leps[idx_lep] && vbf_categories[idx_i] );
+      //  vbf_categories_name_vector.push_back("vbf" + string_vector[idx_i] + leps_str[idx_lep] + plot_names );
       //}
   //  }
 
@@ -252,25 +251,27 @@ int main(int argc, char *argv[]) {
   PlotMaker pm;
 
   //Initial definitions of variables used in the loop
-  NamedFunc selection_hmass = "1"; string labels = "";
-  NamedFunc selection_blind = "1";
+  NamedFunc selection_blind = "1"; string labels = "VBF";
+  NamedFunc selection_hmass = "1";
   NamedFunc not_hwin = mlly < 120 || mlly > 130; //<------ ALTERNATIVE TO BLIND_DATA. NEEDED IF USING StackType("data_norm")
   NamedFunc hmasswindow = mlly > 120 && mlly < 130; 
   
-  //  selection = baseline && cat_ggF && hmasswindow; //&& not_hwin;// blind_data;
-  selection_hmass = cat_ggF && hmasswindow;
-  selection_blind = cat_ggF && not_hwin;
-  //  CatUtilities::ggF_input_plots(pm,selection,procs,ops,wgt_pin_fix,labels);
-  //  for(unsigned int idx_sel = 0; idx_sel < ggf_categories_vector.size(); idx_sel++){
-    //    selection = ggf_categories_vector[idx_sel] && blind_data;
-    //    labels = ggf_categories_name_vector[idx_sel];  
-    //    CatUtilities::ggF_controlregion_plots(pm,selection,procs,ops,wgt_pin_fix,labels);
+  //  selection = baseline && cat_VBF && hmasswindow; //&& not_hwin;// blind_data;
+  selection_blind = cat_VBF && not_hwin;//phmasswindow;
+  selection_hmass = cat_VBF && hmasswindow;
   cout << "Rui" << endl;
-  //  CatUtilities::ggF_input_plots(pm,selection_blind,procs,ops,wgt,labels);
-  CatUtilities::ggF_input_plots(pm,selection_hmass,procs_mc,ops_shape,wgt,labels);  
-    //CatUtilities::ggF_controlregion_plots(pm,selection,procs,ops,wgt_pin_fix,labels,bins); //<--- Option that allows you to set the bins for ALL plots
+  //CatUtilities::VBF_input_plots(pm,selection_blind,procs,ops,wgt,labels);
+  //  for(unsigned int idx_sel = 0; idx_sel < vbf_categories_vector.size(); idx_sel++){
+    //    selection = vbf_categories_vector[idx_sel] && blind_data;
+    //    labels = vbf_categories_name_vector[idx_sel];  
+    //    CatUtilities::vbf_controlregion_plots(pm,selection,procs,ops,wgt_pin_fix,labels);
+  //  CatUtilities::vbf_input_plots(pm,selection,procs,ops,wgt,labels);
+  cout << "Rui" << endl;
+  CatUtilities::VBF_input_plots(pm,selection_hmass,procs_mc,ops_shape,wgt,labels);  
+  cout << "Rui" << endl;
+    //CatUtilities::vbf_controlregion_plots(pm,selection,procs,ops,wgt_pin_fix,labels,bins); //<--- Option that allows you to set the bins for ALL plots
     //  }
-  //  CatUtilities::ggF_input_plots(pm,selection,procs,ops,wgt,labels);  
+  //  CatUtilities::vbf_input_plots(pm,selection,procs,ops,wgt,labels);  
   //Plot options and MakePlots command
   //pm.multithreaded_ = false;
   pm.min_print_ = true;
@@ -278,14 +279,14 @@ int main(int argc, char *argv[]) {
 
 }
 
-  //Implementation using the ggf_cat variable set by the input arguments to this file
+  //Implementation using the vbf_cat variable set by the input arguments to this file
   /*
-  if(ggf_cat){
-    for(unsigned int idx_sel = 0; idx_sel < ggf_categories_vector.size(); idx_sel++){
-      selection = ggf_categories_vector[idx_sel];
-      labels = ggf_categories_name_vector[idx_sel];  
-      CatUtilities::ggF_controlregion_plots(pm,selection,procs,ops,wgt,labels);
-      //CatUtilities::ggF_controlregion_plots(pm,selection,procs,ops,wgt,labels,bins); //<--- Option that allows you to set the bins for ALL plots
+  if(vbf_cat){
+    for(unsigned int idx_sel = 0; idx_sel < vbf_categories_vector.size(); idx_sel++){
+      selection = vbf_categories_vector[idx_sel];
+      labels = vbf_categories_name_vector[idx_sel];  
+      CatUtilities::vbf_controlregion_plots(pm,selection,procs,ops,wgt,labels);
+      //CatUtilities::vbf_controlregion_plots(pm,selection,procs,ops,wgt,labels,bins); //<--- Option that allows you to set the bins for ALL plots
     }
   } else {
     for(unsigned int idx_sel = 0; idx_sel < vbf_categories.size(); idx_sel++){

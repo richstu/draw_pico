@@ -706,17 +706,37 @@ namespace CatUtilities {
 
 
   const NamedFunc dR_lly_dijet("dR_lly_dijet",[](const Baby &b) -> NamedFunc::ScalarType{ return llgamma_dijet_deltaR_d(b); });
-  const NamedFunc dphi_lly_dijet("dphi_lly_dijet",[](const Baby &b) -> NamedFunc::ScalarType{ return llgamma_dijet_dphi_d(b); });
+  const NamedFunc dphi_lly_dijet("dphi_lly_dijet",[](const Baby &b) -> NamedFunc::ScalarType{ return fabs(llgamma_dijet_dphi_d(b)); });
+  const NamedFunc diphi_dijet("diphi_dijet",[](const Baby &b) -> NamedFunc::ScalarType{ return fabs(b.dijet_dphi()); });
   const NamedFunc balance_lly_dijet("balance_lly_dijet",[](const Baby &b) -> NamedFunc::ScalarType{ return llgamma_dijet_balance_d(b); });
-
   const NamedFunc mindR_y_jet("mindR_y_jet",[](const Baby &b) -> NamedFunc::ScalarType{ return photon_jet_mindr_d(b); });
   const NamedFunc zeppenfeld_y_jet("zeppenfeld_y_jet",[](const Baby &b) -> NamedFunc::ScalarType{ return photon_zeppenfeld_d(b); });
+
+  const NamedFunc l1_eta("l1_eta",[](const Baby &b) -> NamedFunc::ScalarType{
+      if (b.nll()>0){
+	if (b.ll_lepid()->at(0) == 11)
+	  return b.el_eta()->at(b.ll_i1()->at(0));
+	else if (b.ll_lepid()->at(0) == 13)
+	  return b.mu_eta()->at(b.ll_i1()->at(0));
+      }
+      return 0;
+    });
+
+  const NamedFunc l2_eta("l2_eta",[](const Baby &b) -> NamedFunc::ScalarType{
+      if (b.nll()>0){
+	if (b.ll_lepid()->at(0) == 11)
+	  return b.el_eta()->at(b.ll_i2()->at(0));
+	else if (b.ll_lepid()->at(0) == 13)
+	  return b.mu_eta()->at(b.ll_i2()->at(0));
+      }
+      return 0;
+    });
 
 
   const NamedFunc rap_lly_refit("rap_lly_refit",[](const Baby &b) -> NamedFunc::ScalarType{
     TLorentzVector h; h.SetPtEtaPhiM(b.llphoton_refit_pt(), b.llphoton_refit_eta(), b.llphoton_refit_phi(), b.llphoton_refit_m());
     return h.Rapidity(); 
-  });
+    });
 
 
   const NamedFunc lly_costheta("lly_costheta",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -1255,6 +1275,65 @@ namespace CatUtilities {
     pm.Push<Hist1D>(Axis(50,     0,   40, j1_m,   "m(j_{1}) [GeV]",     {}), selection && "njet>0", processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_j1_m");
 
   }
+
+  void ggF_input_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels){
+    pm.Push<Hist1D>(Axis(45,0.0,1,      "photon_idmva[0]", "#gamma - IDMVA",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_IDMVA_");
+    pm.Push<Hist1D>(Axis(35,0,3.5,      "photon_drmin[0]", "min( #Delta R(#gamma,l) )", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_minDR_");
+    pm.Push<Hist1D>(Axis(60,0,6.0,      "photon_drmax[0]", "max( #Delta R(#gamma,l) )", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_maxDR_");
+    pm.Push<Hist1D>(Axis(40,-2.6,2.6,   "photon_eta[0]",   "#eta(#gamma)",              {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_eta_");
+    pm.Push<Hist1D>(Axis(40,0.01,0.25,  "photon_energyErr[0]/photon_pt[0]", "#sigma(#gamma)/E(#gamma)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_gamma_relunc_");
+    pm.Push<Hist1D>(Axis(40,   -1  ,1,  lly_cosTheta, "cos(#Theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_cTHETA_");
+    pm.Push<Hist1D>(Axis(40,   -1,  1,  lly_costheta, "cos(#theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_ctheta_");
+    pm.Push<Hist1D>(Axis(40, -3.2,3.2,  lly_angphi,   "#phi",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ggF_phi_");
+    pm.Push<Hist1D>(Axis(40,100,180,  mlly,        "m_{ll#gamma} [GeV]",     {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
+
+    pm.Push<Hist1D>(Axis(40,0,2.5,      pTlly_mlly,  "p_{T}(ll#gamma)/m_{ll#gamma}", {1}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_ptom_");
+
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, l1_eta, "#eta(l_{1})",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_l1_");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, l2_eta, "#eta(l_{2})",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_eta_l2_");
+  }
+
+
+  void VBF_input_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels){
+    pm.Push<Hist1D>(Axis(45,0.0,1,      "photon_idmva[0]", "#gamma - IDMVA",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_gamma_IDMVA_");
+    pm.Push<Hist1D>(Axis(35,0,3.5,      "photon_drmin[0]", "min( #Delta R(#gamma,l) )", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_gamma_minDR_");
+    pm.Push<Hist1D>(Axis(60,0,5.0,      "photon_drmax[0]", "max( #Delta R(#gamma,l) )", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_gamma_maxDR_");
+    pm.Push<Hist1D>(Axis(40,-2.6,2.6,   "photon_eta[0]",   "#eta(#gamma)",              {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_gamma_eta_");
+    pm.Push<Hist1D>(Axis(40,0.01,0.15,  "photon_energyErr[0]/photon_pt[0]", "#sigma(#gamma)/E(#gamma)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_gamma_relunc_");
+    pm.Push<Hist1D>(Axis(40,   -1  ,1,  lly_cosTheta, "cos(#Theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_cTHETA_");
+    pm.Push<Hist1D>(Axis(40,   -1,  1,  lly_costheta, "cos(#theta)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_ctheta_");
+    pm.Push<Hist1D>(Axis(40, -3.2,3.2,  lly_angphi,   "#phi",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_phi_");
+    pm.Push<Hist1D>(Axis(40,100,180,  mlly,        "m_{ll#gamma} [GeV]",     {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_lly_m_");
+
+    pm.Push<Hist1D>(Axis(40,0,2.5,      pTlly_mlly,  "p_{T}(ll#gamma)/m_{ll#gamma}", {1}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_lly_ptom_");
+
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, l1_eta, "#eta(l_{1})",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_eta_l1_");
+    pm.Push<Hist1D>(Axis(40,  -2.6,  2.6, l2_eta, "#eta(l_{2})",    {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_eta_l2_");
+    pm.Push<Hist1D>(Axis(5, 0, 5, "njet", "N_{jet}", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_njet_");
+
+    pm.Push<Hist1D>(Axis(40,    0, 1500, "dijet_m",    "m_{jj} [GeV]",            {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dijet_m");
+    //    pm.Push<Hist1D>(Axis(nbins,    0,  300, "dijet_pt",   "p_{T}(jj) [GeV]",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dijet_pt");
+    pm.Push<Hist1D>(Axis(40,    0,    9, "dijet_deta", "#Delta#eta(j_{1},j_{2})", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_deta");
+    pm.Push<Hist1D>(Axis(40, 0,  3.15, diphi_dijet, "#Delta#phi(j_{1},j_{2}))", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_dphi");
+
+    pm.Push<Hist1D>(Axis(40,0,3.15, dphi_lly_dijet,    "#Delta#phi(Z#gamma,jj))", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_jjlly_dphi");
+    //    pm.Push<Hist1D>(Axis(40,    0, 4.5, dR_lly_dijet,      "#Delta R(Z#gamma,jj)",   {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_jjlly_dphi");
+    pm.Push<Hist1D>(Axis(40,    0, 1.0, balance_lly_dijet, "System balance",         {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_sysbal");
+    pm.Push<Hist1D>(Axis(40,    0,   6, zeppenfeld_y_jet,  "#gamma zeppenfeld",      {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_zep");
+    //    pm.Push<Hist1D>(Axis(40,  0.4, 4.4, mindR_y_jet,       "Min. #DeltaR(#gamma,j)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_yjdr");
+
+    pm.Push<Hist1D>(Axis(40,    30, 150, j1_pt,  "p_{T}(j_{1}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_pt");
+    //    pm.Push<Hist1D>(Axis(nbins, -5.0,  5.0, j1_eta, "#eta(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_eta_");
+    //    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j1_phi, "#phi(j_{1})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j1_phi_");
+    pm.Push<Hist1D>(Axis(40,0.4,6,      "photon_jet1_dr[0]", "#DeltaR(#gamma,j1)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_photon_j1_dr");
+    pm.Push<Hist1D>(Axis(40,0.4,6,      "photon_jet2_dr[0]", "#DeltaR(#gamma,j2)", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_photon_j2_dr");
+
+    pm.Push<Hist1D>(Axis(40,   30,  150, j2_pt,  "p_{T}(j_{2}) [GeV]", {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_pt");
+    //    pm.Push<Hist1D>(Axis(nbins, -5.0,  5.0, j2_eta, "#eta(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_eta_");
+    //    pm.Push<Hist1D>(Axis(nbins, -3.15, 3.15, j2_phi, "#phi(j_{2})",        {}), selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_VBF_j2_phi_");
+
+  }
+
 
   void ggF_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels, int nbins){
     sample_photon_plots(  pm, selection, processes, ops, wgt, nbins, labels + "_ggF_");

@@ -1355,6 +1355,10 @@ std::vector<TH1D> Hist1D::GetBottomPlots(double &the_min, double &the_max) const
     for(auto &h: out){
       string num = ratio_numerator_;
       string den = ratio_denominator_;
+      if( this_opt_.Stack() == StackType::prop_shape_stack) {
+	num = "Signal";
+	den = "Background";
+      } else {
       if(datas_.size() != 0){
         if(num == "") num = "Data";
         if(den == "") den = "MC";
@@ -1364,7 +1368,7 @@ std::vector<TH1D> Hist1D::GetBottomPlots(double &the_min, double &the_max) const
       }else{
         if(num == "") num = "MC";
         if(den == "") den = "MC";
-      }
+      }}
       h.GetYaxis()->CenterTitle();
       h.GetYaxis()->SetTitle(("#frac{"+num+"}{"+den+"}").c_str());
       h.GetYaxis()->SetTickLength(0.075);
