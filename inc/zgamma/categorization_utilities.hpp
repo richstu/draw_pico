@@ -63,6 +63,8 @@ namespace CatUtilities {
   extern const NamedFunc l4_mini;
   extern const NamedFunc l4_flav;
   extern const NamedFunc max_Imini;
+  extern const NamedFunc l1_eta;
+  extern const NamedFunc l2_eta;
 
   extern const NamedFunc ptj_m4j;
   extern const NamedFunc max_deepflav;
@@ -74,6 +76,7 @@ namespace CatUtilities {
   extern const NamedFunc eta_lly;
   extern const NamedFunc phi_lly;
   extern const NamedFunc sigy_pTy;
+  extern const NamedFunc diphi_dijet;
 
   extern const NamedFunc j1_pt;
   extern const NamedFunc j2_pt;
@@ -134,6 +137,8 @@ namespace CatUtilities {
   void  ZH_2bl_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void  ZH_MET_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void     ggF_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
+  void             ggF_input_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
+  void             VBF_input_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void     VBF_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void     Lep_controlregion_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);
   void       sample_kinrefit_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels);

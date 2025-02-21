@@ -340,6 +340,8 @@ std::vector<bool>  photon_sig
 std::vector<bool>  photon_pixelseed
 std::vector<int>   photon_elidx
 std::vector<float> photon_jet_mindr
+std::vector<float> photon_jet1_dr
+std::vector<float> photon_jet2_dr
 std::vector<float> photon_zeppenfeld
 
 #################   FsrPhotons  ##################
