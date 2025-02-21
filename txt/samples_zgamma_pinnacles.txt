@@ -396,6 +396,33 @@
     Files = $PRODUCTION_NAME/$YEARS/$DATA_SKIM_LLG/$FILENAMES_ALL
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
 
+[[BDTMCData]]
+  [Z+Fake Photon]
+    ProcessType = 1
+    PaletteColor = dyjets
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)&&use_event
+  [Z+#gamma]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)&&use_event
+  [VBS Z+#gamma]
+    ProcessType = 1
+    PaletteColor = vbszg
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_EWKZG
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)&&use_event
+  [H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_GGF
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)&&use_event
+  [Data]
+    ProcessType = 0
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$DATA_SKIM_LLG/$FILENAMES_ALL
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)
+
 
 [[AllMoreTrigsData]]
   [Z+Fake Photon]
@@ -1034,6 +1061,33 @@
     Color = 2
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_ONLY_LL/$FILENAMES_HZG_ALL
     Selection = (trig_double_el||trig_double_mu||trig_single_el||trig_single_mu)
+
+[[BDTMC]]
+  [Z+Fake Photon]
+    ProcessType = 1
+    PaletteColor = dyjets
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_DY
+    Selection= (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)&&use_event
+  [Z+#gamma]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_QQZG
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)&&use_event
+  [VBS Z+#gamma]
+    ProcessType = 1
+    PaletteColor = vbszg
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_ONLY_LL/$FILENAMES_EWKZG
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)&&use_event
+  [gg#rightarrow H#rightarrow Z#gamma]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*GluGluHToZG*M-125*.root
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)
+  [VBF H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = vbfzg
+    Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/*VBFHToZG*M-125_TuneCP5_13TeV*.root
+    Selection = (zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)
 
 
 [[AllSplit]]

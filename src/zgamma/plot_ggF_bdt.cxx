@@ -96,11 +96,11 @@ int main(int argc, char *argv[]) {
   //if(argc>2){ ggf_cat = false;}
   cout << "Rui" << endl;
   //Declares the samples
-  //  vector<shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","MinimalMoreTrigsData");//"AllMoreTrigsData");
+  //  vector<shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMCData");//"MinimalMoreTrigsData");//"AllMoreTrigsData");
   string plot_names = "_run2";
   cout << "Rui" << endl;
   string lumi_label = "137.61";
-  vector<shared_ptr<Process>> procs_mc = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","AllSplit");
+  vector<shared_ptr<Process>> procs_mc = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMC");//"AllSplit");
   cout << "Rui" << endl;
   if(plot_option=="run3"){
     procs_mc       = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","AllMoreTrigsDataRun3");
