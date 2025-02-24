@@ -23,26 +23,6 @@ using namespace ZgUtilities;
 
 namespace CatUtilities {
 
-  //This function checks if a deep flavor value passes the loose, medium, or tight working point.
-  //The lmt is 0=loose, 1=medium, 2=tight
-  bool btag_DF_pass(TString year,float deep_flav,int lmt=1){
-    year.ReplaceAll("-","");
-    std::map<TString, std::vector<float>> btag_df_wpts{
-      {"2016", std::vector<float>({0.0614, 0.3093, 0.7221})},
-      {"2016APV", std::vector<float>({0.0614, 0.3093, 0.7221})},
-      {"2017", std::vector<float>({0.0521, 0.3033, 0.7489})},
-      {"2018", std::vector<float>({0.0494, 0.2770, 0.7264})},
-      {"2022", std::vector<float>({0.047,  0.245,  0.6734})},
-      {"2022EE", std::vector<float>({0.0499, 0.2605, 0.6915})},  
-      {"2023", std::vector<float>({0.0358, 0.1917, 0.6172})},
-      {"2023BPix", std::vector<float>({0.0359, 0.1919, 0.6133})}
-
-    };
-  
-    if(deep_flav < btag_df_wpts[year][lmt]){return false;}
-    return true;
-  }
-
   //Assigns the nth jet (nth using the jet_num variable)
   TLorentzVector AssignJet(const Baby &b,int jet_num=1){
      TLorentzVector jet; jet.SetPtEtaPhiM(0,0,0,0);
@@ -412,20 +392,11 @@ namespace CatUtilities {
     return L4_Idx(b)[0];
   }
 
-  //Returns the difference in phi between to values
-  float get_dphi(float phi1, float phi2){
-     const double PI = 3.1415;
-     double dphi = fmod(fabs(phi2-phi1), 2.*PI);
-     dphi = dphi>PI ? 2.*PI-dphi : dphi;
-
-     return dphi;
-   }
-
 
   //Returns Delta Phi(H,MET)
   float dphi_Hmet_d(const Baby &b){
      TLorentzVector H; H = AssignH(b);
-     return get_dphi(H.Phi(),b.met_phi());
+     return deltaPhi(H.Phi(),b.met_phi());
    }
 
   //Returns the maximum deepflavor score of all jets in the event

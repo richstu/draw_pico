@@ -18,8 +18,6 @@
 
 namespace CatUtilities {
 
-
-  bool btag_DF_pass(TString year,float deep_flav,int lmt);
   TLorentzVector AssignJet(const Baby &b,int jet_num);
   TLorentzVector AssignLep(const Baby &b, int flav, int idx);
   float get_dphi(float phi1, float phi2);
