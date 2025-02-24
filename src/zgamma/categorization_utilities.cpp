@@ -23,12 +23,6 @@ using namespace ZgUtilities;
 
 namespace CatUtilities {
 
-  //Function checks if string 2 is in string 1. Used very briefly in making plots
-  bool contains(std::string string1, std::string string2){
-    return string1.find(string2,0)!=std::string::npos ? true : false;
-  }
-
-
   //This function checks if a deep flavor value passes the loose, medium, or tight working point.
   //The lmt is 0=loose, 1=medium, 2=tight
   bool btag_DF_pass(TString year,float deep_flav,int lmt=1){
@@ -785,7 +779,7 @@ namespace CatUtilities {
   //ll and llphoton plots added to each category's photon plots
   void sample_llphoton_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, std::string labels){
     //checks for a specific case for control regions where we want 50 < mlly < 100
-    if(contains(labels,"Zfsrpeak")){
+    if(Contains(labels,"Zfsrpeak")){
       pm.Push<Hist1D>(Axis(50,50,100,   mlly,        "m_{ll#gamma} [GeV]",     {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
     }else{
       pm.Push<Hist1D>(Axis(40,100,180,  mlly,        "m_{ll#gamma} [GeV]",     {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
@@ -807,7 +801,7 @@ namespace CatUtilities {
 
   void sample_llphoton_plots(PlotMaker &pm, NamedFunc selection, std::vector<std::shared_ptr<Process>> &processes, std::vector<PlotOpt> &ops, NamedFunc wgt, int nbins, std::string labels){
     //checks for a specific case for control regions where we want 50 < mlly < 100
-    if(contains(labels,"Zfsrpeak")){
+    if(Contains(labels,"Zfsrpeak")){
       pm.Push<Hist1D>(Axis(nbins, 50, 100,   mlly,        "m_{ll#gamma} [GeV]", {120,130}), selection, processes ,ops).Weight(wgt).Tag("ShortName:" + labels + "_lly_m_");
       pm.Push<Hist1D>(Axis(nbins, 50,  80,   "ll_m[0]",   "m_{ll} [GeV]",       {}),        selection, processes, ops).Weight(wgt).Tag("ShortName:" + labels + "_ll_m_");
     }else{

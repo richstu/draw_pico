@@ -30,10 +30,6 @@ using namespace ZgFunctions;
 
 namespace CRUtilities{
 
-  bool contains(std::string string1, std::string string2){
-    return string1.find(string2,0)!=std::string::npos ? true : false;
-  }
-
   //Boolean used to select which era to use for plotting. False == Run2, True == Run3
   bool select_era(int argc, char *argv[]){
     bool era = false;
@@ -140,7 +136,7 @@ namespace CRUtilities{
        procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsDataRun3",10);
        std::cout << "Using Run 3 LL skims" << std::endl; 
       }
-    } else if(contains(year_select,"20")){
+    } else if(Contains(year_select,"20")){
       procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma.txt","AllMoreTrigsData" + year_select,10); 
     } else if(category > -1){
       procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma_skims.txt", run2_skims[category],10);
