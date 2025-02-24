@@ -28,16 +28,76 @@ namespace ZgFunctions {
   //Run 3 weight-up
   extern const NamedFunc w_run3;
 
+  //requires Z->ee in truth
+  extern const NamedFunc Ztoee;
+
+  //requires Z->mumu in truth
+  extern const NamedFunc ZtoMuMu;
+
+  //leading muon pt
+  extern const NamedFunc lead_mu_pt;
+
+  //subleading muon pt
+  extern const NamedFunc sublead_mu_pt;
+
+  //leading electron pt
+  extern const NamedFunc lead_el_pt;
+
+  //subleading electron pt
+  extern const NamedFunc sublead_el_pt;
+
+  //leading jet pt
+  extern const NamedFunc lead_jet_pt;
+
+  //subleading jet pt
+  extern const NamedFunc sublead_jet_pt;
+
+  //leading jet eta
+  extern const NamedFunc lead_jet_eta;
+
+  //subleading jet eta
+  extern const NamedFunc sublead_jet_eta;
+
+  //leading jet phi
+  extern const NamedFunc lead_jet_phi;
+
+  //subleading jet phi
+  extern const NamedFunc sublead_jet_phi;
+
+  //leading jet m
+  extern const NamedFunc lead_jet_m;
+
+  //subleading jet m
+  extern const NamedFunc sublead_jet_m;
+
+  //trigger-paired lepton pt plateau cuts
+  extern const NamedFunc trig_plateau_cuts;
+
   //common NamedFuncs for run 2 baseline selection
-  extern const NamedFunc zg_baseline_el;
-  extern const NamedFunc zg_baseline_mu;
+  extern const NamedFunc zg_baseline_el_run2;
+  extern const NamedFunc zg_baseline_mu_run2;
+  extern const NamedFunc zg_baseline_run2;
+
+  //new working baseline selection
   extern const NamedFunc zg_baseline;
 
-  //master stitch variable, currently only has DY/ZG stitch
+  //master stitch variable
   extern const NamedFunc stitch;
+
+  //master stitch variable, for deathvalley productions
+  extern const NamedFunc stitch_deathvalley;
 
   //drmax of lead photon
   extern const NamedFunc photon_drmax;
+
+  //relative pt uncertainty of lead photon for kingscanyon_v0 productions and earlier
+  extern const NamedFunc photon_relpterr_deathvalley;
+
+  //relative pt uncertainty of lead photon
+  extern const NamedFunc photon_relpterr;
+
+  //if photon is also a signal electron
+  extern const NamedFunc photon_sigel;
 
   //lead lepton eta (=lep_eta[0], but this isn't saved in slims =( )
   //only works for 2 lepton events
@@ -79,6 +139,14 @@ namespace ZgFunctions {
   
   NamedFunc add_cut(NamedFunc & current_cut, NamedFunc additional_cut);
 
+  //maximum lepton mini isolation
+  extern const NamedFunc max_lep_miniso;
+
+  //vector of whether GenParticles are the first copy
+  extern const NamedFunc mc_isFirstCopy;
+
+  //vector mother PDGID of mother of GenParticle
+  extern const NamedFunc mc_mommom;
 }
 
 #endif

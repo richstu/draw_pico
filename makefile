@@ -30,17 +30,14 @@ BABY_INCS := $(addprefix $(INCDIR)/core/baby_, $(addsuffix .hpp, $(BABY_TYPES)))
 BABY_OBJS := $(addprefix $(OBJDIR)/core/baby_, $(addsuffix .o, $(BABY_TYPES)))
 BABY_DEPS := $(addprefix $(MAKEDIR)/core/baby_, $(addsuffix .d, $(BABY_TYPES)))
 
-REFLEXES := RooMultiPdf
-
 FILTER_OUT = $(foreach v,$(2),$(if $(findstring $(1),$(v)),,$(v)))
 
 HEADERS := $(call FILTER_OUT,.\#,$(shell find $(INCDIR) -name "*.hpp"))
 OBJSRCS := $(call FILTER_OUT,.\#,$(shell find $(SRCDIR) -name "*.cpp"))
 EXESRCS := $(call FILTER_OUT,.\#,$(shell find $(SRCDIR) -name "*.cxx"))
 ALLSRCS := $(OBJSRCS) $(EXESRCS)
-
 EXECUTABLES := $(subst $(SRCDIR),$(EXEDIR),$(subst .cxx,.exe,$(EXESRCS)))
-OBJECTS := $(subst $(SRCDIR),$(OBJDIR),$(subst .cpp,.o,$(OBJSRCS))) $(OBJDIR)/core/baby.o $(BABY_OBJS) $(OBJDIR)/core/$(REFLEXES)_dict.o
+OBJECTS := $(subst $(SRCDIR),$(OBJDIR),$(subst .cpp,.o,$(OBJSRCS))) $(OBJDIR)/core/baby.o $(BABY_OBJS)
 DEPFILES := $(subst $(SRCDIR),$(MAKEDIR),$(subst .cpp,.d,$(subst .cxx,.d,$(ALLSRCS))))
 
 PRINT_FUNC = echo -e "\e[34;1m$(1):\e[0m $($(1))"
@@ -90,12 +87,6 @@ $(BABY_SRCS) $(BABY_INCS) $(SRCDIR)/core/baby.cpp $(INCDIR)/core/baby.hpp: dummy
 dummy_baby.all: $(EXEDIR)/core/generate_baby.exe $(BABY_FILES) $(BABYDIR)
 	rm -f src/core/baby*.cpp inc/core/baby*.hpp bin/core/baby*.o bin/core/baby*.d
 	./$< $(BABY_TYPES)
-
-$(MAKEDIR)/core/$(REFLEXES)_dict.cpp $(MAKEDIR)/core/$(REFLEXES)_dict_rdict.pcm: $(INCDIR)/core/$(REFLEXES).hpp
-	cd inc/ && genreflex core/$(REFLEXES).hpp -o ../$(MAKEDIR)/core/$(REFLEXES)_dict.cpp && cd -
-
-$(OBJDIR)/core/$(REFLEXES)_dict.o: $(MAKEDIR)/core/$(REFLEXES)_dict.cpp
-	$(COMPILEREFLEX)
 
 include $(DEPFILES) $(BABY_DEPS)
 

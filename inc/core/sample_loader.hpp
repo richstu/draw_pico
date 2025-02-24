@@ -33,9 +33,18 @@ public:
   SampleLoader & ParseFile(const std::string &file_name, 
                            const std::string &config_name);
   SampleLoader & Verbose(const bool verbose);
-  std::vector<std::shared_ptr<Process>> GetSamples();
+  std::vector<std::shared_ptr<Process>> GetSamples(
+      const std::set<Process::Type> types={Process::Type::data, 
+      Process::Type::background, Process::Type::signal});
 
   std::vector<std::shared_ptr<Process>> LoadSamples(
+                           const std::string &file_name, 
+                           const std::string &config_name,
+                           const std::set<Process::Type> types
+                           ={Process::Type::data, Process::Type::background, 
+                           Process::Type::signal});
+
+  std::vector<std::shared_ptr<Process>> LoadMCSamples(
                            const std::string &file_name, 
                            const std::string &config_name);
 

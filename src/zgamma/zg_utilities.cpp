@@ -1,11 +1,25 @@
 #include "zgamma/zg_utilities.hpp"
 
 #include <algorithm>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
 #include <stdlib.h>
 #include <regex>
 #include <vector>
+
+#include "RooAbsPdf.h"
+#include "RooArgList.h"
+#include "RooArgSet.h"
+#include "RooFFTConvPdf.h"
+#include "RooGenericPdf.h"
+#include "RooRealVar.h"
+
 #include "core/baby.hpp"
+#include "core/mva_wrapper.hpp"
 #include "core/palette.hpp"
+#include "core/process.hpp"
 #include "core/sample_loader.hpp"
 #include "core/utilities.hpp"
 #include "zgamma/zg_functions.hpp"
@@ -402,6 +416,193 @@ namespace ZgUtilities {
     return std::max(dr1, dr2);
   }
 
+  // Returns 4-momentum of q1 (quark from gluon-gluon fusion)
+  //  Defined in Equation 4
+  TLorentzVector get_q1(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
+    TVector3 htran = llg_p4.BoostVector();
+    htran.SetZ(0);
+    llg_p4.Boost(-1*htran);
+    double pz, E;
+    pz = llg_p4.Pz() + llg_p4.E();
+    E  = llg_p4.E()  + llg_p4.Pz();
+    TLorentzVector k1;
+    k1.SetPxPyPzE(0,0,pz/2,E/2);
+    k1.Boost(htran);
+    return k1;
+  }
+  
+  // Returns 4-momentum of q2 (quark from gluon-gluon fusion)
+  //  Defined in Equation 5
+  TLorentzVector get_q2(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
+    TVector3 htran = llg_p4.BoostVector();
+    htran.SetZ(0);
+    llg_p4.Boost(-1*htran);
+    double pz, E;
+    pz = llg_p4.Pz() - llg_p4.E();
+    E  = llg_p4.E()  - llg_p4.Pz();
+    TLorentzVector k2;
+    k2.SetPxPyPzE(0,0,pz/2,E/2);
+    k2.Boost(htran);
+    return k2;
+  }
+  
+  // Returns magnitude of Z candidate 3-momentum 
+  //  Defined in Equation 7
+  double get_lambdaZ(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector ll_p4 = lep_minus + lep_plus;
+    TLorentzVector llg_p4 = ll_p4 + gamma;
+    return sqrt(pow(llg_p4.Dot(ll_p4)/llg_p4.M(),2)-pow(ll_p4.M(),2));
+  }
+
+  // Cosine of angle between incoming quarks and outgoing Zs in higgs frame 
+  //  Defined in Equation 8
+  double get_cosTheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector ll_p4 = lep_minus + lep_plus;
+    TLorentzVector llg_p4 = ll_p4 + gamma;
+    TLorentzVector q1_p4 = get_q1(lep_minus, lep_plus, gamma);
+    TLorentzVector q2_p4 = get_q2(lep_minus, lep_plus, gamma);
+    double lambdaZ = get_lambdaZ(lep_minus, lep_plus, gamma);
+    double cosTheta = ll_p4.Dot(q2_p4-q1_p4)/(llg_p4.M()*lambdaZ);
+    if(abs(cosTheta) > 1.01) std::cout << "ERROR: cTheta = " << cosTheta <<  std::endl;
+    return cosTheta;
+  }
+  
+  // Cosine of angle between lepton 1 and parent Z in Higgs frame 
+  //  Defined in Equation 13
+  double get_costheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
+    double lambdaZ = get_lambdaZ(lep_minus, lep_plus, gamma);
+    double ctheta = llg_p4.Dot(lep_plus-lep_minus)/(llg_p4.M()*lambdaZ);
+    if(ctheta > 1) ctheta = 0.999;
+    if(ctheta <-1) ctheta = -0.999;
+    return ctheta;
+  }
+  
+  // Angle of the Z decay plane from the z-axis (defined in Equation 1) in the higgs frame
+  //  Defined in Equation 21+22
+  double get_phi(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
+    TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
+    TLorentzVector q1_p4 = get_q1(lep_minus, lep_plus, gamma);
+    TLorentzVector l1_p4 = lep_minus;
+    TLorentzVector l2_p4 = lep_plus;
+    TLorentzVector ll_p4 = lep_minus + lep_plus;
+  
+    // Boost l1, l2, q1, ll to llg frame
+    TVector3 llgBoost = llg_p4.BoostVector();
+    l1_p4.Boost(-1*llgBoost);
+    l2_p4.Boost(-1*llgBoost);
+    q1_p4.Boost(-1*llgBoost);
+    ll_p4.Boost(-1*llgBoost);
+  
+    TVector3 l1_p3 = l1_p4.Vect();
+    TVector3 l2_p3 = l2_p4.Vect();
+    TVector3 q1_p3 = q1_p4.Vect();
+    TVector3 ll_p3  = ll_p4.Vect();
+  
+    double sinTheta = sqrt(1-pow(get_cosTheta(lep_minus, lep_plus, gamma),2));
+    double cosphi, sinphi;
+    cosphi = -1*l1_p3.Cross(l2_p3).Dot(q1_p3.Cross(ll_p3))/l1_p3.Cross(l2_p3).Mag()/q1_p3.Cross(ll_p3).Mag();
+    sinphi = -1*l1_p3.Cross(l2_p3).Dot(q1_p3)/l1_p3.Cross(l2_p3).Mag()/q1_p3.Mag()/sinTheta;
+    double phi(0);
+    if(abs(cosphi) > 1.01) std::cout << "ERROR: cphi = " << cosphi <<  std::endl;
+    if(cosphi > 1) cosphi = 1;
+    if(cosphi < -1) cosphi = -1;
+    if(sinphi < 0) phi = -1*acos(cosphi);
+    else           phi = acos(cosphi);
+    if (phi < 0) phi += 2*TMath::Pi();
+    return phi;
+  }
+
+  //returns working version of kinematic BDT
+  std::shared_ptr<MVAWrapper> KinematicBdt() {
+    std::shared_ptr<MVAWrapper> kin_bdt_reader = std::make_shared<MVAWrapper>("kinematic_bdt");
+    kin_bdt_reader->SetVariable("photon_mva","photon_idmva[0]");
+    kin_bdt_reader->SetVariable("min_dR","photon_drmin[0]");
+    kin_bdt_reader->SetVariable("max_dR","photon_drmax[0]");
+    kin_bdt_reader->SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
+    kin_bdt_reader->SetVariable("cosTheta","llphoton_cosTheta[0]");
+    kin_bdt_reader->SetVariable("costheta","llphoton_costheta[0]");
+    kin_bdt_reader->SetVariable("phi","llphoton_psi[0]");
+    kin_bdt_reader->SetVariable("photon_res",ZgFunctions::photon_relpterr);
+    kin_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
+    kin_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
+    kin_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
+    kin_bdt_reader->BookMVA("/homes/oshiro/public_weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
+    return kin_bdt_reader;
+  }
+
+  //returns NamedFunc that selects low BDT score category "ggF/untagged 4"
+  NamedFunc category_ggh4(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+    NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
+    return (kinematic_bdt_score>-0.1&&kinematic_bdt_score<0.04);
+  }
+
+  //returns NamedFunc that selects medium BDT score category "ggF/untagged 3"
+  NamedFunc category_ggh3(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+    NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
+    return (kinematic_bdt_score>0.04&&kinematic_bdt_score<0.16);
+  }
+
+  //returns NamedFunc that selects high BDT score category "ggF/untagged 2"
+  NamedFunc category_ggh2(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+    NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
+    return (kinematic_bdt_score>0.16&&kinematic_bdt_score<0.26);
+  }
+
+  //returns NamedFunc that selects very high BDT score category "ggF/untagged 1"
+  NamedFunc category_ggh1(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+    NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
+    return (kinematic_bdt_score>0.26);
+  }
+
+  //returns working version of dijet BDT
+  std::shared_ptr<MVAWrapper> VbfBdt() {
+    std::shared_ptr<MVAWrapper> vbf_bdt_reader = std::make_shared<MVAWrapper>("vbf_bdt");
+    vbf_bdt_reader->SetVariable("photon_mva","photon_idmva[0]");
+    vbf_bdt_reader->SetVariable("min_dR","photon_drmin[0]");
+    vbf_bdt_reader->SetVariable("max_dR","photon_drmax[0]");
+    vbf_bdt_reader->SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
+    vbf_bdt_reader->SetVariable("cosTheta","llphoton_cosTheta[0]");
+    vbf_bdt_reader->SetVariable("costheta","llphoton_costheta[0]");
+    vbf_bdt_reader->SetVariable("phi","llphoton_psi[0]");
+    vbf_bdt_reader->SetVariable("photon_res",ZgFunctions::photon_relpterr);
+    vbf_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
+    vbf_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
+    vbf_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
+    vbf_bdt_reader->SetVariable("detajj","dijet_deta");
+    vbf_bdt_reader->SetVariable("dphizgjj","llphoton_dijet_dphi[0]");
+    vbf_bdt_reader->SetVariable("zgjj_balance","llphoton_dijet_balance[0]");
+    vbf_bdt_reader->SetVariable("ptt","llphoton_pTt[0]");
+    vbf_bdt_reader->SetVariable("dphijj","dijet_dphi");
+    vbf_bdt_reader->SetVariable("zeppenfeld","photon_zeppenfeld[0]");
+    vbf_bdt_reader->SetVariable("ptj2",ZgFunctions::lead_jet_pt);
+    vbf_bdt_reader->SetVariable("ptj1",ZgFunctions::sublead_jet_pt);
+    vbf_bdt_reader->SetVariable("drgj","photon_jet_mindr[0]");
+    vbf_bdt_reader->BookMVA("/homes/oshiro/public_weights/shuffled_dijet_BDT.weights.xml");
+    return vbf_bdt_reader;
+  }
+
+  //returns NamedFunc that selects high BDT score VBF category "VBF/dijet 1"
+  NamedFunc category_vbf1(std::shared_ptr<MVAWrapper> vbf_bdt) {
+    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
+    return (vbf_bdt_score>0.14);
+  }
+
+  //returns NamedFunc that selects medium BDT score VBF category "VBF/dijet 2"
+  NamedFunc category_vbf2(std::shared_ptr<MVAWrapper> vbf_bdt) {
+    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
+    return (vbf_bdt_score>0.06&&vbf_bdt_score<0.14);
+  }
+
+  //returns NamedFunc that selects low BDT score VBF category "VBF/dijet 3"
+  NamedFunc category_vbf3(std::shared_ptr<MVAWrapper> vbf_bdt) {
+    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
+    return (vbf_bdt_score<0.06);
+  }
+
+  //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader() {
     SampleLoader zg_sample_loader;
     zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton",ZgFunctions::HLT_pass_dilepton);
@@ -409,7 +610,17 @@ namespace ZgUtilities {
     zg_sample_loader.LoadNamedFunc("HLT_pass_dilepton&&stitch",ZgFunctions::HLT_pass_dilepton&&ZgFunctions::stitch);
     zg_sample_loader.LoadNamedFunc("(HLT_pass_dilepton||HLT_pass_singlelepton)&&stitch",
         (ZgFunctions::HLT_pass_dilepton||ZgFunctions::HLT_pass_singlelepton)&&ZgFunctions::stitch);
-    zg_sample_loader.LoadPalette("txt/colors_zgamma.txt","default");
+    zg_sample_loader.LoadNamedFunc("hzg_elchannel",ZgFunctions::Ztoee);
+    zg_sample_loader.LoadNamedFunc("hzg_muchannel",ZgFunctions::ZtoMuMu);
+    //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isjet",
+    //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isjet);
+    //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isother",
+    //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isother);
+    //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isisr",
+    //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isisr);
+    //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isfsr",
+    //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isfsr);
+    zg_sample_loader.LoadPalette("txt/colors_zgamma_official.txt","default");
     return zg_sample_loader;
   }
   
@@ -428,26 +639,27 @@ namespace ZgUtilities {
   }
 
 
-  //0 is untagged, 1 is loose, 2 is medium, 3 is tight
-  int get_btag_wp_deepjet(int year, float discriminator_value) {
-    if (abs(year)==2016) {
-      if (discriminator_value > 0.7221) return 3;
-      else if (discriminator_value > 0.3093) return 2;
-      else if (discriminator_value > 0.0614) return 1;
+  const std::map<std::string, std::vector<float>> btag_df_wpts{
+      {"2016APV", std::vector<float>({0.0508, 0.2598, 0.6502})},
+      {"2016", std::vector<float>({0.0480, 0.2489, 0.6377})},
+      {"2017", std::vector<float>({0.0532, 0.3040, 0.7476})},
+      {"2018", std::vector<float>({0.0490, 0.2783, 0.7100})},
+      {"2022", std::vector<float>({0.0583, 0.3086, 0.7183})},
+      {"2022EE", std::vector<float>({0.0614, 0.3196, 0.73})},
+      {"2023", std::vector<float>({0.0479, 0.2431, 0.6553})},
+      {"2023BPix", std::vector<float>({0.048, 0.2435, 0.6563})}
+      };
+
+  //returns WP. 1 is loose, 2 is medium, 3 is tight
+  float get_btag_wp_deepjet(const std::string& year, int wp) {
+    if (wp<1 || wp>3)
       return 0;
+    std::string year_clean(year);
+    if (year_clean[0]=='-') {
+      year_clean = year_clean.substr(1, string::npos);
     }
-    else if (abs(year)==2017) {
-      if (discriminator_value > 0.7489) return 3;
-      else if (discriminator_value > 0.3033) return 2;
-      else if (discriminator_value > 0.0521) return 1;
-      return 0;
-    }
-    else if (abs(year)==2018) {
-      if (discriminator_value > 0.7264) return 3;
-      else if (discriminator_value > 0.2770) return 2;
-      else if (discriminator_value > 0.0494) return 1;
-      return 0;
-    }
+    if (btag_df_wpts.count(year_clean)>0)
+      return btag_df_wpts.at(year_clean).at(wp-1);
     return 0;
   }
 
@@ -722,6 +934,13 @@ namespace ZgUtilities {
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     delete kinZfitter;
     return reFit;
+  }
+
+  //sets all processes to background, useful for making colz 2D plots of data
+  void SetProcessesBackground(std::vector<std::shared_ptr<Process>> &processes) {
+    for (std::shared_ptr<Process> process : processes) {
+      process->type_ = Process::Type::background;
+    }
   }
 
 }

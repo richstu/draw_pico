@@ -7,6 +7,9 @@
  ttg      189  31   1
  ttx      148 164 162
  vv       131  45 182
+ zgfsr    204 153 254
+ dyel     254 114   0
+ dyother  254 227  86
  fakelep    9 186   1
  tthzg    193   0 255
  zhzg       0 255 166
