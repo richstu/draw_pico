@@ -22,6 +22,22 @@ namespace NamedFuncUtilities {
   NamedFunc MultiReduceNamedFunc(std::vector<NamedFunc> vector_named_func, 
       std::function<double(std::vector<std::vector<double>>)> reduce_function);
 
+  //Turns a vector<NamedFunc> into one usable for a cutflow table
+  std::vector<NamedFunc> progressive_cuts(std::vector<NamedFunc> vector_NamedFunc);
+
+  //This function adds all selections and reverses the selection at reverse
+  NamedFunc Nreverse1(std::vector<NamedFunc> vector_NamedFunc, unsigned int reverse);
+
+  //Returns a NamedFunc replacing one selection (marked by skip)
+  NamedFunc Nreplace1(std::vector<NamedFunc> vector_NamedFunc, NamedFunc replace, unsigned int skip);
+
+  //Returns a NamedFunc with all but one selection (marked by skip)
+  NamedFunc Nminus1(std::vector<NamedFunc> vector_NamedFunc, unsigned int skip);
+
+  //Returns a NamedFunc without all selections in the vector skip
+  NamedFunc Nminusk(std::vector<NamedFunc> vector_NamedFunc, std::vector<unsigned int> skip);
+
+
   //get the sum of a vector
   double reduce_sum(std::vector<double> data);
 

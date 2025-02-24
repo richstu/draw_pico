@@ -16,6 +16,7 @@
 #include "core/table_row.hpp"
 #include "core/hist1d.hpp"
 #include "core/utilities.hpp"
+#include "core/named_func_utilities.hpp"
 #include "core/plot_opt.hpp"
 #include "core/hist1d.hpp"
 #include "core/hist2d.hpp"
@@ -24,6 +25,7 @@
 #include "zgamma/categorization_utilities.hpp"
 #include "zgamma/controlregion_utilities.hpp"
 
+using namespace NamedFuncUtilities;
 using namespace ZgUtilities;
 using namespace CatUtilities;
 using namespace ZgFunctions;
@@ -40,58 +42,6 @@ namespace CRUtilities{
 
     return era; 
   }
-
-
-  //Turns a vector<NamedFunc> into one usable for a cutflow table
-  std::vector<NamedFunc> progressive_cuts(std::vector<NamedFunc> vector_NamedFunc){
-    for(unsigned int idx = 1; idx<vector_NamedFunc.size(); idx++){ vector_NamedFunc[idx] = vector_NamedFunc[idx-1] && vector_NamedFunc[idx];}
-    return vector_NamedFunc;
-  }
-
-  //This function adds all selections and reverses the selection at reverse
-  NamedFunc Nreverse1(std::vector<NamedFunc> vector_NamedFunc, unsigned int reverse){
-    NamedFunc return_NamedFunc = "1";
-    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
-      if(idx==reverse){return_NamedFunc = return_NamedFunc && !(vector_NamedFunc[idx]); continue;}  
-      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
-    }
-    return return_NamedFunc;
-  }
-
-  //Returns a NamedFunc replacing one selection (marked by skip)
-  NamedFunc Nreplace1(std::vector<NamedFunc> vector_NamedFunc, NamedFunc replace, unsigned int skip){
-    NamedFunc return_NamedFunc = "1";//vector_NamedFunc[start];
-    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
-      if(idx==skip){return_NamedFunc = return_NamedFunc && replace; continue;}  
-      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
-    }
-    return return_NamedFunc;
-  }
-
-  //Returns a NamedFunc with all but one selection (marked by skip)
-  NamedFunc Nminus1(std::vector<NamedFunc> vector_NamedFunc, unsigned int skip){
-//    NamedFunc return_NamedFunc = "1";
-//    unsigned int start = skip!=0 ?  0 : 1;
-    NamedFunc return_NamedFunc = "1";//vector_NamedFunc[start];
-    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
-      if(idx==skip){continue;}  
-      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
-    }
-    return return_NamedFunc;
-  }
-
-
-  //Returns a NamedFunc without all selections in the vector skip
-  NamedFunc Nminusk(std::vector<NamedFunc> vector_NamedFunc, std::vector<unsigned int> skip){
-    unsigned int idx_s = 0;
-    NamedFunc return_NamedFunc = "1";
-    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
-      if(idx_s < skip.size() && idx==skip[idx_s]){idx_s++; continue;}  
-      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
-    }
-    return return_NamedFunc;
-  }
-
 
   const NamedFunc hasNanoPhoton("hasNanoPhoton",[](const Baby &b) -> NamedFunc::ScalarType{ return b.photon_pt() -> size() > 0; });
   const NamedFunc hasNll("hasNll",[](const Baby &b) -> NamedFunc::ScalarType{ return b.nll() > 0; });
@@ -345,7 +295,7 @@ std::tuple<std::vector<NamedFunc>,std::vector<std::string>> create_control_regio
         //Check if control_region_key matches that one selection was reversed
         if(category_specific_control_regions_whbs[control_region_key] > -1){
           control_region_selection = controlregions_vec[idx_cr] && CatUtilities::run3_category_vector[category];
-          control_region_selection = control_region_selection && ZgFunctions::Nminus1(categories_selections_vector[category],category_specific_control_regions_whbs[control_region_key]);
+          control_region_selection = control_region_selection && NamedFuncUtilities::Nminus1(categories_selections_vector[category],category_specific_control_regions_whbs[control_region_key]);
         }
 
         //Properly sets the additions to the control region for each selection

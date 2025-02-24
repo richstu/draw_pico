@@ -71,6 +71,55 @@ namespace NamedFuncUtilities {
     });
   }
 
+  //Turns a vector<NamedFunc> into one usable for a cutflow table
+  std::vector<NamedFunc> progressive_cuts(std::vector<NamedFunc> vector_NamedFunc){
+    for(unsigned int idx = 1; idx<vector_NamedFunc.size(); idx++){ vector_NamedFunc[idx] = vector_NamedFunc[idx-1] && vector_NamedFunc[idx];}
+    return vector_NamedFunc;
+  }
+
+  //This function adds all selections and reverses the selection at reverse
+  NamedFunc Nreverse1(std::vector<NamedFunc> vector_NamedFunc, unsigned int reverse){
+    NamedFunc return_NamedFunc = "1";
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==reverse){return_NamedFunc = return_NamedFunc && !(vector_NamedFunc[idx]); continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+  //Returns a NamedFunc replacing one selection (marked by skip)
+  NamedFunc Nreplace1(std::vector<NamedFunc> vector_NamedFunc, NamedFunc replace, unsigned int skip){
+    NamedFunc return_NamedFunc = "1";//vector_NamedFunc[start];
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==skip){return_NamedFunc = return_NamedFunc && replace; continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+  //Returns a NamedFunc with all but one selection (marked by skip)
+  NamedFunc Nminus1(std::vector<NamedFunc> vector_NamedFunc, unsigned int skip){
+//    NamedFunc return_NamedFunc = "1";
+//    unsigned int start = skip!=0 ?  0 : 1;
+    NamedFunc return_NamedFunc = "1";//vector_NamedFunc[start];
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx==skip){continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
+  //Returns a NamedFunc without all selections in the vector skip
+  NamedFunc Nminusk(std::vector<NamedFunc> vector_NamedFunc, std::vector<unsigned int> skip){
+    unsigned int idx_s = 0;
+    NamedFunc return_NamedFunc = "1";
+    for(unsigned int idx = 0; idx<vector_NamedFunc.size(); idx++){
+      if(idx_s < skip.size() && idx==skip[idx_s]){idx_s++; continue;}  
+      return_NamedFunc = return_NamedFunc && vector_NamedFunc[idx];
+    }
+    return return_NamedFunc;
+  }
+
   //get the sum of a vector
   double reduce_sum(std::vector<double> data) {
     double sum = 0;

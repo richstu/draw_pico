@@ -12,6 +12,7 @@
 #include "core/baby.hpp"
 #include "core/process.hpp"
 #include "core/named_func.hpp"
+#include "core/named_func_utilities.hpp"
 #include "core/plot_maker.hpp"
 #include "core/plot_opt.hpp"
 #include "core/palette.hpp"
@@ -67,7 +68,7 @@ int main() {
   vector<shared_ptr<Process>> procs = ZgUtilities::procs_with_sig_scale("txt/samples_zgamma_lassen.txt", "SignalSplit", 1); 
 
   //These are all the selections used as a part of the baseline selection from the zg_functions.cpp file
-  NamedFunc baseline = Nminusk(ZgFunctions::vector_tightened_baseline,{5}) && "ll_lepid[0]==13";
+  NamedFunc baseline = NamedFuncUtilities::Nminusk(ZgFunctions::vector_tightened_baseline,{5}) && "ll_lepid[0]==13";
 
   //This block of code handles all of the plot making
   PlotMaker pm;

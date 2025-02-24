@@ -110,12 +110,6 @@ namespace ZgFunctions {
   //pT/m of Higgs candidate
   extern const NamedFunc llphoton_rel_pt;
 
-  std::vector<NamedFunc> progressive_cuts(std::vector<NamedFunc> vector_NamedFunc);
-  NamedFunc Nreverse1(std::vector<NamedFunc> vector_NamedFunc, unsigned int reverse);
-  NamedFunc Nreplace1(std::vector<NamedFunc> vector_NamedFunc, NamedFunc replace, unsigned int skip);
-  NamedFunc Nminus1(  std::vector<NamedFunc> vector_NamedFunc, unsigned int skip);
-  NamedFunc Nminusk(  std::vector<NamedFunc> vector_NamedFunc, std::vector<unsigned int> skip);
-
   //This is a vector that gives the individual selections in the baseline selection
   extern const NamedFunc pass_trigs;
 
