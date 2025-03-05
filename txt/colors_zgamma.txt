@@ -1,13 +1,24 @@
 [default]
  data       0   0   0
- zgtollg   22 186 197
+ zgtollg   63 144 218
+ dyjets   255 169  14
+ tt       231  99   0
+ vbszg    144 218 221
+ ttg      169 107  89
+ ttx      148 164 162
+ vv       131  45 182
  zgfsr    204 153 254
- dyjets   255 180   0
  dyel     254 114   0
  dyother  254 227  86
- tt       255 102   0
- vbszg     51 153 255
- ttg      255 163 102
- ttx      255 158 195
- vv        85   0 255
  fakelep    9 186   1
+ tthzg    193   0 255
+ zhzg       0 255 166
+ vhzg      65  85 255
+ vbfzg     36 198   0
+ blue       0   0 255
+ red      255   0   0
+ htomumu  255   0 172
+ htogg    221 255   5   
+ htott      7 208   2
+ htoWW      1  22 255
+ htoZZ    255 177   0 

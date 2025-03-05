@@ -54,7 +54,6 @@ using NamedFuncUtilities::FilterNamedFunc;
 using NamedFuncUtilities::MapNamedFunc;
 using NamedFuncUtilities::MultiReduceNamedFunc;
 using NamedFuncUtilities::ReduceNamedFunc;
-using ZgFunctions::llphoton_pttmod;
 using ZgFunctions::max_lep_miniso;
 using ZgFunctions::trig_plateau_cuts;
 using ZgFunctions::photon_relpterr;

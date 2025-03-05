@@ -18,18 +18,12 @@
 #include "core/table.hpp"
 #include "core/hist1d.hpp"
 #include "core/utilities.hpp"
+#include "core/named_func_utilities.hpp"
 #include "zgamma/zg_utilities.hpp"
+
 using namespace std;
 using namespace PlotOptTypes;
 using namespace ZgUtilities;
-
-NamedFunc NminusOne(vector<NamedFunc> cuts, int i) {
-  NamedFunc total("1");
-  for(int j(0); j < static_cast<int>(cuts.size()); j++) 
-    if(j != i)
-      total = total && cuts.at(j);
-  return total;
-}
 
 bool checkBit(int i, int n) {
   return((i%static_cast<int>(pow(2,n+1)))/static_cast<int>(pow(2,n)));
@@ -238,11 +232,11 @@ int main() {
 //     pm.Push<Hist1D>(Axis(4,-0.5,3.5,"nmu",                       "N_{#mu}",                    {}), selection, procs, ops).Weight(wgt);
 //     selection = lep.at(i) && baseline;
 // //     pm.Push<Hist1D>(Axis(40,0,1,   "photon_idmva[0]", "Leading #gamma p_{T}",       {}), selection, procs, ops).Weight(wgt);
-//     pm.Push<Hist1D>(Axis(25,50,300, "llphoton_m[0]+ll_m[0]",     "m_{ll#gamma}+m_{ll} [GeV]",{185}),     selection && NminusOne(cut,0), procs, ops).Weight(wgt).Tag("NM1");
-//     pm.Push<Hist1D>(Axis(20,50,250, "llphoton_m[0]",             "m_{ll#gamma} [GeV]",       {100,180}), selection && NminusOne(cut,1), procs, ops).Weight(wgt).Tag("NM1");
-//     pm.Push<Hist1D>(Axis(40,0,2,    "photon_pt[0]/llphoton_m[0]","p_{T,#gamma}/m_{ll#gamma}",{0.136}),   selection && NminusOne(cut,2), procs, ops).Weight(wgt).Tag("NM1");
-//     pm.Push<Hist1D>(Axis(20,0.05,2.05,"photon_drmin[0]",           "Min #DeltaR(#gamma,l)[0]",    {0.4}),  selection && NminusOne(cut,3), procs, ops).Weight(wgt).Tag("NM1");
-//     pm.Push<Hist1D>(Axis(40,0.05,4.05,"photon_drmin[0]",           "Min #DeltaR(#gamma,l)[0]",    {0.4}),  selection && NminusOne(cut,3), procs, ops).Weight(wgt).Tag("NM1-bin");
+//     pm.Push<Hist1D>(Axis(25,50,300, "llphoton_m[0]+ll_m[0]",     "m_{ll#gamma}+m_{ll} [GeV]",{185}),     selection && NamedFuncUtilities::Nminus1(cut,0), procs, ops).Weight(wgt).Tag("NM1");
+//     pm.Push<Hist1D>(Axis(20,50,250, "llphoton_m[0]",             "m_{ll#gamma} [GeV]",       {100,180}), selection && NamedFuncUtilities::Nminus1(cut,1), procs, ops).Weight(wgt).Tag("NM1");
+//     pm.Push<Hist1D>(Axis(40,0,2,    "photon_pt[0]/llphoton_m[0]","p_{T,#gamma}/m_{ll#gamma}",{0.136}),   selection && NamedFuncUtilities::Nminus1(cut,2), procs, ops).Weight(wgt).Tag("NM1");
+//     pm.Push<Hist1D>(Axis(20,0.05,2.05,"photon_drmin[0]",           "Min #DeltaR(#gamma,l)[0]",    {0.4}),  selection && NamedFuncUtilities::Nminus1(cut,3), procs, ops).Weight(wgt).Tag("NM1");
+//     pm.Push<Hist1D>(Axis(40,0.05,4.05,"photon_drmin[0]",           "Min #DeltaR(#gamma,l)[0]",    {0.4}),  selection && NamedFuncUtilities::Nminus1(cut,3), procs, ops).Weight(wgt).Tag("NM1-bin");
   }
   pm.min_print_ = true;
   pm.MakePlots(35.9);

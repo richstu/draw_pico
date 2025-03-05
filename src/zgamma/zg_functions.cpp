@@ -65,6 +65,47 @@ namespace ZgFunctions {
   //isolated single lepton triggers for run 2
   const NamedFunc HLT_pass_singlelepton = HLT_pass_singleelectron||HLT_pass_singlemuon;
 
+  //Below two functions are those that check if the triggers/trigger pT cuts are passed
+  const NamedFunc pass_trigs = "trig_double_el||trig_double_mu||trig_single_el||trig_single_mu";
+  const NamedFunc pass_singlelepton_trigs_and_pt("pass_singlelepton_trigs_and_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+    bool pass_pt_sel = false;
+    if(b.trig_single_mu()){
+      if(!(b.SampleTypeString().Contains("2017")) && b.nmu()>0 && b.mu_pt() -> at(0) > 25){ pass_pt_sel = true; }
+      if(b.SampleTypeString().Contains("2017") && b.nmu()>0 && b.mu_pt() -> at(0) > 30){ pass_pt_sel = true; }
+    }
+    if(b.trig_single_el()){
+      if(!(b.SampleTypeString().Contains("2016")) && b.nel()>0 && b.el_pt() -> at(0) > 35){ pass_pt_sel = true; }
+      if(b.SampleTypeString().Contains("2016") && b.nel()>0 && b.el_pt() -> at(0) > 30){ pass_pt_sel = true; }
+    }
+    return pass_pt_sel;
+  });
+
+  const NamedFunc pass_singleelectron_trigs_and_pt("pass_singleelectron_trigs_and_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+    bool pass_pt_sel = false;
+    if(b.trig_single_el()){
+      if(!(b.SampleTypeString().Contains("2016")) && b.nel()>0 && b.el_pt() -> at(0) > 35){ pass_pt_sel = true; }
+      if(b.SampleTypeString().Contains("2016") && b.nel()>0 && b.el_pt() -> at(0) > 30){ pass_pt_sel = true; }
+    }
+    return pass_pt_sel;
+  });
+
+  const NamedFunc pass_singlemuon_trigs_and_pt("pass_singlemuon_trigs_and_pt",[](const Baby &b) -> NamedFunc::ScalarType{
+    bool pass_pt_sel = false;
+    if(b.trig_single_mu()){
+      if(!(b.SampleTypeString().Contains("2017")) && b.nmu()>0 && b.mu_pt() -> at(0) > 25){ pass_pt_sel = true; }
+      if(b.SampleTypeString().Contains("2017") && b.nmu()>0 && b.mu_pt() -> at(0) > 30){ pass_pt_sel = true; }
+    }
+    return pass_pt_sel;
+  });
+
+  const NamedFunc pass_dilepton_trigs_and_pt   = "(trig_double_mu && nmu > 1 && mu_pt[0] > 20 && mu_pt[1] > 10) || (trig_double_el && nel > 1 && el_pt[0] > 25 && el_pt[1] > 15)";
+  const NamedFunc pass_dielectron_trigs_and_pt = "(trig_double_el && nel > 1 && el_pt[0] > 25 && el_pt[1] > 15)";
+  const NamedFunc pass_dimuon_trigs_and_pt     = "(trig_double_mu && nmu > 1 && mu_pt[0] > 20 && mu_pt[1] > 10)";
+  const NamedFunc pass_trigs_and_pt    = pass_dilepton_trigs_and_pt || pass_singlelepton_trigs_and_pt;
+  const NamedFunc pass_el_trigs_and_pt = pass_dielectron_trigs_and_pt || pass_singleelectron_trigs_and_pt;
+  const NamedFunc pass_mu_trigs_and_pt = pass_dimuon_trigs_and_pt || pass_singlemuon_trigs_and_pt;
+
+
   //year integrated lumi weights
   const NamedFunc w_years("w_years", [](const Baby &b) -> NamedFunc::ScalarType{
     if (b.SampleTypeString().Contains("-")) 
@@ -78,24 +119,14 @@ namespace ZgFunctions {
     else if (b.SampleTypeString()=="2018")
       return 59.83;
     else if (b.SampleTypeString()=="2022")
-      return 8.17;
+      return 7.89;
     else if (b.SampleTypeString()=="2022EE")
-      return 27.01;
+      return 26.67;
     else if (b.SampleTypeString()=="2023")
       return 17.68;
     //else if (b.SampleTypeString()=="2023BPix")
     return 9.53;
   });
-
-  //year integrated lumi weights
-  //const NamedFunc w_years_noapv("w_years", [](const Baby &b) -> NamedFunc::ScalarType{
-  //  if (b.SampleType()<0) return 1.; //data
-  //  if (b.SampleType()==2016)
-  //    return 36.32264; 
-  //  else if (b.SampleType()==2017)
-  //    return 41.52756;
-  //  return 59.67377;
-  //});
 
   //Run 3 weight-up
   const NamedFunc w_run3("w_run3", [](const Baby &b) -> NamedFunc::ScalarType{
@@ -266,6 +297,7 @@ namespace ZgFunctions {
     return 1.0;
   });
 
+
   //drmax of lead photon
   const NamedFunc photon_drmax("photon_drmax",[](const Baby &b) -> NamedFunc::ScalarType{
     return ZgUtilities::pdrmax(b);
@@ -315,18 +347,65 @@ namespace ZgFunctions {
   //pT/m of Higgs candidate
   const NamedFunc llphoton_rel_pt = NamedFunc("llphoton_pt[0]/llphoton_m[0]").Name("llphoton_rel_pt");
 
+  const NamedFunc mlly("mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return ZgUtilities::AssignH(b).M(); });
+  const NamedFunc pTy_mlly("pTy_mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.photon_pt()->at(0))/(ZgUtilities::AssignH(b).M()); });
+  const NamedFunc mll_mlly("mll_mlly",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.ll_m() ->at(0)) + ZgUtilities::AssignH(b).M(); });
+
+  const NamedFunc mlly_refit("mlly_refit",[](const Baby &b) -> NamedFunc::ScalarType{ return b.llphoton_refit_m(); });
+  const NamedFunc pTy_mlly_refit("pTy_mlly_refit",[](const Baby &b) -> NamedFunc::ScalarType{ return (b.photon_pt()->at(0))/(b.llphoton_refit_m()); });
+  const NamedFunc mll_mlly_refit("mll_mlly_refit",[](const Baby &b) -> NamedFunc::ScalarType{ return b.ll_refit_m() + b.llphoton_refit_m(); });
+
+
+  //Below is the baseline used by HIG-19-014
+  const NamedFunc hig19014_baseline     = "nllphoton>0" && pass_trigs_and_pt && "ll_m[0] > 50 && photon_pt[0]/llphoton_m[0] > 15.0/110 && ll_m[0] + llphoton_m[0] > 185 && llphoton_m[0] > 100 && llphoton_m[0] < 180 && pass";
+
+  const NamedFunc tightened_baseline_pinnacles="(zg_cutBitMap==3582 || zg_cutBitMap==3583 || zg_cutBitMap==3070 || zg_cutBitMap==3071)";
+
+  //Below is the tightened baseline for lassen and earlier picos
+  const NamedFunc tightened_baseline= "nllphoton>0" && pass_trigs_and_pt && "photon_pt[0]/llphoton_m[0] > 15.0/110 && ll_m[0] > 80 && ll_m[0] < 100 && llphoton_m[0] > 100 && llphoton_m[0] < 180 && ll_m[0] + llphoton_m[0] > 185 && pass";
+  const NamedFunc tightened_baseline_refit_all_sels= "nllphoton>0" && pass_trigs_and_pt && "photon_pt[0]/llphoton_refit_m > 15.0/110 && ll_refit_m > 80 && ll_refit_m < 100 && llphoton_refit_m > 100 && llphoton_refit_m < 180 && ll_refit_m + llphoton_refit_m > 185 && pass";
+  const NamedFunc tightened_baseline_refit= "nllphoton>0" && pass_trigs_and_pt && "photon_pt[0]/llphoton_m[0] > 15.0/110 && ll_m[0] > 80 && ll_m[0] < 100 && llphoton_refit_m > 100 && llphoton_refit_m < 180 && ll_refit_m + llphoton_refit_m > 185 && pass";
+
+  const std::vector<NamedFunc> vector_tightened_baseline = {"pass && nll>0", pass_trigs_and_pt, "ll_m[0] > 50", "nphoton > 0",  pTy_mlly > 15.0/110, "ll_m[0] > 80 && ll_m[0] < 100",
+                                                            mlly > 100 && mlly < 180, mll_mlly > 185};
+  const std::vector<NamedFunc> vector_tightened_baseline_refit = {"nll>0", pass_trigs_and_pt, "ll_refit_m > 50", "nphoton > 0",  pTy_mlly_refit > 15.0/110,
+                                                                  "ll_refit_m > 80 && ll_refit_m < 100", mlly_refit > 100 && mlly_refit < 180, mll_mlly_refit > 185};
+  const std::vector<NamedFunc> vtb_refit = {"nll>0", pass_trigs_and_pt, "ll_m[0] > 50", "nphoton > 0",  pTy_mlly_refit > 15.0/110,
+                                                                  "ll_m[0] > 80 && ll_m[0] < 100", mlly_refit > 100 && mlly_refit < 180, mll_mlly_refit > 185};
+
+
+
+  const NamedFunc wgt("wgt",[](const Baby &b) -> NamedFunc::ScalarType{ 
+    if(b.SampleTypeString().Contains("-")) {
+      return 1;
+    }
+
+    double w_year = w_years.GetScalar(b);
+    if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
+    if(b.SampleType() > 2020){ return b.w_lumi()*w_year;}
+
+    return b.weight()*w_year;
+  });
+
+
+
+  const NamedFunc wgt_pin_fix("wgt_pin_fix",[](const Baby &b) -> NamedFunc::ScalarType{ 
+    if(b.SampleTypeString().Contains("-")) {
+      return 1;
+    }
+
+    double w_year = w_years.GetScalar(b);
+    if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
+    if( b.type()==17200 && b.SampleType()==2016){w_year = w_year/5.0;}
+    if(b.SampleType() > 2020){ return b.w_lumi()*w_year;}
+
+    return b.weight()*w_year;
+  });
+
   //OR of triggers used in H->Zgamma analysis
   const NamedFunc trig = NamedFunc("trig_single_el||trig_single_mu||trig_double_el||trig_double_mu")
                          .Name("trig");
 
-  //modified ptt variable
-  const NamedFunc llphoton_pttmod("llphoton_pttmod",[](const Baby &b) -> NamedFunc::ScalarType{
-    TVector3 zgamma, z, gamma;
-    gamma.SetPtEtaPhi(b.photon_pt()->at(0),b.photon_eta()->at(0),b.photon_phi()->at(0)); 
-    z.SetPtEtaPhi(b.ll_pt()->at(0),b.ll_eta()->at(0),b.ll_phi()->at(0)); 
-    zgamma = z+gamma;
-    return (zgamma.Cross(z-gamma)).Mag()/zgamma.Mag();
-  });
 
   //maximum lepton mini isolation
   const NamedFunc max_lep_miniso("max_lep_miniso",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -388,7 +467,6 @@ namespace ZgFunctions {
   });
 
 }
-
 
 
 

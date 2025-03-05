@@ -18,18 +18,11 @@
 #include "core/table.hpp"
 #include "core/hist1d.hpp"
 #include "core/utilities.hpp"
+#include "core/named_func_utilities.hpp"
 #include "zgamma/zg_utilities.hpp"
 using namespace std;
 using namespace PlotOptTypes;
 using namespace ZgUtilities;
-
-NamedFunc NminusOne(vector<NamedFunc> cuts, int i) {
-  NamedFunc total("1");
-  for(int j(0); j < static_cast<int>(cuts.size()); j++) 
-    if(j != i)
-      total = total && cuts.at(j);
-  return total;
-}
 
 bool checkBit(int i, int n) {
   return((i%static_cast<int>(pow(2,n+1)))/static_cast<int>(pow(2,n)));
@@ -104,13 +97,13 @@ int main() {
     pm.Push<Hist1D>(Axis(50,50,150, "ll_m[0]", "m_{ll} [GeV]",{80,100}),
                     selection, procs, ops).Weight(wgt);
     pm.Push<Hist1D>(Axis(60,100,400, "llphoton_m[0]+ll_m[0]", "m_{ll}+m_{ll#gamma} [GeV]",{185}),
-                    lep.at(i) && baseline && NminusOne(sig_sel,0), procs, ops).Weight(wgt);
+                    lep.at(i) && baseline && NamedFuncUtilities::Nminus1(sig_sel,0), procs, ops).Weight(wgt);
     pm.Push<Hist1D>(Axis(44,80,300, "llphoton_m[0]", "m_{ll#gamma} [GeV]",{100,180}),
-                    lep.at(i) && baseline && NminusOne(sig_sel,1), procs, ops).Weight(wgt);
+                    lep.at(i) && baseline && NamedFuncUtilities::Nminus1(sig_sel,1), procs, ops).Weight(wgt);
     pm.Push<Hist1D>(Axis(25,0,1, "photon_pt[0]/llphoton_m[0]", "p_{T,#gamma}/m_{ll#gamma}",{0.136}),
-                    lep.at(i) && baseline && NminusOne(sig_sel,2), procs, ops).Weight(wgt);
+                    lep.at(i) && baseline && NamedFuncUtilities::Nminus1(sig_sel,2), procs, ops).Weight(wgt);
     pm.Push<Hist1D>(Axis(20,0,2, "photon_drmin[0]", "#DeltaR_{min}(l,#gamma)",{0.4}),
-                    lep.at(i) && baseline && NminusOne(sig_sel,3), procs, ops).Weight(wgt);
+                    lep.at(i) && baseline && NamedFuncUtilities::Nminus1(sig_sel,3), procs, ops).Weight(wgt);
   }
   pm.min_print_ = true;
   pm.MakePlots(35.9);

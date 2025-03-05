@@ -887,9 +887,11 @@ void WriteBaseSource(const set<Variable> &vars){
 
   file << "int Baby::SetSampleType(const TString &filename){\n";
   file << "  int samp_type = 0;\n";
-  file << "  if(filename.Contains(\"2016\"))     samp_type = 2016;\n";
-  file << "  if(filename.Contains(\"2017\"))     samp_type = 2017;\n";
-  file << "  if(filename.Contains(\"2018\") && !filename.Contains(\"2017\"))     samp_type = 2018;\n";
+  file << "  if(filename.Contains(\"/2016\"))       samp_type = 2016;\n";
+  file << "  if(filename.Contains(\"/2017/\"))      samp_type = 2017;\n";
+  file << "  if(filename.Contains(\"/2018/\"))      samp_type = 2018;\n";
+  file << "  if(filename.Contains(\"/2022\"))       samp_type = 2022;\n";
+  file << "  if(filename.Contains(\"/2023\"))       samp_type = 2023;\n";
   file << "  // Ignore string left to pico\n";
   file << "  TString t_filename = filename;\n";
   file << "  //if(filename.Contains(\"data\"))     samp_type *= -1;\n";
@@ -910,12 +912,14 @@ void WriteBaseSource(const set<Variable> &vars){
 
   file << "TString Baby::SetSampleTypeString(const TString &filename){\n";
   file << "  TString samp_type;\n";
-  file << "  if(filename.Contains(\"2016\") && !filename.Contains(\"2016APV\"))     samp_type = \"2016\";\n";
-  file << "  if(filename.Contains(\"2016APV\"))     samp_type = \"2016APV\";\n";
-  file << "  if(filename.Contains(\"2017\"))     samp_type = \"2017\";\n";
-  file << "  if(filename.Contains(\"2018\") && !filename.Contains(\"2017\"))     samp_type = \"2018\";\n";
-  file << "  if(filename.Contains(\"2022\") && !filename.Contains(\"2022EE\"))     samp_type = \"2022\";\n";
-  file << "  if(filename.Contains(\"2022EE\"))     samp_type = \"2022EE\";\n";
+  file << "  if(filename.Contains(\"/2016/\"))        samp_type = \"2016\";\n";
+  file << "  if(filename.Contains(\"/2016APV/\"))     samp_type = \"2016APV\";\n";
+  file << "  if(filename.Contains(\"/2017/\"))        samp_type = \"2017\";\n";
+  file << "  if(filename.Contains(\"/2018/\"))        samp_type = \"2018\";\n";
+  file << "  if(filename.Contains(\"/2022/\"))        samp_type = \"2022\";\n";
+  file << "  if(filename.Contains(\"/2022EE/\"))      samp_type = \"2022EE\";\n";
+  file << "  if(filename.Contains(\"/2023/\"))        samp_type = \"2023\";\n";
+  file << "  if(filename.Contains(\"/2023BPix/\"))    samp_type = \"2023BPix\";\n";
   file << "  // Ignore string left to pico\n";
   file << "  TString t_filename = filename;\n";
   file << "  if(t_filename.Remove(0,t_filename.Index(\"/pico\")).Contains(\"data\"))     samp_type.Prepend(\"-\");\n";

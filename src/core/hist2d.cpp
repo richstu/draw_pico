@@ -171,6 +171,7 @@ void Hist2D::MakeOnePlot(const string &subdir){
     bkg_is_hist = true;
     break;
   case StackType::lumi_shapes:
+  case StackType::prop_shape_stack:
   case StackType::shapes:
     bkg_is_hist = false;
     break;

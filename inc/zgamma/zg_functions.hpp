@@ -110,8 +110,28 @@ namespace ZgFunctions {
   //pT/m of Higgs candidate
   extern const NamedFunc llphoton_rel_pt;
 
-  //modified ptt variable
-  extern const NamedFunc llphoton_pttmod;
+  //This is a vector that gives the individual selections in the baseline selection
+  extern const NamedFunc pass_trigs;
+
+  extern const NamedFunc pass_trigs_and_pt;
+  extern const std::vector<NamedFunc> vector_run2_baseline;
+  extern const std::vector<NamedFunc> vector_tightened_baseline;
+  extern const std::vector<NamedFunc> vtb_refit;
+
+  //Below is the baseline used by HIG-19-014
+  extern const NamedFunc hig19014_baseline;
+
+  //Below is the tightened baseline with the photon wp80 and the 80 GeV < mll < 100 GeV selection
+  extern const NamedFunc tightened_baseline;
+  extern const NamedFunc tightened_baseline_refit;
+  
+  extern const NamedFunc tightened_baseline_pinnacles;
+
+  //Below functions are related to weighting of samples or naming based off of weighting
+  extern const NamedFunc wgt;
+  extern const NamedFunc wgt_pin_fix;
+  
+  NamedFunc add_cut(NamedFunc & current_cut, NamedFunc additional_cut);
 
   //maximum lepton mini isolation
   extern const NamedFunc max_lep_miniso;

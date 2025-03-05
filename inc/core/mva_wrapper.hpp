@@ -21,6 +21,7 @@ public:
 
   //MVAWrapper SetWeightsFile(std::string filename);
   MVAWrapper & SetVariable(std::string name, NamedFunc variable);
+  MVAWrapper & SetSpectator(std::string name, NamedFunc variable);
   MVAWrapper & BookMVA(std::string weights_filename);
 
   NamedFunc GetDiscriminant();
@@ -32,6 +33,9 @@ private:
   std::vector<NamedFunc> variables_;
   std::vector<std::string> variable_names_;
   std::vector<Float_t> variable_values_;
+  std::vector<NamedFunc> spectators_;
+  std::vector<std::string>  spectator_names_;
+  std::vector<float> spectator_values_;
   TMVA::Reader mva_reader_;
   bool booked_;
   Long64_t previous_event_;

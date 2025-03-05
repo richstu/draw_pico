@@ -25,14 +25,6 @@ using namespace std;
 using namespace PlotOptTypes;
 using namespace ZgUtilities;
 
-NamedFunc NminusOne(vector<NamedFunc> cuts, int i) {
-  NamedFunc total("1");
-  for(int j(0); j < static_cast<int>(cuts.size()); j++) 
-    if(j != i)
-      total = total && cuts.at(j);
-  return total;
-}
-
 bool checkBit(int i, int n) {
   return((i%static_cast<int>(pow(2,n+1)))/static_cast<int>(pow(2,n)));
 }

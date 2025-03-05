@@ -34,6 +34,10 @@ float mt
 float mt_tru
 float ht_isr_me
 
+std::vector<float> met_nosmear
+std::vector<float> met_phi_nosmear
+
+
 ###################   Higgsinos   ##################
 std::vector<float> hig_cand_dm
 std::vector<float> hig_cand_am
@@ -82,6 +86,7 @@ std::vector<float> llphoton_dijet_dphi
 std::vector<float> llphoton_dijet_balance
 std::vector<float> llphoton_dijet_dr
 std::vector<float> llphoton_pTt
+std::vector<float> llphoton_pTt2
 std::vector<float> llphoton_pTt_an_hig019014
 
 float llphoton_refit_pt
@@ -102,6 +107,20 @@ float llphoton_refit_dijet_balance
 float llphoton_refit_dijet_dr
 float llphoton_refit_pTt
 float llphoton_refit_pTt_an_hig019014
+float llphoton_refit_costhj
+
+float ll_refit_m
+float ll_refit_pt
+float ll_refit_eta
+float ll_refit_phi
+
+bool trig_single_el
+bool trig_double_el
+bool trig_single_mu
+bool trig_double_mu
+
+int zg_cutBitMap 
+int zg_categorizationBitMap
 
 ###################   gammagamma   ##################
 int nphotonphoton
@@ -185,6 +204,8 @@ std::vector<float> jet_met_dphi
 std::vector<bool>  jet_h1d
 std::vector<bool>  jet_h2d
 std::vector<int>   jet_fjet_idx
+std::vector<float> jet_pt_nosmear
+std::vector<float> jet_m_nosmear
 
 int ngenjet
 std::vector<float> genjet_pt
@@ -368,6 +389,7 @@ std::vector<int>   photon_idCutBased
 std::vector<int>   photon_idCutBasedBitMap
 std::vector<bool>  photon_elveto
 std::vector<bool>  photon_sig
+std::vector<bool>  photon_pixelseed
 std::vector<int>   photon_elidx
 std::vector<bool>  photon_pixelseed
 std::vector<float> photon_jet_mindr
@@ -421,6 +443,11 @@ bool pass_ecalnoisejet
 bool pass_badcalib
 bool pass_boosted
 bool pass
+
+#Untested filters in picos
+bool pass_badpfmudz
+bool pass_hfnoisyhits
+
 
 ################  Truth   ##################
 std::vector<float> mc_pt
@@ -538,6 +565,9 @@ bool HLT_Ele15_IsoVVVL_PFHT400
 bool HLT_Ele15_IsoVVVL_PFHT450
 bool HLT_Ele15_IsoVVVL_PFHT600
 bool HLT_Ele50_IsoVVVL_PFHT450
+bool HLT_Ele32_WPTight_Gsf_Emu
+bool HLT_Ele30_WPTight_Gsf
+
 
 # MET triggers
 #------------------------------
@@ -702,3 +732,7 @@ std::vector<float> sys_met_phi
 std::vector<float> sys_hig_cand_am
 std::vector<float> sys_hig_cand_dm
 std::vector<float> sys_hig_cand_drmax
+std::vector<float> sys_jet_pt_jerup
+std::vector<float> sys_jet_pt_jerdn
+std::vector<float> sys_jet_pt_jesup
+std::vector<float> sys_jet_pt_jesdn

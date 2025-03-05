@@ -55,6 +55,41 @@ source set_env.sh
 ./compile.py or scons
 ~~~~
 
+### Plot options explanation
+
+StackType:
+- signal\_overlay: Background samples are stacked with each other, signals are stacked with each other and overlayed in front. Samples are scaled according to luminosity and cross section.
+- signal\_on\_top: Background samples are stacked with each other, signals are then stacked on top. Samples are scaled according to luminosity and cross section.
+- data\_norm: Signal and background samples are stacked with each other?? Samples are scaled according to integral of data. Data is plotted as dots.
+- lumi\_shapes: No samples are stacked. Samples are scaled according to luminosity and cross section.
+- shapes: No samples are stacked. Samples are all scaled to 1.
+- prop\_shape\_stack: Background samples are stacked with each other, signal samples are stacked with each other and overlayed. The sum of backgrounds and signals are scaled to the same value. Used to compare the shape of combined signal and background distributions.
+
+YAxisType: Sets the Y axis as selected
+- linear
+- log
+
+TitleType: Sets the title as selected
+- info
+- preliminary
+- simulation
+- simulation\_preliminary
+- simulation\_supplementary
+- supplementary
+- data
+
+OverflowType:
+- none: Overflow bins exist on both sides, but not plotted
+- underflow, overflow: The content in the relevant overflow bin is merged into the adjacent plotted bin, making the overflow visible.
+- both: Both bins made visible in the fashion described above
+
+BottomType:
+- off: No bottom plot
+- ratio: A/B plotted on bottom. B is backgrounds if available, signal if no background samples. A is data if available, signal if no data samples.
+- diff: A-B plotted on bottom. Same definitions.
+- sorb: signal efficiency/Sqrt(background efficiency) after applying lower bound cut at any point along the y axis. This is plotted on the bottom. Works best with signal\_overlay stack type, does not work with signal\_on\_top
+- sorb\_cut\_upper: Same as sorb, but with upper bound cut.
+
 ## Higgsino useful commands
 
 ### To make datacards and get limits:

@@ -28,7 +28,6 @@ using std::set;
 using std::shared_ptr;
 using std::string;
 using std::vector;
-using ZgFunctions::llphoton_pttmod;
 using ZgFunctions::max_lep_miniso;
 using ZgFunctions::trig_plateau_cuts;
 using ZgFunctions::w_years;
@@ -143,7 +142,7 @@ int main() {
   category_vbf1.AddSelection("bdtcuts",vbf1);
 
   category_vhmet.AddSelection("catobjectreq","nlep==2&&njet<2&&met>90");
-  category_vhmet.AddSelection("pttmodreq",llphoton_pttmod<60.0);
+  category_vhmet.AddSelection("zmassreq","ll_m[0]>85&&ll_m[0]<95");
   category_vhmet.AddSelection("ptllgreq","llphoton_pt[0]/llphoton_m[0]>0.4");
 
   category_vh3l.AddSelection("catobjectreq",
