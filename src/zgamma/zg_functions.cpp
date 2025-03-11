@@ -119,13 +119,15 @@ namespace ZgFunctions {
     else if (b.SampleTypeString()=="2018")
       return 59.83;
     else if (b.SampleTypeString()=="2022")
-      return 7.89;
+      return 7.9804;
     else if (b.SampleTypeString()=="2022EE")
-      return 26.67;
+      return 26.6717;
     else if (b.SampleTypeString()=="2023")
-      return 17.68;
-    //else if (b.SampleTypeString()=="2023BPix")
-    return 9.53;
+      return 17.794;
+    else if (b.SampleTypeString()=="2023BPix")
+      return 9.451;
+    else
+      return 1.0;
   });
 
   //Run 3 weight-up

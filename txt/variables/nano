@@ -629,13 +629,14 @@ bool HLT_Mu45_eta2p1
 bool HLT_IsoMu22_eta2p1
 bool HLT_IsoMu24_eta2p1
 
+bool HLT_Ele20_WPLoose_Gsf
 bool HLT_Ele25_WPTight_Gsf
 bool HLT_Ele27_WPTight_Gsf
 bool HLT_Ele28_WPTight_Gsf
+bool HLT_Ele30_WPTight_Gsf
 bool HLT_Ele32_WPTight_Gsf_L1DoubleEG
 bool HLT_Ele32_WPTight_Gsf
 bool HLT_Ele35_WPTight_Gsf
-bool HLT_Ele20_WPLoose_Gsf
 bool HLT_Ele45_WPLoose_Gsf
 bool HLT_Ele105_CaloIdVT_GsfTrkIdT
 bool HLT_Ele115_CaloIdVT_GsfTrkIdT

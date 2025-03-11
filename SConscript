@@ -89,7 +89,7 @@ for source_directory in source_directories: # source_directories = 'core'
     if source_directory!='core': envClone.Depends(source_object, libraries['DrawPicoCore'])
     libraryName = "DrawPico"+source_directory.capitalize()
     # Make program
-    program = envClone.Program('#/kernel/'+envClone['kernel']+'/run/'+source_directory+'/${SOURCE.filebase}.exe', source_object, LIBS=["DrawPicoCore", libraryName])
+    program = envClone.Program('#/kernel/'+envClone['kernel']+'/run/'+source_directory+'/${SOURCE.filebase}.exe', source_object, LIBS=["DrawPicoCore", libraryName, "stdc++fs"])
     envClone.Depends(program, libraries["DrawPicoCore"])
     envClone.Depends(program, libraries[libraryName])
     # Make script that links to binary

@@ -51,7 +51,7 @@ def addExternalEnv(_env):
   _env.Append (CCFLAGS = '-isystem external_inc' )
 
 def addBasicEnv(_env):
-  _env.Append (CCFLAGS = '-O2')
+  _env.Append (CCFLAGS = ['-O2','-std=c++17'])
 
 def addKernelEnv(_env):
   _env['kernel'] = getKernel()
