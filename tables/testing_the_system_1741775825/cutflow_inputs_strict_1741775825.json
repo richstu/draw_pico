@@ -1,0 +1,137 @@
+{
+  "production_name":                   "testing_the_system",
+  "path_to_production_base":           "/net/cms11/cms11r0/pico/",
+  "production_tag":                    "htozgamma_pinnacles_v0",
+  "set_of_cutflows":[
+
+{
+      "short_name":                    "split",
+      "NanoAOD_tag":                   "NanoAODv9",
+      "years":                         ["2016APV","2016","2017","2018"],
+      "bool_combine_years":            false,
+      "bool_combine_samples":          false,
+      "skim_type":                     "unskimmed",
+      "sample_type":                   "sig",
+      "sample_names":[
+         "ggF",
+         "VBF"
+      ],
+      "samples":[
+        "*GluGluHToZG_ZToLL_M-125_TuneCP5_13TeV*.root",
+        "*VBFHToZG_ZToLL_M-125_TuneCP5_withDipoleRecoil*.root"
+      ],
+      "weight":                        "1",
+      "mlly_window":                   "full",
+      "lepton_type":                   ["lepton"],
+      "bool_print_unc":                false,
+      "bool_do_eff":                   false,
+      "bool_rel_prev":                 false,
+      "decimal_precision":             3
+
+  },
+
+{
+      "short_name":                    "combine",
+      "NanoAOD_tag":                   "NanoAODv9",
+      "years":                         ["2016APV","2016","2017","2018"],
+      "bool_combine_years":            true,
+      "bool_combine_samples":          true,
+      "skim_type":                     "unskimmed",
+      "sample_type":                   "sig",
+      "sample_names":[
+         "ggF",
+         "VBF"
+      ],
+      "samples":[
+        "*GluGluHToZG_ZToLL_M-125_TuneCP5_13TeV*.root",
+        "*VBFHToZG_ZToLL_M-125_TuneCP5_withDipoleRecoil*.root"
+      ],
+      "weight":                        "1",
+      "mlly_window":                   "full",
+      "lepton_type":                   ["lepton"],
+      "bool_print_unc":                false,
+      "bool_do_eff":                   false,
+      "bool_rel_prev":                 false,
+      "decimal_precision":             3
+
+  },
+
+{
+      "short_name":                    "1sampcombine",
+      "NanoAOD_tag":                   "NanoAODv9",
+      "years":                         ["2016APV"],
+      "bool_combine_years":            true,
+      "bool_combine_samples":          true,
+      "skim_type":                     "unskimmed",
+      "sample_type":                   "sig",
+      "sample_names":[
+         "ggF"
+      ],
+      "samples":[
+        "*VBFHToZG_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8*.root"
+      ],
+      "weight":                        "1",
+      "mlly_window":                   "full",
+      "lepton_type":                   ["lepton"],
+      "bool_print_unc":                false,
+      "bool_do_eff":                   false,
+      "bool_rel_prev":                 false,
+      "decimal_precision":             3
+
+  },
+
+{
+      "short_name":                    "test_eff",
+      "NanoAOD_tag":                   "NanoAODv9",
+      "years":                         ["2016APV","2016","2017","2018"],
+      "bool_combine_years":            true,
+      "bool_combine_samples":          true,
+      "skim_type":                     "unskimmed",
+      "sample_type":                   "sig",
+      "sample_names":[
+         "ggF",
+         "VBF"
+      ],
+      "samples":[
+        "*GluGluHToZG_ZToLL_M-125_TuneCP5_13TeV*.root",
+        "*VBFHToZG_ZToLL_M-125_TuneCP5_withDipoleRecoil*.root"
+      ],
+      "weight":                        "1",
+      "mlly_window":                   "full",
+      "lepton_type":                   ["lepton"],
+      "bool_print_unc":                true,
+      "bool_do_eff":                   true,
+      "bool_rel_prev":                 true,
+      "decimal_precision":             3
+
+  },
+
+{
+      "short_name":                    "test_sigblind",
+      "NanoAOD_tag":                   "NanoAODv9",
+      "years":                         ["2016APV","2016","2017","2018"],
+      "bool_combine_years":            true,
+      "bool_combine_samples":          true,
+      "skim_type":                     "unskimmed",
+      "sample_type":                   "sig",
+      "sample_names":[
+         "ggF",
+         "VBF"
+      ],
+      "samples":[
+        "*GluGluHToZG_ZToLL_M-125_TuneCP5_13TeV*.root",
+        "*VBFHToZG_ZToLL_M-125_TuneCP5_withDipoleRecoil*.root"
+      ],
+      "weight":                        "1",
+      "mlly_window":                   "sideband",
+      "lepton_type":                   ["lepton"],
+      "bool_print_unc":                true,
+      "bool_do_eff":                   true,
+      "bool_rel_prev":                 false,
+      "decimal_precision":             3
+
+  }
+   
+  ]
+
+}

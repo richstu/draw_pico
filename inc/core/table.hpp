@@ -43,7 +43,8 @@ public:
 	bool print_pie=false,
 	bool print_titlepie=true,
   bool do_eff=false,
-  bool do_unc=false);
+  bool do_unc=false,
+  bool rel_prev_cut = false);
   Table(Table &&) = default;
   Table& operator=(Table &&) = default;
   ~Table() = default;
@@ -63,9 +64,9 @@ public:
   Table & Tag(const std::string &tag) {tag_ = tag;return *this;}
   Table & LuminosityTag(const std::string &tag) {luminosity_tag_ = tag;return *this;}
   Table & Precision(const int &precision) {precision_ = precision;return *this;}
-
+ 
   void SetLuminosityTag(const std::string &tag);
-  
+ 
   std::string tag_;
   std::string luminosity_tag_;//!<Filename tag to identify plot
   std::string name_;
@@ -76,6 +77,7 @@ public:
   bool print_titlepie_;
   bool do_eff_;
   bool do_unc_;
+  bool rel_prev_cut_;
   int precision_;
   std::vector<PlotOpt> plot_options_;//!<Styles with which to draw pie chart
 
@@ -92,6 +94,7 @@ private:
 
   void PrintHeader(std::ofstream &file, double luminosity) const;
   void PrintRow(std::ofstream &file, std::size_t irow, double luminosity) const;
+  void WriteSeg(std::ofstream &file, double val, double valUnc, bool unc, bool pad) const;
   void PrintPie(std::size_t irow, double luminosity) const;
   void PrintFooter(std::ofstream &file) const;
 

@@ -408,6 +408,10 @@ namespace ZgFunctions {
   const NamedFunc trig = NamedFunc("trig_single_el||trig_single_mu||trig_double_el||trig_double_mu")
                          .Name("trig");
 
+  NamedFunc add_cut(NamedFunc & current_cut, NamedFunc additional_cut) {
+    current_cut = current_cut && additional_cut;
+    return current_cut;
+  }
 
   //maximum lepton mini isolation
   const NamedFunc max_lep_miniso("max_lep_miniso",[](const Baby &b) -> NamedFunc::ScalarType{
