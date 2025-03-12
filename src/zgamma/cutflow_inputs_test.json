@@ -20,7 +20,7 @@
         "*GluGluHToZG_ZToLL_M-125_TuneCP5_13TeV*.root",
         "*VBFHToZG_ZToLL_M-125_TuneCP5_withDipoleRecoil*.root"
       ],
-      "weight":                        "1",
+      "weight":                        "lumi",
       "mlly_window":                   "full",
       "lepton_type":                   ["lepton"],
       "bool_print_unc":                false,

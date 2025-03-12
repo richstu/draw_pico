@@ -11,7 +11,6 @@
 //--Main interprets the json and calls the other functions. Saves
 //the tables to subfolder within the tables/ directory in draw_pico
 
-#include <fstream>
 #include <iostream>
 #include <vector>
 #include <ctime>
@@ -20,9 +19,8 @@
 #include <experimental/filesystem>
 
 #include "TError.h" // Controls error level reporting
-#include "TColor.h" // Controls error level reporting
-#include "TLegend.h" // Controls error level reporting
-#include "TVector2.h"
+#include "TColor.h"
+#include "TLegend.h"
 
 #include "core/utilities.hpp"
 #include "core/baby.hpp"
