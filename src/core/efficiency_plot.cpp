@@ -273,7 +273,7 @@ void EfficiencyPlot::Print(double luminosity,
   std::unique_ptr<TPad> pad(new TPad("main_pad","pad",0.,0.,1.0,1.0));
 	pad->Draw();
 	pad->cd();
-	pad->SetGrid();
+	//pad->SetGrid();
   pad->SetLogy(false);
   pad->SetLogx(false);
 	gPad->SetMargin(0.15,0.15,0.15,0.15);
@@ -424,13 +424,15 @@ void EfficiencyPlot::Print(double luminosity,
   //draw overlay (title) text
 	TLatex t;
 	t.SetTextColor(kBlack);
-	t.SetTextSize(0.04);
+	t.SetTextSize(0.03);
   if (this_opt_.Title() == TitleType::preliminary)
     t.DrawLatexNDC(0.155,0.87,"#font[62]{CMS} #scale[0.8]{#font[52]{Preliminary}}");
   else if (this_opt_.Title() == TitleType::simulation_preliminary)
     t.DrawLatexNDC(0.155,0.87,"#font[62]{CMS} #scale[0.8]{#font[52]{Simulation Preliminary}}");
   else if (this_opt_.Title() == TitleType::simulation)
     t.DrawLatexNDC(0.155,0.87,"#font[62]{CMS} #scale[0.8]{#font[52]{Simulation}}");
+  else if (this_opt_.Title() == TitleType::private_work)
+    t.DrawLatexNDC(0.155,0.87,"#font[62]{CMS} #scale[0.8]{#font[52]{Private Work}}");
   else if (this_opt_.Title() == TitleType::supplementary)
     t.DrawLatexNDC(0.155,0.87,"#font[62]{CMS} #scale[0.8]{#font[52]{Supplementary}}");
   else if (this_opt_.Title() == TitleType::simulation_supplementary)
@@ -446,9 +448,14 @@ void EfficiencyPlot::Print(double luminosity,
     }
   }
 	t.SetTextAlign(31);
+	t.SetTextSize(0.025);
   TString lumi_string = RoundNumber(luminosity_,1) + " fb^{-1}";
-  if (luminosity_tag_ != "")
-    lumi_string = luminosity_tag_ + " fb^{-1} (13 TeV)";
+  if (luminosity_tag_ != "") {
+    if (Contains(luminosity_tag_, "TeV"))
+      lumi_string = luminosity_tag_;
+    else
+      lumi_string = luminosity_tag_ + " fb^{-1} (13 TeV)";
+  }
 	t.DrawLatexNDC(0.845,0.87,("#font[42]{"+lumi_string+"}").Data());
   if (this_opt_.Title() == TitleType::info) {
 	  t.SetTextAlign(33);

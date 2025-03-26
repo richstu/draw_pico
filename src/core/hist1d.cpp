@@ -1087,6 +1087,7 @@ vector<shared_ptr<TLatex> > Hist1D::GetTitleTexts() const{
     case TitleType::simulation_preliminary: extra = "Simulation Preliminary"; break;
     case TitleType::simulation_supplementary: extra = "Simulation Supplementary"; break;
     case TitleType::supplementary: extra = "Supplementary"; break;
+    case TitleType::private_work: extra = "Private Work"; break;
     case TitleType::data: extra = ""; break;
     case TitleType::info:
     default:
@@ -1111,16 +1112,24 @@ vector<shared_ptr<TLatex> > Hist1D::GetTitleTexts() const{
 
     ostringstream oss;
     if(this_opt_.Stack() != StackType::shapes) {
-      if (luminosity_tag_ != "") oss << luminosity_tag_ << " fb^{-1} (13 TeV)" << flush;
+      if (luminosity_tag_ != "") {
+        if (Contains(luminosity_tag_, "TeV"))
+          oss << luminosity_tag_ << flush;
+        else
+          oss << luminosity_tag_ << " fb^{-1} (13 TeV)" << flush;
+      }
       else if (luminosity_<1.1) oss << "137 fb^{-1} (13 TeV)" << setprecision(1) << flush;
       else oss << setprecision(1) << luminosity_ << " fb^{-1} (13 TeV)" << flush;
     } else oss << "13 TeV" << flush;
+
     out.push_back(make_shared<TLatex>(right, bottom+0.2*(top-bottom),
                                       oss.str().c_str()));
     out.back()->SetNDC();
     out.back()->SetTextAlign(31);
     out.back()->SetTextFont(this_opt_.Font());
     out.back()->SetTextSize(this_opt_.TitleSize());
+    if (Contains(luminosity_tag_, "TeV"))
+      out.back()->SetTextSize(0.025);
   }
   return out;
 }
@@ -1544,6 +1553,8 @@ vector<shared_ptr<TLegend> > Hist1D::GetLegends(){
     else if (this_opt_.Title() == TitleType::supplementary)
       title_left_offset += 0.3;
     else if (this_opt_.Title() == TitleType::simulation)
+      title_left_offset += 0.3;
+    else if (this_opt_.Title() == TitleType::private_work)
       title_left_offset += 0.3;
     else if (this_opt_.Title() == TitleType::simulation_preliminary)
       title_left_offset += 0.5;

@@ -9,7 +9,7 @@
 namespace PlotOptTypes{
   enum class BottomType{off, ratio, diff, sorb, sorb_cut_upper};
   enum class YAxisType{linear, log};
-  enum class TitleType{info, preliminary, simulation, simulation_preliminary, simulation_supplementary, supplementary, data};
+  enum class TitleType{info, preliminary, simulation, simulation_preliminary, simulation_supplementary, supplementary, data, private_work};
   enum class StackType{signal_overlay, signal_on_top, data_norm, lumi_shapes, shapes, prop_shape_stack};
   enum class OverflowType{none, underflow, overflow, both};
 }

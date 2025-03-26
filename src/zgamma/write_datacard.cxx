@@ -94,9 +94,10 @@ int main() {
   NamedFunc vbf2 = category_vbf2(vbf_bdt);
   NamedFunc vbf1 = category_vbf1(vbf_bdt);
 
-  //weight with some clipping/regularization
-  const NamedFunc weight_reg("weight_reg",[](const Baby &b) -> NamedFunc::ScalarType{
-    if (fabs(b.weight())>5) return 0.0;
+  //weight with some regularization
+  const NamedFunc weight_reg(
+      "weight_reg",[](const Baby &b) -> NamedFunc::ScalarType{
+    if (fabs(b.weight()/b.w_lumi()) > 10) return b.w_lumi()*10.0;
     return b.weight();
   });
 
@@ -134,11 +135,11 @@ int main() {
   category_ggh1.AddSelection("catobjectreq","nlep==2&&njet<2&&met<90");
   category_ggh1.AddSelection("bdtcuts",ggh1);
 
-  category_vbf3.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbm==0");
+  category_vbf3.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbdfm==0");
   category_vbf3.AddSelection("bdtcuts",vbf3);
-  category_vbf2.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbm==0");
+  category_vbf2.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbdfm==0");
   category_vbf2.AddSelection("bdtcuts",vbf2);
-  category_vbf1.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbm==0");
+  category_vbf1.AddSelection("catobjectreq","nlep==2&&njet>=2&&nbdfm==0");
   category_vbf1.AddSelection("bdtcuts",vbf1);
 
   category_vhmet.AddSelection("catobjectreq","nlep==2&&njet<2&&met>90");
@@ -146,16 +147,16 @@ int main() {
   category_vhmet.AddSelection("ptllgreq","llphoton_pt[0]/llphoton_m[0]>0.4");
 
   category_vh3l.AddSelection("catobjectreq",
-                             "nphoton>=1&&nlep>=3&&nbm==0&&met>30");
+                             "nphoton>=1&&nlep>=3&&nbdfm==0&&met>30");
   category_vh3l.AddSelection("zmassreq","ll_m[0]>85&&ll_m[0]<95");
   category_vh3l.AddSelection("minisoreq",max_lep_miniso<0.15);
   category_vh3l.AddSelection("ptllgreq","llphoton_pt[0]/llphoton_m[0]>0.3");
 
-  category_tthhad.AddSelection("catobjectreq","nlep==2&&njet>=5&&nbm>=1");
+  category_tthhad.AddSelection("catobjectreq","nlep==2&&njet>=5&&nbdfm>=1");
   category_tthhad.AddSelection("zmassreq","ll_m[0]>85&&ll_m[0]<95");
 
   category_tthlep.AddSelection("catobjectreq",
-      "(nlep==3&&njet>=3&&nbm>=1)||(nlep>=4&&njet>=1&&nbm>=1)");
+      "(nlep==3&&njet>=3&&nbdfm>=1)||(nlep>=4&&njet>=1&&nbdfm>=1)");
   category_tthlep.AddSelection("zmassreq","ll_m[0]>85&&ll_m[0]<95");
   category_tthlep.AddSelection("minisoreq",max_lep_miniso<0.1);
 

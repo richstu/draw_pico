@@ -232,8 +232,10 @@ Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(
 
 void Datacard::DatacardProcessNonparametric::RecordEvent(const Baby &baby) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
+  unsigned n_variations = n_variations_;
+  if (is_data_) n_variations = 1;
   for (unsigned ichan = 0; ichan < datacard->n_channels_; ichan++) {
-    for (unsigned isyst = 0; isyst < n_variations_; isyst++) {
+    for (unsigned isyst = 0; isyst < n_variations; isyst++) {
       float weight = datacard->weight_[isyst].GetScalar(baby);
       float fit_var = datacard->fit_var_[isyst].GetScalar(baby);
       if (datacard->channel_selection_[isyst][ichan].GetScalar(baby)) {
@@ -304,7 +306,9 @@ void Datacard::DatacardProcessNonparametric::WriteWorkspace(
     unsigned int channel) {
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   RooWorkspace ws(WSName(channel).c_str());
-  for (unsigned int ivar = 0; ivar < n_variations_; ivar++) {
+  unsigned n_variations = n_variations_;
+  if (is_data_) n_variations = 1;
+  for (unsigned int ivar = 0; ivar < n_variations; ivar++) {
     if (datacard->save_data_as_hist_) {
       //TODO check if weights work correctly for this
       RooDataHist binned_data(DataName(channel,ivar).c_str(),"",
@@ -581,9 +585,14 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   datacard_file.open(("datacards/"+subdir_mod+name_+".txt").c_str(),
                      std::ios::out);
   //header
+  unsigned n_processes_indatacard = 0;
+  for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+    if (datacard_process_[iproc]->in_datacard_)
+      n_processes_indatacard++;
+  }
   datacard_file << "max  " << n_channels_ << " number of categories\n";
   //subtract 1 for data, which is not counted, and 1 for combine conventions
-  datacard_file << "jmax " << n_processes_-2 
+  datacard_file << "jmax " << n_processes_indatacard-2 
                 << " number of samples minus one\n";
   datacard_file << "kmax " << n_systematics_ 
                 << " number of nuisance parameters\n";

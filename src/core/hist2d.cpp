@@ -16,6 +16,7 @@
 #include "TColor.h"
 #include "TArrow.h"
 #include "core/named_func.hpp"
+#include "core/utilities.hpp"
 
 using namespace std;
 using namespace PlotOptTypes;
@@ -409,6 +410,7 @@ vector<shared_ptr<TLatex> > Hist2D::GetLabels(bool bkg_is_hist) const{
   case TitleType::simulation_preliminary: extra = "#splitline{Simulation}{Preliminary}"; break;
   case TitleType::simulation_supplementary: extra = "#splitline{Simulation}{Supplementary}"; break;
   case TitleType::supplementary: extra = "Supplementary"; break;
+  case TitleType::private_work: extra = "Private Work"; break;
   case TitleType::data: extra = ""; break;
   case TitleType::info: extra = ""; break;
   default:
@@ -438,7 +440,12 @@ vector<shared_ptr<TLatex> > Hist2D::GetLabels(bool bkg_is_hist) const{
   }
 
   ostringstream oss;
-  if (luminosity_tag_ != "") oss << luminosity_tag_ << " fb^{-1} (13 TeV)" << flush;
+  if (luminosity_tag_ != "") {
+    if (Contains(luminosity_tag_, "TeV"))
+      oss << luminosity_tag_ << flush;
+    else
+      oss << luminosity_tag_ << " fb^{-1} (13 TeV)" << flush;
+  }
   else if (luminosity_<1.1) oss << "137 fb^{-1} (13 TeV)" << flush;
   else oss << luminosity_ << " fb^{-1} (13 TeV)" << flush;
   labels.push_back(make_shared<TLatex>(right+0.01, top,
@@ -494,6 +501,7 @@ void Hist2D::AddEntry(TLegend &l, const SingleHist2D &h, const TGraph &g) const{
   oss << name;
   bool print_rho;
   switch(this_opt_.Title()){
+  case TitleType::private_work:
   case TitleType::info:
     print_rho = true;
     break;
