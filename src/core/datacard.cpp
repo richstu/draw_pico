@@ -123,8 +123,10 @@ Datacard::SelectionList & Datacard::SelectionList::AddSelection(
 */
 Datacard::Systematic::Systematic(const std::string &name, 
     const std::vector<std::string> &selection_names, 
-    const std::vector<NamedFunc> &variations) :
-  is_symmetric(true),
+    const std::vector<NamedFunc> &variations,
+    const bool save_shape) :
+  save_shape_(save_shape),
+  is_symmetric_(true),
   name_(name) {
   if (selection_names.size() != variations.size()) {
     throw std::invalid_argument("Selection names and replacements must be"
@@ -150,8 +152,10 @@ Datacard::Systematic::Systematic(const std::string &name,
 Datacard::Systematic::Systematic(const std::string &name, 
     const std::vector<std::string> &selection_names, 
     const std::vector<NamedFunc> &variations_up,
-    const std::vector<NamedFunc> &variations_dn) :
-  is_symmetric(false),
+    const std::vector<NamedFunc> &variations_dn,
+    const bool save_shape) :
+  save_shape_(save_shape),
+  is_symmetric_(false),
   name_(name) {
   if ((selection_names.size() != variations_up.size()) 
       || (selection_names.size() != variations_dn.size())) {
@@ -222,10 +226,13 @@ Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(
         axis_min,axis_max));
     var_[ichan].setBins(axis.Nbins());
     dataset_.push_back(std::vector<RooDataSet>());
+    yield_.push_back(std::vector<double>());
     for (unsigned isyst = 0; isyst < n_variations_; isyst++) {
+      //currently for ease of use, RooDataSets are created for all variations,
+      //even if they are not used
       dataset_[ichan].push_back(RooDataSet("","",RooArgSet(var_[ichan],
-                                                           rrv_weight_),
-                                           RooFit::WeightVar(rrv_weight_)));
+          rrv_weight_), RooFit::WeightVar(rrv_weight_)));
+      yield_[ichan].push_back(0.0);
     } // loop over variations
   } // loop over channels
 }
@@ -239,9 +246,12 @@ void Datacard::DatacardProcessNonparametric::RecordEvent(const Baby &baby) {
       float weight = datacard->weight_[isyst].GetScalar(baby);
       float fit_var = datacard->fit_var_[isyst].GetScalar(baby);
       if (datacard->channel_selection_[isyst][ichan].GetScalar(baby)) {
-        var_[ichan].setVal(fit_var);
-        rrv_weight_.setVal(weight);
-        dataset_[ichan][isyst].add(RooArgSet(var_[ichan]),weight);
+        yield_[ichan][isyst] += weight;
+        if (datacard->save_shape_[isyst]) {
+          var_[ichan].setVal(fit_var);
+          rrv_weight_.setVal(weight);
+          dataset_[ichan][isyst].add(RooArgSet(var_[ichan]),weight);
+        }
       }
     } //loop over systematics/variations
   } //loop over channels
@@ -295,7 +305,7 @@ std::string Datacard::DatacardProcessNonparametric::PDFName(
 */
 float Datacard::DatacardProcessNonparametric::Yield(unsigned int channel, 
                                                     unsigned int variation) {
-  return dataset_[channel][variation].sumEntries();
+  return yield_[channel][variation];
 }
 
 /*! \brief Writes datasets to a workspace and saves to opened ROOT file
@@ -309,16 +319,17 @@ void Datacard::DatacardProcessNonparametric::WriteWorkspace(
   unsigned n_variations = n_variations_;
   if (is_data_) n_variations = 1;
   for (unsigned int ivar = 0; ivar < n_variations; ivar++) {
-    if (datacard->save_data_as_hist_) {
-      //TODO check if weights work correctly for this
-      RooDataHist binned_data(DataName(channel,ivar).c_str(),"",
-                              RooArgSet(var_[channel]),
-                              dataset_[channel][ivar]);
-      ws.import(binned_data);
-    }
-    else {
-      dataset_[channel][ivar].SetName(DataName(channel,ivar).c_str());
-      ws.import(dataset_[channel][ivar]);
+    if (datacard->save_shape_[ivar]) {
+      if (datacard->save_data_as_hist_) {
+        RooDataHist binned_data(DataName(channel,ivar).c_str(),"",
+                                RooArgSet(var_[channel]),
+                                dataset_[channel][ivar]);
+        ws.import(binned_data);
+      }
+      else {
+        dataset_[channel][ivar].SetName(DataName(channel,ivar).c_str());
+        ws.import(dataset_[channel][ivar]);
+      }
     }
   }
   ws.Write();
@@ -458,13 +469,13 @@ Datacard::Datacard(const std::string &name,
   //initialize NamedFunc look-up vectors
   systematics_extended_ = systematics;
   systematics_extended_.insert(systematics_extended_.begin(), 
-      Systematic("nominal",{},{}));
+      Systematic("nominal",{},{},true));
   unsigned int ivariation = 0;
   n_variations_ = 0;
   for (const Systematic &systematic : systematics_extended_) {
     std::vector<const std::unordered_map<std::string, 
         std::shared_ptr<NamedFunc>>*> variations;
-    if (systematic.is_symmetric) {
+    if (systematic.is_symmetric_) {
       variations.push_back(&systematic.variation_);
       variation_name_.push_back(systematic.name_);
     }
@@ -506,6 +517,7 @@ Datacard::Datacard(const std::string &name,
       else {
         fit_var_.push_back(axis.var_);
       }
+      save_shape_.push_back(systematic.save_shape_);
         
       ivariation++;
       n_variations_++;
@@ -671,8 +683,8 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
       ivar++;
       continue;
     }
-    if ((systematic.variation_.count("FitVar") == 0)
-        && (systematic.variation_up_.count("FitVar") == 0)) {
+    if ((systematic.variation_.count("fitvar") == 0)
+        && (systematic.variation_up_.count("fitvar") == 0)) {
       //only make lnN constraints for non-shape systematics
       datacard_file << std::left << std::setw(25) << systematic.name_;
       datacard_file << std::left << std::setw(8) << "lnN";
@@ -680,7 +692,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
         for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
           if (datacard_process_[iproc]->in_datacard_ 
               && !datacard_process_[iproc]->is_data_) {
-            if (systematic.is_symmetric) {
+            if (systematic.is_symmetric_) {
               float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
               float syst = 1.0;
               if (nom_yield > 0.0)
@@ -718,7 +730,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
       datacard_file << "\n";
     } //not shape systematic
 
-    if (systematic.is_symmetric) {
+    if (systematic.is_symmetric_) {
       ivar++;
     }
     else {

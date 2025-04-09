@@ -466,6 +466,28 @@ namespace ZgFunctions {
     return mommom;
   });
 
+  //returns true if photon is dr-matched to any fromhardprocess paritlce
+  //except those that promptly decay
+  const NamedFunc photon_isjet("photon_isjet", [](const Baby &b) 
+      -> NamedFunc::ScalarType{
+    for (unsigned imc = 0; imc < b.mc_pt()->size(); imc++) {
+      //check pt>15 and fromHardProcess
+      if (b.mc_pt()->at(imc) > 15 
+          && ((b.mc_statusflag()->at(imc) & 0x100) != 0)) {
+        //skip promptly decaying particles (W Z t H)
+        int abs_mc_id = abs(b.mc_id()->at(imc));
+        if (abs_mc_id == 6 || abs_mc_id == 23 || abs_mc_id == 24 
+            || abs_mc_id ==25) continue;
+        //use large radius to capture ex. fragmentation photons in jets
+        if (deltaR(b.photon_eta()->at(0),b.photon_phi()->at(0),
+                   b.mc_eta()->at(imc),b.mc_phi()->at(imc))<0.4) {
+          return true;
+        }
+      }
+    }
+    return false;
+  });
+
 }
 
 

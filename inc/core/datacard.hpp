@@ -50,12 +50,14 @@ public:
   public:
     Systematic(const std::string &name, 
                const std::vector<std::string> &selection_names, 
-               const std::vector<NamedFunc> &variations);
+               const std::vector<NamedFunc> &variations,
+               const bool save_shape = false);
 
     Systematic(const std::string &name, 
                const std::vector<std::string> &selection_names, 
                const std::vector<NamedFunc> &variations_up,
-               const std::vector<NamedFunc> &variations_dn);
+               const std::vector<NamedFunc> &variations_dn,
+               const bool save_shape = false);
 
     Systematic() = default;
     Systematic(const Systematic &) = default;
@@ -63,7 +65,8 @@ public:
     Systematic(Systematic &&) = default;
     Systematic& operator=(Systematic &&) = default;
 
-    bool is_symmetric; //!< systematic type
+    bool save_shape_;
+    bool is_symmetric_; //!< systematic type
     std::string name_; //!< systematic name
                        
     std::unordered_map<std::string, std::shared_ptr<NamedFunc>> variation_; 
@@ -116,6 +119,8 @@ public:
 
     std::vector<std::vector<RooDataSet>> dataset_;
         //!< data indexed by channel, then variation
+    std::vector<std::vector<double>> yield_;
+        //!< yields indexed by channel, then variation
     std::vector<RooRealVar> var_; //!< Signal extraction variable
 
     RooRealVar rrv_weight_;       //!< Weight variable
@@ -199,6 +204,7 @@ public:
       //!< Selections indexed by systematic, then channel
   std::vector<NamedFunc> fit_var_;           //!< Fitting var by systematic
   std::vector<NamedFunc> weight_;            //!< Weight indexed by systematic
+  std::vector<bool> save_shape_;             //!< Flag to save shape by syst.
                                              
   std::vector<Systematic> systematics_extended_; //!< systematics + nominal
   std::vector<std::string> channel_name_;    //!<Channel names

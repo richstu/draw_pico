@@ -22,6 +22,17 @@
 
 #add FILENAMES_ALL *.root
 
+#add FILENAMES_DATA *SingleElectron_*.root
+#add FILENAMES_DATA *DoubleEG_*.root
+#add FILENAMES_DATA *SingleMuon_*.root
+#add FILENAMES_DATA *DoubleMuon_*.root
+#add FILENAMES_DATA *EGamma_*.root
+#add FILENAMES_DATA *Muon_*.root
+#add FILENAMES_DATA *EGamma0_*.root
+#add FILENAMES_DATA *EGamma1_*.root
+#add FILENAMES_DATA *Muon0_*.root
+#add FILENAMES_DATA *Muon1_*.root
+
 #add FILENAMES_QQZG *ZGToLLG_01J_5f_lowMLL*.root
 #add FILENAMES_QQZG *DYGto2LG-1Jets_MLL-50_PTG-10to100*.root
 #add FILENAMES_QQZG *DYGto2LG-1Jets_MLL-50_PTG-100to200*.root
@@ -119,12 +130,18 @@
 #add FILENAMES_PSEUDODATA *WWZ_4F_Tune*.root
 #add FILENAMES_PSEUDODATA *WZZ*.root
 #add FILENAMES_PSEUDODATA *ZZZ*.root
-#add FILENAMES_PSEUDODATA *GluGluHToZG_ZToLL_M-125*.root
-#add FILENAMES_PSEUDODATA *VBFHToZG_ZToLL_M-125*.root
-#add FILENAMES_PSEUDODATA *WplusH_HToZG_WToAll_M-125*.root
-#add FILENAMES_PSEUDODATA *WminusH_HToZG_WToAll_M-125*.root
-#add FILENAMES_PSEUDODATA *ZH_HToZG_ZToAll_M-125*.root
-#add FILENAMES_PSEUDODATA *ttHToZG_ZToLL_M-125*.root
+#add FILENAMES_PSEUDODATA *GluGluHToZG_ZToLL_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *VBFHToZG_ZToLL_M-125_TuneCP5_withDipoleRecoil*.root
+#add FILENAMES_PSEUDODATA *WplusH_HToZG_WToAll_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *WminusH_HToZG_WToAll_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *ZH_HToZG_ZToAll_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *ttHToZG_ZToLL_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *GluGluHtoZG_Zto2L_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *VBFHtoZG_Zto2L_M-125_TuneCP5_withDipoleRecoil*.root
+#add FILENAMES_PSEUDODATA *WplusH_HtoZG_WtoAll_Zto2L_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *WminusH_HtoZG_WtoAll_Zto2L_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *ZH_HtoZG_ZtoAll_M-125_TuneCP5*.root
+#add FILENAMES_PSEUDODATA *ttHtoZG_Zto2L_M-125_TuneCP5*.root
 
 #add FILENAMES_HASZ *ZGToLLG_01J_5f_lowMLL*.root
 #add FILENAMES_HASZ *DYGto2LG*.root
@@ -233,13 +250,13 @@
 #add FILENAMES_HZG130_ALL *ttHtoZG_Zto2L_M-130*.root
 
 #add FILENAMES_HZG_ALL *GluGluHToZG_ZToLL_M-125_TuneCP5*.root
-#add FILENAMES_HZG_ALL *VBFHToZG_ZToLL_M-125_TuneCP5*.root
+#add FILENAMES_HZG_ALL *VBFHToZG_ZToLL_M-125_TuneCP5_withDipoleRecoil*.root
 #add FILENAMES_HZG_ALL *WplusH_HToZG_WToAll_M-125_TuneCP5*.root
 #add FILENAMES_HZG_ALL *WminusH_HToZG_WToAll_M-125_TuneCP5*.root
 #add FILENAMES_HZG_ALL *ZH_HToZG_ZToAll_M-125_TuneCP5*.root
 #add FILENAMES_HZG_ALL *ttHToZG_ZToLL_M-125_TuneCP5*.root
 #add FILENAMES_HZG_ALL *GluGluHtoZG_Zto2L_M-125_TuneCP5*.root
-#add FILENAMES_HZG_ALL *VBFHtoZG_Zto2L_M-125_TuneCP5*.root
+#add FILENAMES_HZG_ALL *VBFHtoZG_Zto2L_M-125_TuneCP5_withDipoleRecoil*.root
 #add FILENAMES_HZG_ALL *WplusH_HtoZG_WtoAll_Zto2L_M-125_TuneCP5*.root
 #add FILENAMES_HZG_ALL *WminusH_HtoZG_WtoAll_Zto2L_M-125_TuneCP5*.root
 #add FILENAMES_HZG_ALL *ZH_HtoZG_ZtoAll_M-125_TuneCP5*.root
@@ -376,11 +393,11 @@
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
 
 [[Datacard]]
-  [pseudodata]
+  [data_obs]
     ProcessType = 0
     Color = 1
-    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_PSEUDODATA
-    Selection = use_event
+    Files = $PRODUCTION_NAME/$YEARS/$DATA_SLIM_LLG/$FILENAMES_DATA
+    Selection = 1
   [Htozg_el]
     ProcessType = 2
     Color = 2
@@ -398,11 +415,6 @@
     Selection = use_event
 
 [[DatacardAux]]
-  [mc]
-    ProcessType = 1
-    Color = 1
-    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_BAK_ALL
-    Selection = use_event
   [Htozg120_el]
     ProcessType = 2
     Color = 2

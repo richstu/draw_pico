@@ -56,6 +56,57 @@ namespace ZgFunctions {
   //weight implementing variation in mq (mostly mtop)
   extern const NamedFunc sys_w_mq;
 
+  //weight implementing variation in run 2 lumi
+  extern const NamedFunc sys_w_lumi_run2;
+
+  //weight implementing variation in 2022 lumi
+  extern const NamedFunc sys_w_lumi_2022;
+
+  //weight implementing variation in 2023 lumi
+  extern const NamedFunc sys_w_lumi_2023;
+
+  //weight implementing upward variation in pileup weights 
+  extern const NamedFunc sys_w_pu_up;
+
+  //weight implementing downward variation in pileup weights 
+  extern const NamedFunc sys_w_pu_dn;
+
+  //weight implementing upward variation in prefire weights 
+  extern const NamedFunc sys_w_prefire_up;
+
+  //weight implementing downward variation in prefire weights 
+  extern const NamedFunc sys_w_prefire_dn;
+
+  //weight implementing upward variation in b/c-tagging weights 
+  extern const NamedFunc sys_w_bctag_up;
+
+  //weight implementing downward variation in b/c-tagging weights 
+  extern const NamedFunc sys_w_bctag_dn;
+
+  //weight implementing upward variation in udsg-mistagging weights 
+  extern const NamedFunc sys_w_udsgtag_up;
+
+  //weight implementing downward variation in udsg-mistagging weights 
+  extern const NamedFunc sys_w_udsgtag_dn;
+
+  //weight implementing upward variation in electron weights (efficiency)
+  extern const NamedFunc sys_w_el_up;
+
+  //weight implementing downward variation in electron weights (efficiency)
+  extern const NamedFunc sys_w_el_dn;
+
+  //weight implementing upward variation in muon weights (efficiency)
+  extern const NamedFunc sys_w_mu_up;
+
+  //weight implementing downward variation in muon weights (efficiency)
+  extern const NamedFunc sys_w_mu_dn;
+  
+  //weight implementing upward variation in photon weights (efficiency)
+  extern const NamedFunc sys_w_photon_up;
+
+  //weight implementing downward variation in photon weights (efficiency)
+  extern const NamedFunc sys_w_photon_dn;
+
   //el_sig with electron scale variation up
   extern const NamedFunc sys_el_sig_scaleup;
 
@@ -285,6 +336,14 @@ namespace ZgFunctions {
   //helper function to get H candidate four vector after varying photon energy
   TLorentzVector AssignPhotonVariationH(const Baby &b, const NamedFunc &photon_pt, 
                                         const NamedFunc &photon_sig);
+
+  //helper function to get H candidate four vector after variation
+  //doesn't consider edge cases ex. if selected Z candidate changes after
+  //variation
+  NamedFunc SimpleAssignVariationH(const NamedFunc &el_pt, 
+                                   const NamedFunc &mu_pt,
+                                   const NamedFunc &photon_pt,
+                                   const std::string &name);
 
 }
 

@@ -186,6 +186,122 @@ namespace ZgFunctions {
     return 1.0;
   });
 
+  //weight implementing variation in run 2 lumi
+  const NamedFunc sys_w_lumi_run2("sys_w_lumi_run2",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString()=="2016APV" || b.SampleTypeString()=="2016" 
+        || b.SampleTypeString()=="2017" || b.SampleTypeString()=="2018") {
+      return 1.016;
+    }
+    return 1.0;
+  });
+
+  //weight implementing variation in 2022 lumi
+  const NamedFunc sys_w_lumi_2022("sys_w_lumi_2022",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString()=="2022" || b.SampleTypeString()=="2022EE") {
+      return 1.013;
+    }
+    return 1.0;
+  });
+
+  //weight implementing variation in 2023 lumi
+  const NamedFunc sys_w_lumi_2023("sys_w_lumi_2023",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString()=="2023" || b.SampleTypeString()=="2023BPix") {
+      return 1.014;
+    }
+    return 1.0;
+  });
+
+  //weight implementing upward variation in pileup weights 
+  const NamedFunc sys_w_pu_up("sys_w_pu_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_pu()->at(0)/b.w_pu();
+  });
+
+  //weight implementing downward variation in pileup weights 
+  const NamedFunc sys_w_pu_dn("sys_w_pu_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_pu()->at(1)/b.w_pu();
+  });
+
+  //weight implementing upward variation in prefiring weights 
+  const NamedFunc sys_w_prefire_up("sys_w_prefire_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_prefire()->at(0)/b.w_prefire();
+  });
+
+  //weight implementing downward variation in prefiring weights 
+  const NamedFunc sys_w_prefire_dn("sys_w_prefire_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_prefire()->at(1)/b.w_prefire();
+  });
+
+  //weight implementing upward variation in b/c-tagging weights 
+  const NamedFunc sys_w_bctag_up("sys_w_bctag_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_bchig()->at(0)/b.w_bhig_df();
+    //NOTE needs to be updated with next production
+  });
+
+  //weight implementing downward variation in b/c-tagging weights 
+  const NamedFunc sys_w_bctag_dn("sys_w_bctag_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_bchig()->at(1)/b.w_bhig_df();
+    //NOTE needs to be updated with next production
+  });
+
+  //weight implementing upward variation in udsg-mistagging weights 
+  const NamedFunc sys_w_udsgtag_up("sys_w_udsgtag_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_udsghig()->at(0)/b.w_bhig_df();
+    //NOTE needs to be updated with next production
+  });
+
+  //weight implementing downward variation in udsg-mistagging weights 
+  const NamedFunc sys_w_udsgtag_dn("sys_w_udsgtag_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_udsghig()->at(1)/b.w_bhig_df();
+    //NOTE needs to be updated with next production
+  });
+
+  //weight implementing upward variation in electron weights (efficiency)
+  const NamedFunc sys_w_el_up("sys_w_el_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_el()->at(0)/b.w_el();
+  });
+
+  //weight implementing downward variation in electron weights (efficiency)
+  const NamedFunc sys_w_el_dn("sys_w_el_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_el()->at(1)/b.w_el();
+  });
+
+  //weight implementing upward variation in muon weights (efficiency)
+  const NamedFunc sys_w_mu_up("sys_w_mu_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_mu()->at(0)/b.w_mu();
+  });
+
+  //weight implementing downward variation in muon weights (efficiency)
+  const NamedFunc sys_w_mu_dn("sys_w_mu_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_mu()->at(1)/b.w_mu();
+  });
+
+  //weight implementing upward variation in photon weights (efficiency)
+  const NamedFunc sys_w_photon_up("sys_w_photon_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_photon()->at(0)/b.w_photon();
+  });
+
+  //weight implementing downward variation in photon weights (efficiency)
+  const NamedFunc sys_w_photon_dn("sys_w_photon_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return b.sys_photon()->at(1)/b.w_photon();
+  });
+
   //for reference, electrons and muons failing eta, dxy, or dz cuts are dropped from pico lists
 
   //el_sig with electron scale variation up
@@ -201,10 +317,10 @@ namespace ZgFunctions {
   const NamedFunc sys_el_sig_resdn = NamedFunc("(sys_el_pt_resdn>7)&&el_idLoose").Name("sys_el_sig_resdn");
 
   //mu_sig with muon systematics up
-  const NamedFunc sys_mu_sig_up = NamedFunc("mu_id||(mu_pt>200&&mu_highptid)&&(mu_reliso<0.35)&&(mu_sip3d<4)&&((mu_corrected_pt+mu_corrected_ptErr)>5)").Name("sys_mu_sig_up");
+  const NamedFunc sys_mu_sig_up = NamedFunc("mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)&&((mu_pt+mu_ptErr)>5)").Name("sys_mu_sig_up");
 
   //mu_sig with muon systematics down
-  const NamedFunc sys_mu_sig_dn = NamedFunc("mu_id||(mu_pt>200&&mu_highptid)&&(mu_reliso<0.35)&&(mu_sip3d<4)&&((mu_corrected_pt-mu_corrected_ptErr)>5)").Name("sys_mu_sig_dn");
+  const NamedFunc sys_mu_sig_dn = NamedFunc("mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)&&((mu_pt-mu_ptErr)>5)").Name("sys_mu_sig_dn");
 
   //nel with electron scale variation up
   const NamedFunc sys_nel_scaleup = ReduceNamedFunc(sys_el_sig_scaleup,reduce_sum).Name("sys_nel_scaleup");
@@ -276,22 +392,22 @@ namespace ZgFunctions {
 
   //leading muon pt with muon variation up
   const NamedFunc sys_lead_mu_pt_up = ReduceNamedFunc(FilterNamedFunc(
-      "mu_corrected_pt+mu_corrected_ptErr",sys_mu_sig_up),
+      "mu_pt+mu_ptErr",sys_mu_sig_up),
       reduce_max).Name("sys_lead_mu_pt_up");
 
   //subleading muon pt with muon variation up
   const NamedFunc sys_sublead_mu_pt_up = ReduceNamedFunc(FilterNamedFunc(
-      "mu_corrected_pt+mu_corrected_ptErr",sys_mu_sig_up),
+      "mu_pt+mu_ptErr",sys_mu_sig_up),
       reduce_sublead).Name("sys_sublead_mu_pt_up");
 
   //leading muon pt with muon variation down
   const NamedFunc sys_lead_mu_pt_dn = ReduceNamedFunc(FilterNamedFunc(
-      "mu_corrected_pt-mu_corrected_ptErr",sys_mu_sig_dn),
+      "mu_pt-mu_ptErr",sys_mu_sig_dn),
       reduce_max).Name("sys_lead_mu_pt_dn");
 
   //subleading muon pt with muon variation down
   const NamedFunc sys_sublead_mu_pt_dn = ReduceNamedFunc(FilterNamedFunc(
-      "mu_corrected_pt-mu_corrected_ptErr",sys_mu_sig_dn),
+      "mu_pt-mu_ptErr",sys_mu_sig_dn),
       reduce_sublead).Name("sys_sublead_mu_pt_dn");
 
   //for reference, photons failing origin eta cuts are dropped from pico list
@@ -415,67 +531,88 @@ namespace ZgFunctions {
   });
 
   //Higgs candidate mass with electron scale variation up
-  const NamedFunc sys_llphoton_m_elscaleup("sys_llphoton_m_elscaleup",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignElectronVariationH(b, "sys_el_pt_scaleup", sys_el_sig_scaleup).M();
-  });
+  //const NamedFunc sys_llphoton_m_elscaleup("sys_llphoton_m_elscaleup",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignElectronVariationH(b, "sys_el_pt_scaleup", sys_el_sig_scaleup).M();
+  //});
+  const NamedFunc sys_llphoton_m_elscaleup = SimpleAssignVariationH(
+      "sys_el_pt_scaleup","mu_pt", "photon_pt", "elscaleup");
 
   //Higgs candidate mass with electron scale variation down
-  const NamedFunc sys_llphoton_m_elscaledn("sys_llphoton_m_elscaledn",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignElectronVariationH(b, "sys_el_pt_scaledn", sys_el_sig_scaledn).M();
-  });
+  //const NamedFunc sys_llphoton_m_elscaledn("sys_llphoton_m_elscaledn",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignElectronVariationH(b, "sys_el_pt_scaledn", sys_el_sig_scaledn).M();
+  //});
+  const NamedFunc sys_llphoton_m_elscaledn = SimpleAssignVariationH(
+      "sys_el_pt_scaledn","mu_pt", "photon_pt", "elscaledn");
 
   //Higgs candidate mass with electron resolution variation up
-  const NamedFunc sys_llphoton_m_elresup("sys_llphoton_m_elresup",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignElectronVariationH(b, "sys_el_pt_resup", sys_el_sig_resup).M();
-  });
+  //const NamedFunc sys_llphoton_m_elresup("sys_llphoton_m_elresup",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignElectronVariationH(b, "sys_el_pt_resup", sys_el_sig_resup).M();
+  //});
+  const NamedFunc sys_llphoton_m_elresup = SimpleAssignVariationH(
+      "sys_el_pt_resup","mu_pt", "photon_pt", "elresup");
 
   //Higgs candidate mass with electron resolution variation down
-  const NamedFunc sys_llphoton_m_elresdn("sys_llphoton_m_elresdn",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignElectronVariationH(b, "sys_el_pt_resdn", sys_el_sig_resdn).M();
-  });
+  //const NamedFunc sys_llphoton_m_elresdn("sys_llphoton_m_elresdn",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignElectronVariationH(b, "sys_el_pt_resdn", sys_el_sig_resdn).M();
+  //});
+  const NamedFunc sys_llphoton_m_elresdn = SimpleAssignVariationH(
+      "sys_el_pt_resdn","mu_pt", "photon_pt", "elresdn");
 
   //Higgs candidate mass with muon variation up
-  const NamedFunc sys_llphoton_m_muup("sys_llphoton_m_muup",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignMuonVariationH(b, "mu_corrected_pt+mu_corrected_ptErr", sys_mu_sig_up).M();
-  });
+  //const NamedFunc sys_llphoton_m_muup("sys_llphoton_m_muup",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignMuonVariationH(b, "mu_corrected_pt+mu_corrected_ptErr", sys_mu_sig_up).M();
+  //});
+  const NamedFunc sys_llphoton_m_muup = SimpleAssignVariationH("el_pt", 
+      "mu_pt", "photon_pt", "muup");
 
   //Higgs candidate mass with muon variation dn
-  const NamedFunc sys_llphoton_m_mudn("sys_llphoton_m_mudn",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignMuonVariationH(b, "mu_corrected_pt-mu_corrected_ptErr", sys_mu_sig_dn).M();
-  });
+  //const NamedFunc sys_llphoton_m_mudn("sys_llphoton_m_mudn",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignMuonVariationH(b, "mu_corrected_pt-mu_corrected_ptErr", sys_mu_sig_dn).M();
+  //});
+  const NamedFunc sys_llphoton_m_mudn = SimpleAssignVariationH("el_pt", 
+      "mu_pt-mu_ptErr", "photon_pt", "mudn");
 
   //Higgs candidate mass with photon scale variation up
-  const NamedFunc sys_llphoton_m_phscaleup("sys_llphoton_m_phscaleup",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignPhotonVariationH(b, "sys_photon_pt_scaleup", sys_photon_sig_scaleup).M();
-  });
+  //const NamedFunc sys_llphoton_m_phscaleup("sys_llphoton_m_phscaleup",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignPhotonVariationH(b, "sys_photon_pt_scaleup", sys_photon_sig_scaleup).M();
+  //});
+  const NamedFunc sys_llphoton_m_phscaleup = SimpleAssignVariationH("el_pt", 
+      "mu_pt", "sys_photon_pt_scaleup", "phscaleup");
 
   //Higgs candidate mass with photon scale variation down
-  const NamedFunc sys_llphoton_m_phscaledn("sys_llphoton_m_phscaledn",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignPhotonVariationH(b, "sys_photon_pt_scaledn", sys_photon_sig_scaledn).M();
-  });
+  //const NamedFunc sys_llphoton_m_phscaledn("sys_llphoton_m_phscaledn",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignPhotonVariationH(b, "sys_photon_pt_scaledn", sys_photon_sig_scaledn).M();
+  //});
+  const NamedFunc sys_llphoton_m_phscaledn = SimpleAssignVariationH("el_pt", 
+      "mu_pt", "sys_photon_pt_scaledn", "phscaledn");
 
   //Higgs candidate mass with photon resolution variation up
-  const NamedFunc sys_llphoton_m_phresup("sys_llphoton_m_phresup",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignPhotonVariationH(b, "sys_photon_pt_resup", sys_photon_sig_resup).M();
-  });
+  //const NamedFunc sys_llphoton_m_phresup("sys_llphoton_m_phresup",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignPhotonVariationH(b, "sys_photon_pt_resup", sys_photon_sig_resup).M();
+  //});
+  const NamedFunc sys_llphoton_m_phresup = SimpleAssignVariationH("el_pt", 
+      "mu_pt", "sys_photon_pt_resup", "phresup");
 
   //Higgs candidate mass with photon resolution variation down
-  const NamedFunc sys_llphoton_m_phresdn("sys_llphoton_m_phresdn",
-      [](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignPhotonVariationH(b, "sys_photon_pt_resdn", sys_photon_sig_resdn).M();
-  });
+  //const NamedFunc sys_llphoton_m_phresdn("sys_llphoton_m_phresdn",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  return AssignPhotonVariationH(b, "sys_photon_pt_resdn", sys_photon_sig_resdn).M();
+  //});
+  const NamedFunc sys_llphoton_m_phresdn = SimpleAssignVariationH("el_pt", 
+      "mu_pt", "sys_photon_pt_resdn", "phresdn");
 
   //helper function to get Z candidate four vector after varying electron energy
-  TLorentzVector AssignElectronVariationZ(const Baby &b, const NamedFunc &el_pt, 
+  TLorentzVector AssignElectronVariationZ(const Baby &b, 
+                                          const NamedFunc &el_pt, 
                                           const NamedFunc &el_sig) {
     TLorentzVector el1, el2, zel, z;
     float min_dm = 999;
@@ -485,7 +622,8 @@ namespace ZgFunctions {
         float dm = fabs(b.ll_m()->at(ill)-91.1876);
         if (dm < min_dm) {
           min_dm = dm;
-          z.SetPtEtaPhiM(b.ll_pt()->at(ill), b.ll_eta()->at(ill), b.ll_phi()->at(ill), b.ll_m()->at(ill));
+          z.SetPtEtaPhiM(b.ll_pt()->at(ill), b.ll_eta()->at(ill), 
+                         b.ll_phi()->at(ill), b.ll_m()->at(ill));
         }
       }
     }
@@ -565,7 +703,8 @@ namespace ZgFunctions {
   }
 
   //helper function to get H candidate four vector after varying photon energy
-  TLorentzVector AssignPhotonVariationH(const Baby &b, const NamedFunc &photon_pt, 
+  TLorentzVector AssignPhotonVariationH(const Baby &b, 
+                                        const NamedFunc &photon_pt, 
                                         const NamedFunc &photon_sig) {
     TLorentzVector ph, z;
     float max_ph_pt = -999;
@@ -580,6 +719,40 @@ namespace ZgFunctions {
       }
     }
     return (ph+z);
+  }
+
+  //helper function to get H candidate four vector after variation
+  //doesn't consider edge cases ex. if selected Z candidate changes after
+  //variation
+  NamedFunc SimpleAssignVariationH(const NamedFunc &el_pt, 
+                                   const NamedFunc &mu_pt,
+                                   const NamedFunc &photon_pt,
+                                   const std::string &name) {
+    //require nll>=1 and nphoton>=0 ahead of this function to avoid issues
+    return NamedFunc(("sys_llphoton_m_"+name).c_str(),[el_pt, mu_pt, photon_pt]
+        (const Baby &b) -> NamedFunc::ScalarType{
+          std::vector<double> b_photon_pt = photon_pt.GetVector(b);
+          std::vector<double> b_el_pt = el_pt.GetVector(b);
+          std::vector<double> b_mu_pt = mu_pt.GetVector(b);
+          TLorentzVector l1, l2, ph;
+          ph.SetPtEtaPhiM(b_photon_pt[0], b.photon_eta()->at(0), 
+                          b.photon_phi()->at(0), 0.0);
+          int l1_idx = b.ll_i1()->at(0);
+          int l2_idx = b.ll_i2()->at(0);
+          if (b.ll_lepid()->at(0)==11) {
+            l1.SetPtEtaPhiM(b_el_pt[l1_idx], b.el_eta()->at(l1_idx), 
+                            b.el_phi()->at(l1_idx), 0.000511);
+            l2.SetPtEtaPhiM(b_el_pt[l2_idx], b.el_eta()->at(l2_idx), 
+                            b.el_phi()->at(l2_idx), 0.000511);
+          }
+          else {
+            l1.SetPtEtaPhiM(b_mu_pt[l1_idx], b.mu_eta()->at(l1_idx), 
+                            b.mu_phi()->at(l1_idx), 0.106);
+            l2.SetPtEtaPhiM(b_mu_pt[l2_idx], b.mu_eta()->at(l2_idx), 
+                            b.mu_phi()->at(l2_idx), 0.106);
+          }
+          return (l1+l2+ph).M();
+        });
   }
 
 }

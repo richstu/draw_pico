@@ -141,6 +141,9 @@ namespace ZgFunctions {
 
   //vector mother PDGID of mother of GenParticle
   extern const NamedFunc mc_mommom;
+
+  //returns true if photon is dr-matched to any hardprocess particle
+  extern const NamedFunc photon_isjet;
 }
 
 #endif

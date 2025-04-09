@@ -43,6 +43,7 @@ using ZgFunctions::sublead_jet_phi;
 using ZgFunctions::sublead_jet_m;
 using ZgFunctions::w_years;
 using ZgFunctions::photon_relpterr;
+using ZgFunctions::photon_isjet;
 using ZgFunctions::llphoton_rel_pt;
 using ZgFunctions::zg_baseline;
 using ZgUtilities::SetProcessesBackground;
@@ -380,7 +381,7 @@ int main() {
   //---------------------------------------------------------------------------
 
   string production = "pinnaclesv0";
-  string years = "2022";
+  string years = "2018";
 
   //---------------------------------------------------------------------------
   //                                    initialization
@@ -642,6 +643,70 @@ int main() {
     return 0.947066;
   });
 
+  const vector<float> zpt_zpt_bins = {0.0, 4.0, 8.0, 12.0, 16.0, 20.0, 25.0, 
+                                   30.0, 35.0, 40.0, 60.0, 80.0, 100.0, 
+                                   150.0, 9999.9};
+  const vector<float> zpt_ppt_bins = {15.0, 17.5, 20.0, 25.0, 30.0, 45.0, 
+                                   200.0};
+  const vector<float> zpt_dy_sfs = {1.0420459261079205, 1.2686446614096119, 
+      1.2303209134016975, 1.2948709831401142, 0.8529417942535457, 
+      0.950265531641653, 0.9373398751325328, 0.9998022868965111, 
+      0.8685840417193674, 0.9006408904323029, 1.1101878006164272, 
+      0.7170652836442809, 0.8888415733863856, 0.9422321067866333};
+  const vector<float> zpt_zg_sfs = {2.348177864792909, 1.2560932006478085, 
+      1.0029498240739385, 0.4939813430634804, 0.9125652300641348, 
+      0.8448043713345855, 1.0095597950883919, 1.0213271746020272, 
+      1.1636979143524198, 1.1679127634754762, 0.9522982057840222, 
+      1.179322602889091, 0.9489254114593093, 0.7671794369163406};
+  const vector<float> zpt_dyjet_sfs = {2.19350494941046, 1.748057365964945, 
+      1.507726973067028, 1.2821226945650033, 0.8254801636967898, 
+      0.3817814963376245};
+  const vector<float> zpt_dypu_sfs = {0.824717136116138, 0.7759356502920879, 
+      0.8370348577888398, 0.775495670861496, 1.1177431522975896, 
+      2.327700735650029};
+
+  //Z pt reweighting for DY and ZG amcatnlo sample
+  //combined with fake photon weights
+  const NamedFunc w_zph_pt("w_zph_pt", [zpt_zpt_bins, zpt_ppt_bins, zpt_zg_sfs,
+      zpt_dy_sfs, zpt_dyjet_sfs, zpt_dypu_sfs](const Baby &b) 
+      -> NamedFunc::ScalarType{
+    if (b.SampleTypeString().Contains("-")) 
+      return 1.; //data
+    float z_pt = b.ll_pt()->at(0);
+    float p_pt = b.photon_pt()->at(0);
+    bool b_photon_isjet = static_cast<bool>(photon_isjet.GetScalar(b));
+    float w_z = 1.0;
+    float w_p = 1.0;
+    if (b.type() >= 6000 && b.type() < 7000) {
+      //DYJets
+      for (unsigned izpt = 0; izpt < (zpt_zpt_bins.size()-1); izpt++) {
+        if (zpt_zpt_bins[izpt] <= z_pt && z_pt < zpt_zpt_bins[izpt+1]) {
+          w_z = zpt_dy_sfs[izpt];
+          break;
+        }
+      }
+      for (unsigned ippt = 0; ippt < (zpt_ppt_bins.size()-1); ippt++) {
+        if (zpt_ppt_bins[ippt] <= p_pt && p_pt < zpt_ppt_bins[ippt+1]) {
+          if (b_photon_isjet)
+            w_p = zpt_dyjet_sfs[ippt];
+          else
+            w_p = zpt_dypu_sfs[ippt];
+          break;
+        }
+      }
+    }
+    else if (b.type() >= 17000 && b.type() < 18000) {
+      //ZG
+      for (unsigned izpt = 0; izpt < (zpt_zpt_bins.size()-1); izpt++) {
+        if (zpt_zpt_bins[izpt] <= z_pt && z_pt < zpt_zpt_bins[izpt+1]) {
+          w_z = zpt_zg_sfs[izpt];
+          break;
+        }
+      }
+    }
+    return w_z*w_p;
+  });
+
   const NamedFunc w_lumi_years("w_lumi*w_years",
       [](const Baby &b) -> NamedFunc::ScalarType{
     if (b.type()<1000) return 1.0;
@@ -733,7 +798,7 @@ int main() {
   }
 
   //do plots from Z->ll(y) control region to validate physics object modelling
-  bool do_validate = true;
+  bool do_validate = false;
   //for (unsigned iwgt = 0; iwgt < 7; iwgt++) {
   if (do_validate) {
     unsigned iwgt = 0;
@@ -779,7 +844,7 @@ int main() {
   //do plots from regular analysis sideband
   bool do_sideband = true;
   if (do_sideband) {
-    NamedFunc weight = "weight"*w_years;
+    NamedFunc weight = "weight"*w_years*w_zph_pt;
     AddElectronPlots(pm, sideband&&"ll_lepid[0]==11", procs, ops, weight, tag);
     AddMuonPlots(pm, sideband&&"ll_lepid[0]==13", procs, ops, weight, tag);
     AddPhotonPlots(pm, sideband, procs, ops, weight, tag);

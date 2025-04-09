@@ -47,6 +47,31 @@ def get_mllg_varname(dataset_name):
     raise ValueError('string "cat" not present in dataset_name')
   return 'mllg_cat_'+cat_name
 
+def round_bins(hist):
+  """Rounds bins of a TH1D to the nearest integer, also removing negative 
+  yields
+
+  Args:
+    hist: histogram to round (modified in place)
+  """
+  for ibin in range(hist.GetNbinsX()+2):
+    rounded_value = float(round(hist.GetBinContent(ibin)))
+    if (rounded_value < 0.0):
+      rounded_value= 0.0
+    hist.SetBinContent(ibin, rounded_value)
+
+def remove_negative_bins(hist):
+  """Removes negative bins in histogram
+
+  Args:
+    hist: histogram to round (modified in place)
+  """
+  for ibin in range(hist.GetNbinsX()+2):
+    normed_value = hist.GetBinContent(ibin)
+    if (normed_value < 0.0):
+      normed_value= 0.0
+    hist.SetBinContent(ibin, normed_value)
+
 if __name__=='__main__':
   #parse args and set up
   argument_parser = ArgumentParser(prog='datacard_quickconvert',
@@ -66,8 +91,11 @@ if __name__=='__main__':
       #save RooDataSet/RooDataHist
       data = input_file.Get(ws_name).data(pdf_name)
       mllg = input_file.Get(ws_name).var(get_mllg_varname(pdf_name))
-      datahist = ROOT.RooDataHist(pdf_name, pdf_name, ROOT.RooArgSet(mllg), 
-                                  data)
+      data_hist = ROOT.TH1D('data_hist_'+pdf_name, '', 80, 100, 180)
+      data.fillHistogram(data_hist, ROOT.RooArgList(mllg))
+      round_bins(data_hist)
+      datahist = ROOT.RooDataHist(pdf_name, pdf_name, ROOT.RooArgList(mllg), 
+                                  data_hist)
       ws = ROOT.RooWorkspace(ws_name)
       getattr(ws,'import')(datahist)
       ws.writeToFile(output_filename,False)
@@ -79,9 +107,12 @@ if __name__=='__main__':
           'mcdata_'+pdf_name_clean+'_nominal')
       mllg = input_file.Get(ws_name_clean).var(get_mllg_varname(pdf_name))
       hist_name = pdf_name+'_datahist'
-      mchist = ROOT.RooDataHist(hist_name, hist_name, ROOT.RooArgSet(mllg), 
-                                mcdata)
-      pdf = ROOT.RooHistPdf(pdf_name, pdf_name, ROOT.RooArgSet(mllg), mchist)
+      pdf_hist = ROOT.TH1D('data_hist_'+pdf_name, '', 80, 100, 180)
+      data.fillHistogram(pdf_hist, ROOT.RooArgList(mllg))
+      remove_negative_bins(pdf_hist)
+      datahist = ROOT.RooDataHist(pdf_name, pdf_name, ROOT.RooArgList(mllg), 
+                                  pdf_hist)
+      pdf = ROOT.RooHistPdf(pdf_name, pdf_name, ROOT.RooArgSet(mllg), datahist)
       ws = ROOT.RooWorkspace(ws_name)
       getattr(ws,'import')(pdf)
       if 'background' in pdf_name:

@@ -14,6 +14,7 @@
 #include "TString.h"
 #include "TLorentzVector.h"
 
+#include "core/fastforest.hpp"
 #include "core/gamma_params.hpp"
 #include "core/mva_wrapper.hpp"
 #include "core/named_func.hpp"
@@ -52,22 +53,40 @@ namespace ZgUtilities {
   //returns working version of kinematic BDT
   std::shared_ptr<MVAWrapper> KinematicBdt();
   //returns NamedFunc that selects low BDT score category "ggF/untagged 4"
-  NamedFunc category_ggh4(std::shared_ptr<MVAWrapper> kinematic_bdt);
+  NamedFunc category_ggh4_old(std::shared_ptr<MVAWrapper> kinematic_bdt);
   //returns NamedFunc that selects medium BDT score category "ggF/untagged 3"
-  NamedFunc category_ggh3(std::shared_ptr<MVAWrapper> kinematic_bdt);
+  NamedFunc category_ggh3_old(std::shared_ptr<MVAWrapper> kinematic_bdt);
   //returns NamedFunc that selects high BDT score category "ggF/untagged 2"
-  NamedFunc category_ggh2(std::shared_ptr<MVAWrapper> kinematic_bdt);
+  NamedFunc category_ggh2_old(std::shared_ptr<MVAWrapper> kinematic_bdt);
   //returns NamedFunc that selects very high BDT score category "ggF/untagged 1"
-  NamedFunc category_ggh1(std::shared_ptr<MVAWrapper> kinematic_bdt);
+  NamedFunc category_ggh1_old(std::shared_ptr<MVAWrapper> kinematic_bdt);
 
   //returns working version of dijet BDT
-  std::shared_ptr<MVAWrapper> VbfBdt();
-  //returns NamedFunc that selects high BDT score VBF category "VBF/dijet 1"
-  NamedFunc category_vbf1(std::shared_ptr<MVAWrapper> vbf_bdt);
-  //returns NamedFunc that selects medium BDT score VBF category "VBF/dijet 2"
-  NamedFunc category_vbf2(std::shared_ptr<MVAWrapper> vbf_bdt);
-  //returns NamedFunc that selects low BDT score VBF category "VBF/dijet 3"
-  NamedFunc category_vbf3(std::shared_ptr<MVAWrapper> vbf_bdt);
+  std::vector<std::shared_ptr<MVAWrapper>> VbfBdts();
+  //returns NamedFunc that returns VBF score
+  NamedFunc vbf_bdt_score(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  //returns NamedFunc that selects very high BDT score VBF category 
+  NamedFunc category_vbf1(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  //returns NamedFunc that selects high BDT score VBF category 
+  NamedFunc category_vbf2(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  //returns NamedFunc that selects medium BDT score VBF category
+  NamedFunc category_vbf3(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  //returns NamedFunc that selects low BDT score VBF category 
+  NamedFunc category_vbf4(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+
+  //returns XGBoost BDTs
+  const std::vector<fastforest::FastForest> XGBoostBDTs();
+  //Returns NamedFunc that returns XGBoost score
+  NamedFunc XGBoostBDTScore(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  //returns NamedFunc that selects low BDT score category "ggF 4"
+  NamedFunc category_ggf4(const std::vector<fastforest::FastForest> &xgb_bdts);
+  //returns NamedFunc that selects medium BDT score category "ggF 3"
+  NamedFunc category_ggf3(const std::vector<fastforest::FastForest> &xgb_bdts);
+  //returns NamedFunc that selects high BDT score category "ggF 2"
+  NamedFunc category_ggf2(const std::vector<fastforest::FastForest> &xgb_bdts);
+  //returns NamedFunc that selects very high BDT score category "ggF 1"
+  NamedFunc category_ggf1(const std::vector<fastforest::FastForest> &xgb_bdts);
 
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader();

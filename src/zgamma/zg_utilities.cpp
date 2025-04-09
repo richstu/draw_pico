@@ -1,7 +1,9 @@
 #include "zgamma/zg_utilities.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <map>
+#include <cmath>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -17,6 +19,9 @@
 #include "RooRealVar.h"
 
 #include "core/baby.hpp"
+#include "core/fastforest.hpp"
+#include "core/named_func.hpp"
+#include "core/named_func_utilities.hpp"
 #include "core/mva_wrapper.hpp"
 #include "core/palette.hpp"
 #include "core/process.hpp"
@@ -31,6 +36,9 @@ namespace ZgUtilities {
   using std::to_string;
   using std::cout;
   using std::endl;
+  using std::shared_ptr;
+  using fastforest::FastForest;
+  using NamedFuncUtilities::MapNamedFunc;
   // Returns negative lepton 4-momentum
   TLorentzVector AssignL1(const Baby &b, bool gen) {
     TLorentzVector l1;
@@ -534,72 +542,247 @@ namespace ZgUtilities {
   }
 
   //returns NamedFunc that selects low BDT score category "ggF/untagged 4"
-  NamedFunc category_ggh4(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+  NamedFunc category_ggh4_old(std::shared_ptr<MVAWrapper> kinematic_bdt) {
     NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
     return (kinematic_bdt_score>-0.1&&kinematic_bdt_score<0.04);
   }
 
   //returns NamedFunc that selects medium BDT score category "ggF/untagged 3"
-  NamedFunc category_ggh3(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+  NamedFunc category_ggh3_old(std::shared_ptr<MVAWrapper> kinematic_bdt) {
     NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
     return (kinematic_bdt_score>0.04&&kinematic_bdt_score<0.16);
   }
 
   //returns NamedFunc that selects high BDT score category "ggF/untagged 2"
-  NamedFunc category_ggh2(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+  NamedFunc category_ggh2_old(std::shared_ptr<MVAWrapper> kinematic_bdt) {
     NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
     return (kinematic_bdt_score>0.16&&kinematic_bdt_score<0.26);
   }
 
   //returns NamedFunc that selects very high BDT score category "ggF/untagged 1"
-  NamedFunc category_ggh1(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+  NamedFunc category_ggh1_old(std::shared_ptr<MVAWrapper> kinematic_bdt) {
     NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
     return (kinematic_bdt_score>0.26);
   }
 
+  const NamedFunc dijet_absdphi = MapNamedFunc("dijet_dphi", fabsf);
+  const NamedFunc llphoton_dijet_absdphi = MapNamedFunc(
+      "llphoton_dijet_dphi[0]", fabsf);
+
   //returns working version of dijet BDT
-  std::shared_ptr<MVAWrapper> VbfBdt() {
-    std::shared_ptr<MVAWrapper> vbf_bdt_reader = std::make_shared<MVAWrapper>("vbf_bdt");
-    vbf_bdt_reader->SetVariable("photon_mva","photon_idmva[0]");
-    vbf_bdt_reader->SetVariable("min_dR","photon_drmin[0]");
-    vbf_bdt_reader->SetVariable("max_dR","photon_drmax[0]");
-    vbf_bdt_reader->SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
-    vbf_bdt_reader->SetVariable("cosTheta","llphoton_cosTheta[0]");
-    vbf_bdt_reader->SetVariable("costheta","llphoton_costheta[0]");
-    vbf_bdt_reader->SetVariable("phi","llphoton_psi[0]");
-    vbf_bdt_reader->SetVariable("photon_res",ZgFunctions::photon_relpterr);
-    vbf_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
-    vbf_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
-    vbf_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
-    vbf_bdt_reader->SetVariable("detajj","dijet_deta");
-    vbf_bdt_reader->SetVariable("dphizgjj","llphoton_dijet_dphi[0]");
-    vbf_bdt_reader->SetVariable("zgjj_balance","llphoton_dijet_balance[0]");
-    vbf_bdt_reader->SetVariable("ptt","llphoton_pTt[0]");
-    vbf_bdt_reader->SetVariable("dphijj","dijet_dphi");
-    vbf_bdt_reader->SetVariable("zeppenfeld","photon_zeppenfeld[0]");
-    vbf_bdt_reader->SetVariable("ptj2",ZgFunctions::lead_jet_pt);
-    vbf_bdt_reader->SetVariable("ptj1",ZgFunctions::sublead_jet_pt);
-    vbf_bdt_reader->SetVariable("drgj","photon_jet_mindr[0]");
-    vbf_bdt_reader->BookMVA("/homes/oshiro/public_weights/shuffled_dijet_BDT.weights.xml");
-    return vbf_bdt_reader;
+  vector<shared_ptr<MVAWrapper>> VbfBdts() {
+    vector<shared_ptr<MVAWrapper>> vbf_bdt_readers = {
+      std::make_shared<MVAWrapper>("vbf_bdt0"),
+      std::make_shared<MVAWrapper>("vbf_bdt1"),
+      std::make_shared<MVAWrapper>("vbf_bdt2"),
+      std::make_shared<MVAWrapper>("vbf_bdt3")};
+    for (std::shared_ptr<MVAWrapper> bdt_reader : vbf_bdt_readers) {
+      bdt_reader->SetVariable("dijet_deta","dijet_deta");
+      bdt_reader->SetVariable("dijet_dphi",dijet_absdphi);
+      bdt_reader->SetVariable("j1_pt",ZgFunctions::lead_jet_pt);
+      bdt_reader->SetVariable("j2_pt",ZgFunctions::sublead_jet_pt);
+      bdt_reader->SetVariable("llphoton_dijet_balance",
+                              "llphoton_dijet_balance[0]");
+      bdt_reader->SetVariable("llphoton_dijet_dphi",llphoton_dijet_absdphi);
+      bdt_reader->SetVariable("phi","llphoton_psi[0]");
+      bdt_reader->SetVariable("min_dR","photon_drmin[0]");
+      bdt_reader->SetVariable("max_dR","photon_drmax[0]");
+      bdt_reader->SetVariable("costheta","llphoton_costheta[0]");
+      bdt_reader->SetVariable("cosTheta","llphoton_cosTheta[0]");
+      bdt_reader->SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
+      bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
+      bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
+      bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
+      bdt_reader->SetVariable("photon_mva","photon_idmva[0]");
+      bdt_reader->SetVariable("photon_res",ZgFunctions::photon_relpterr);
+      bdt_reader->SetVariable("photon_zeppenfeld","photon_zeppenfeld[0]");
+      bdt_reader->SetVariable("photon_jet1_dr","photon_jet1_dr[0]");
+      bdt_reader->SetVariable("photon_jet2_dr","photon_jet2_dr[0]");
+    }
+    vbf_bdt_readers[0]->BookMVA("/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_0.weights.xml");
+    vbf_bdt_readers[1]->BookMVA("/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_1.weights.xml");
+    vbf_bdt_readers[2]->BookMVA("/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_2.weights.xml");
+    vbf_bdt_readers[3]->BookMVA("/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_3.weights.xml");
+    return vbf_bdt_readers;
   }
 
-  //returns NamedFunc that selects high BDT score VBF category "VBF/dijet 1"
-  NamedFunc category_vbf1(std::shared_ptr<MVAWrapper> vbf_bdt) {
-    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
-    return (vbf_bdt_score>0.14);
+  //returns NamedFunc that returns VBF score
+  NamedFunc vbf_bdt_score(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
+    vector<NamedFunc> bdt_scores;
+    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
+      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
+    }
+    return NamedFunc("vbf_bdtscore",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      int bdt_index = (((b.event()%314159)+1)%4);
+      return bdt_scores[bdt_index].GetScalar(b);
+    });
   }
 
-  //returns NamedFunc that selects medium BDT score VBF category "VBF/dijet 2"
-  NamedFunc category_vbf2(std::shared_ptr<MVAWrapper> vbf_bdt) {
-    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
-    return (vbf_bdt_score>0.06&&vbf_bdt_score<0.14);
+  //returns NamedFunc that selects very high BDT score VBF category
+  NamedFunc category_vbf1(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
+    vector<NamedFunc> bdt_scores;
+    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
+      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
+    }
+    return NamedFunc("Vbf1",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      int bdt_index = (((b.event()%314159)+1)%4);
+      float score = bdt_scores[bdt_index].GetScalar(b);
+      if (score > 0.489) return 1.0;
+      return 0.0;
+    });
   }
 
-  //returns NamedFunc that selects low BDT score VBF category "VBF/dijet 3"
-  NamedFunc category_vbf3(std::shared_ptr<MVAWrapper> vbf_bdt) {
-    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
-    return (vbf_bdt_score<0.06);
+  //returns NamedFunc that selects high BDT score VBF category
+  NamedFunc category_vbf2(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
+    vector<NamedFunc> bdt_scores;
+    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
+      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
+    }
+    return NamedFunc("vb2",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      int bdt_index = (((b.event()%314159)+1)%4);
+      float score = bdt_scores[bdt_index].GetScalar(b);
+      if (score > 0.286 && score < 0.489) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns NamedFunc that selects medium BDT score VBF category
+  NamedFunc category_vbf3(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
+    vector<NamedFunc> bdt_scores;
+    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
+      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
+    }
+    return NamedFunc("vbf3",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      int bdt_index = (((b.event()%314159)+1)%4);
+      float score = bdt_scores[bdt_index].GetScalar(b);
+      if (score > 0.083 && score < 0.286) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns NamedFunc that selects low BDT score VBF category
+  NamedFunc category_vbf4(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
+    vector<NamedFunc> bdt_scores;
+    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
+      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
+    }
+    return NamedFunc("vbf4",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      int bdt_index = (((b.event()%314159)+1)%4);
+      float score = bdt_scores[bdt_index].GetScalar(b);
+      if (score < 0.083) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns XGBoost BDTs
+  const vector<FastForest> XGBoostBDTs() {
+    vector<string> xgb_features{"f0","f1","f2","f3","f4","f5","f6","f7","f8",
+                                "f9","f10"};
+    //in order vars are photon_mva, photon_res, max_dR, min_dR, pt_mass, 
+    //cosTheta, costheta, phi, l1_rapidity, l2_rapidity, and photon_rapidity
+    cout << "Loading XGBoost BDTs from "
+         << "/homes/oshiro/public_weights/xgb_bdt_*.txt" << endl;
+    cout << "Evaluator is NOT thread safe, ensure PlotMaker is using 1 thread"
+         << endl;
+    return {fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_bdt_0.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_bdt_1.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_bdt_2.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_bdt_3.txt", xgb_features)};
+  }
+
+  //hacky machinery to cache XGBoost score since it is slow
+  bool compare_float_vectors_delta(vector<float> a, vector<float> b, 
+                                   float delta=1.0e-5) {
+    //all the BDT inputs are O(1) numbers
+    if (a.size() != b.size()) return false;
+    for (unsigned i = 0; i < a.size(); i++) {
+      if (fabs(a[i]-b[i])>delta) return false;
+    }
+    return true;
+  }
+
+  //gets XGBoost score
+  float GetXGBoostBDTScore(const vector<FastForest> &xgb_bdts, const Baby &b) {
+    static vector<vector<float>> xgb_bdt_input_cache(4, vector<float>(11, 0));
+    static vector<float> xgb_bdt_output_cache(4, 0.0);
+    int bdt_idx = (b.event()%314159)%4;
+    vector<float> bdt_inputs = {
+        b.photon_idmva()->at(0),
+        static_cast<float>(ZgFunctions::photon_relpterr.GetScalar(b)),
+        b.photon_drmax()->at(0),
+        b.photon_drmin()->at(0),
+        b.llphoton_pt()->at(0)/b.llphoton_m()->at(0),
+        b.llphoton_cosTheta()->at(0),
+        b.llphoton_costheta()->at(0),
+        b.llphoton_phi()->at(0),
+        static_cast<float>(ZgFunctions::lead_lepton_eta.GetScalar(b)),
+        static_cast<float>(ZgFunctions::sublead_lepton_eta.GetScalar(b)),
+        b.photon_eta()->at(0)};
+    if (!compare_float_vectors_delta(bdt_inputs, 
+                                     xgb_bdt_input_cache[bdt_idx])) {
+      for (unsigned iin = 0; iin < 11; iin++) {
+        xgb_bdt_input_cache[bdt_idx][iin] = bdt_inputs[iin];
+      }
+      xgb_bdt_output_cache[bdt_idx] = xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
+    }
+    return xgb_bdt_output_cache[bdt_idx];
+  }
+
+  //Returns NamedFunc that returns XGBoost score
+  NamedFunc XGBoostBDTScore(const vector<FastForest> &xgb_bdts) {
+    return NamedFunc("xgb_bdtscore",[xgb_bdts](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      return GetXGBoostBDTScore(xgb_bdts, b);
+    });
+  }
+
+  //returns NamedFunc that selects low BDT score category "ggF 4"
+  NamedFunc category_ggf4(const vector<FastForest> &xgb_bdts) {
+    return NamedFunc("ggf4",[xgb_bdts](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      float score = GetXGBoostBDTScore(xgb_bdts, b);
+      if (score<0.47) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns NamedFunc that selects medium BDT score category "ggF 3"
+  NamedFunc category_ggf3(const vector<FastForest> &xgb_bdts) {
+    return NamedFunc("ggf3",[xgb_bdts](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      float score = GetXGBoostBDTScore(xgb_bdts, b);
+      if (score>0.47&&score<0.64) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns NamedFunc that selects high BDT score category "ggF 2"
+  NamedFunc category_ggf2(const vector<FastForest> &xgb_bdts) {
+    return NamedFunc("ggf3",[xgb_bdts](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      float score = GetXGBoostBDTScore(xgb_bdts, b);
+      if (score>0.64&&score<0.81) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns NamedFunc that selects very high BDT score category "ggF 1"
+  NamedFunc category_ggf1(const vector<FastForest> &xgb_bdts) {
+    return NamedFunc("ggf3",[xgb_bdts](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      float score = GetXGBoostBDTScore(xgb_bdts, b);
+      if (score>0.81) return 1.0;
+      return 0.0;
+    });
   }
 
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
