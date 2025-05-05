@@ -206,6 +206,9 @@ std::vector<bool>  jet_h2d
 std::vector<int>   jet_fjet_idx
 std::vector<float> jet_pt_nosmear
 std::vector<float> jet_m_nosmear
+std::vector<int>   jet_h1_indices
+std::vector<int>   jet_h2_indices
+std::vector<int>   jet_ordered_pt_indices
 
 int ngenjet
 std::vector<float> genjet_pt
@@ -228,6 +231,7 @@ std::vector<float> fjet_mva_hbb_btv
 std::vector<float> fjet_deep_md_hbb_jme
 std::vector<float> fjet_deep_md_tvsqcd
 std::vector<float> fjet_deep_tvsqcd
+std::vector<float> fjet_pnet_md_xbb
 std::vector<float> fjet_pnet_wtag
 std::vector<float> fjet_pnet_ztag
 std::vector<float> fjet_pnet_ttag
@@ -459,6 +463,7 @@ std::vector<int>   mc_mom
 std::vector<int>   mc_momidx
 std::vector<int>   mc_status
 std::vector<int>   mc_statusflag
+float		   mc_weight
 
 int ntrulep
 int ntrumu
@@ -474,6 +479,10 @@ int mlsp
 
 ################  Weights   ##################
 float weight
+bool no_genb
+bool one_genb
+bool two_genb
+bool threeormore_genb
 float w_lumi
 float w_lep
 float w_el
@@ -662,6 +671,7 @@ bool HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId
 bool HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_Mass55
 bool HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
 bool HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass95
+bool HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
 
 
 ################  Systematic variations  ##################

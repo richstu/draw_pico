@@ -20,7 +20,7 @@
 #include "core/hist1d.hpp"
 #include "core/hist2d.hpp"
 #include "core/utilities.hpp"
-#include "bbgg/lester_mt2_bisect.h"
+//#include "bbgg/lester_mt2_bisect.h"
 #include <iomanip>
 #include <sstream>
 using namespace std;
@@ -556,7 +556,7 @@ const NamedFunc DeltaR_HH("DeltaR_HH",[](const Baby &b) -> NamedFunc::ScalarType
 });
 
 
-const NamedFunc mt2("mt2",[](const Baby &b) -> NamedFunc::ScalarType{
+/*const NamedFunc mt2("mt2",[](const Baby &b) -> NamedFunc::ScalarType{
   double MT2 =  asymm_mt2_lester_bisect::get_mT2(
              b.photonphoton_m()->at(0), b.photonphoton_pt()->at(0)*cos(b.photonphoton_phi()->at(0)), b.photonphoton_pt()->at(0)*sin(b.photonphoton_phi()->at(0)),
              b.bb_m()->at(0), b.bb_pt()->at(0)*cos(b.bb_phi()->at(0)), b.bb_pt()->at(0)*sin(b.bb_phi()->at(0)),
@@ -565,7 +565,7 @@ const NamedFunc mt2("mt2",[](const Baby &b) -> NamedFunc::ScalarType{
              0);
   return MT2;
 });
-
+*/
 const NamedFunc higgs_gg_lab_boost("higgs_gg_lab_boost",[](const Baby &b) -> NamedFunc::ScalarType{
   double gg_pt = b.photonphoton_pt()->at(0);
   double gg_pz = b.photonphoton_pt()->at(0)*tan(b.photonphoton_eta()->at(0));
