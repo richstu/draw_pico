@@ -150,58 +150,10 @@ int main() {
   vector<PlotOpt> ops_shapes = {lin_lumi.Stack(StackType::shapes)};
   vector<PlotOpt> ops_2D = {bkg_hist};
   
-  const NamedFunc sig_decay_4b("sig_decay_4b", [](const Baby &b) -> NamedFunc::ScalarType{ 
-    std::string file = *b.FileNames().begin();
-    if (file.find("TChiHH") != file.npos){
-      int n_trueb = 0;
-      for (size_t idx = 0; idx < b.mc_id()->size(); ++idx){
-        if ((b.mc_id()->at(idx) == 5 || b.mc_id()->at(idx) == -5) && b.mc_mom()->at(idx) == 25){ 
-	  n_trueb += 1;
-        }
-      }
-      return (n_trueb == 4);
-    }
-    else {return true;}
-  });
-
-  // common baseline
-  NamedFunc fake_met_mht("fake_met_mht", [](const Baby &b) -> NamedFunc::ScalarType{
-    bool pass = false;
-    if (b.met()/b.mht() < 2 && b.met()/b.met_calo()<2) { pass = true; }
-    return pass;
-  });
-
 
 //  NamedFunc test_regions = regions_4b::res_4b;
 
-  const NamedFunc nb_res("nb_res", [](const Baby &b) -> NamedFunc::ScalarType{ return num_b.GetScalar(b) >= 2; });
-  const NamedFunc nb_inv("nb_inv", [](const Baby &b) -> NamedFunc::ScalarType{ return num_b.GetScalar(b) < 2; });
-/*  const NamedFunc dphi_res("dphi_res", [](const Baby &b) -> NamedFunc::ScalarType{
-    double cut;
-    for (int i = 0; i < min(b.njet(),4); i++){
-      cut = (i>2) ? 0.5 : 0.3;
-      if (dphi_vec.GetVector(b)[i] < cut) {return false;}
-    }
-    return true;
-  });
-*/
-
-/*
-  vector<pair<string, NamedFunc>> cuts_4b_res = {
-    {"nvl", "nvlep==0"},
-    {"ntk", "ntk==0"},
-    {"met", "met>150"},
-    {"njet", "(njet==4 || njet==5)"},
-    {"hig_am", "hig_df_cand_am[0]<200"},
-    {"hig_dm", "hig_df_cand_dm[0]<40"},
-    {"hig_drmax", "hig_df_cand_drmax[0]<2.2"},
-    {"nb", nb_res},
-//    {"dphi", dphi_res},
-  };
-*/
-//  const NamedFunc res_baseline = sig_decay_4b && get_cuts(cuts_4b_res, "hig_drmax");
-
-  const NamedFunc res_baseline = sig_decay_4b && regions_4b::res_nm_met_higam;
+  const NamedFunc res_baseline = regions_4b::res_baseline;
 
   PlotMaker pm;
 //  pm.Push<Hist1D>(Axis(4,0,4,num_b, "N_{b}", {}), res_baseline, procs_sig_res, ops).Weight(w_run2).Tag("ShortName:testplot");
