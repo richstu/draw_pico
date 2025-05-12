@@ -30,6 +30,7 @@ const string get_cuts(vector<pair<string, NamedFunc>> cut_list, string removed_c
   return cuts.str();
 }
 
+// function to get cuts for N-k plots
 const string get_cuts_Nmk(vector<pair<string, NamedFunc>> cut_list, vector<string> removed_cuts){
   stringstream cuts;
   cuts << "njet>=2"; // basic cut for both 4b and bbgg
@@ -142,12 +143,22 @@ namespace regions_4b {
 
 
   const NamedFunc res_baseline = sig_decay_4b && get_cuts(cuts_4b_res, "") && dphi_res;
-  const NamedFunc res_nm_higam = get_cuts(cuts_4b_res, "hig_am");
-  const NamedFunc res_nm_met_higam = get_cuts_Nmk(cuts_4b_res, {"hig_am", "hig_dm"});
+  const NamedFunc res_nm_met = sig_decay_4b && get_cuts(cuts_4b_res, "met") && dphi_res;
+  const NamedFunc res_nm_njet = sig_decay_4b && "njet>=4" && get_cuts(cuts_4b_res, "njet") && dphi_res;
+  const NamedFunc res_nm_nb = sig_decay_4b && get_cuts(cuts_4b_res, "nb") && dphi_res;
+  const NamedFUnc res_nm_fakemet = sig_decay_4b && get_cuts(cuts_4b_res, "fakemet");
+  const NamedFunc res_nm_higam = sig_decay_4b && get_cuts(cuts_4b_res, "hig_am") && dphi_res;
+  const NamedFunc res_nm_higdm = sig_decay_4b && get_cuts(cuts_4b_res, "hig_dm") && dphi_res;
+  const NamedFunc res_nm_higdrmax = sig_decay_4b && get_cuts(cuts_4b_res, "hig_drmax") && dphi_res;
+  const NamedFunc res_nm_met_higam = sig_decay_4b && get_cuts_Nmk(cuts_4b_res, {"hig_am", "met"}) && dphi_res;
   const NamedFunc res_test = get_cuts(cuts_4b_res, "") && dphi_res;
 
   const NamedFunc boo_skimcuts = sig_decay_4b && !res_baseline && "nvlep==0&&ntk==0" && "met/mht<2" && "met/met_calo<2" && "met>150" && "njet>=2" && dphi_res;
   const NamedFunc boo_baseline = boo_skimcuts && get_cuts(cuts_4b_boo,"");
+  const NamedFunc boo_nm_met = boo_skimcuts && get_cuts(cuts_4b_boo, "met");
+  const NamedFunc boo_nm_ht = boo_skimcuts && get_cuts(cuts_4b_boo, "ht");
+  const NamedFunc boo_nm_ak8pt = boo_skimcuts && get_cuts(cuts_4b_boo, "ak8_pt");
+  const NamedFunc boo_nm_msd = boo_skimcuts && get_cuts(cuts_4b_boo, "mj_sd");
 
   const NamedFunc CR1_el = get_cuts(cuts_4b_CR1, "") && "nel>0";
   const NamedFunc CR1_mu = get_cuts(cuts_4b_CR1, "") && "nmu>0";
