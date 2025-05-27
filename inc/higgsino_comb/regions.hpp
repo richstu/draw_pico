@@ -30,6 +30,7 @@ namespace regions_4b{
  extern const NamedFunc res_nm_higdm;
  extern const NamedFunc res_nm_higdrmax;
  extern const NamedFunc res_nm_met_higam;
+ extern const NamedFunc res_nm_higcuts;
  extern const NamedFunc res_test;
 
  extern const NamedFunc boo_skimcuts;

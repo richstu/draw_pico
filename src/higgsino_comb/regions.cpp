@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <regex>
 #include <string>
-#include "higgsino/hig_utilities.hpp"
 #include "core/hist1d.hpp"
 #include "core/utilities.hpp"
 #include "core/palette.hpp"
@@ -19,31 +18,57 @@
 
 using namespace std;
 
-// function to get a NamedFunc of cuts, given a list of cuts and a cut to remove (for N-1 plots)
-const string get_cuts(vector<pair<string, NamedFunc>> cut_list, string removed_cut){
-  stringstream cuts;
-  cuts << "njet>=2"; // basic cut for both 4b and bbgg
-  for (auto const selection : cut_list){
-    if (selection.first == removed_cut) { continue; }
-    else { cuts << "&&" << selection.second; }
-  }
-  return cuts.str();
-}
 
-// function to get cuts for N-k plots
-const string get_cuts_Nmk(vector<pair<string, NamedFunc>> cut_list, vector<string> removed_cuts){
-  stringstream cuts;
-  cuts << "njet>=2"; // basic cut for both 4b and bbgg
-  for (auto const selection : cut_list){
-    bool skip = false;
-    for (auto const cut : removed_cuts){
-      if (selection.first == cut) { skip = true; }
+  // function to add a list of cuts
+  const string add_cuts(vector<pair<string, NamedFunc>> cut_list, vector<string> added_cuts){ 
+    stringstream cuts;
+    int index = 0;
+    for (auto const selection : cut_list){
+      for (auto const cut: added_cuts){
+        if (selection.first == cut) {
+          if (index == 0) { cuts << selection.second; }
+          else { cuts << "&&" << selection.second; }
+          index += 1;
+        }
+      }
     }
-    if (skip) { continue; }
-    else { cuts << "&&" << selection.second; }
+    return cuts.str();
   }
-  return cuts.str();
-}
+
+  // function to get a NamedFunc of cuts, given a list of cuts and a cut to remove (for N-1 plots)
+  const string get_cuts(vector<pair<string, NamedFunc>> cut_list, string removed_cut){
+    stringstream cuts;
+    int index = 0;
+    for (auto const selection : cut_list){
+      if (selection.first == removed_cut) { continue; }
+      else { 
+        if (index == 0) { cuts << selection.second;} 
+        else { cuts << "&&" << selection.second; }
+        index += 1;
+      }
+    }
+    return cuts.str();
+  }
+
+  // function to get cuts for N-k plots
+  const string get_cuts_Nmk(vector<pair<string, NamedFunc>> cut_list, vector<string> removed_cuts){
+    stringstream cuts;
+    int index = 0;
+    //cuts << "njet>=2"; // basic cut for both 4b and bbgg
+    for (auto const selection : cut_list){
+      bool skip = false;
+      for (auto const cut : removed_cuts){
+        if (selection.first == cut) { skip = true; }
+      }
+      if (skip) { continue; }
+      else {
+        if (index == 0) { cuts << selection.second;}
+        else {cuts << "&&" << selection.second; }
+        index += 1;
+      }
+    }
+    return cuts.str();
+  }
 
 
 // specific regions for 4b analysis
@@ -62,12 +87,11 @@ namespace regions_4b {
     }
     else {return true;}
   });
-
-
+   
   const NamedFunc dphi_res("dphi_res", [](const Baby &b) -> NamedFunc::ScalarType{
     double cut;
     for (int i = 0; i < min(b.njet(),4); i++){
-      cut = (i>1) ? 0.5 : 0.3;
+      cut = (i<=1) ? 0.5 : 0.3;
       if (vardef::dphi_vec.GetVector(b)[i] < cut) {return false;}
     } 
     return true;
@@ -146,11 +170,12 @@ namespace regions_4b {
   const NamedFunc res_nm_met = sig_decay_4b && get_cuts(cuts_4b_res, "met") && dphi_res;
   const NamedFunc res_nm_njet = sig_decay_4b && "njet>=4" && get_cuts(cuts_4b_res, "njet") && dphi_res;
   const NamedFunc res_nm_nb = sig_decay_4b && get_cuts(cuts_4b_res, "nb") && dphi_res;
-  const NamedFUnc res_nm_fakemet = sig_decay_4b && get_cuts(cuts_4b_res, "fakemet");
+  const NamedFunc res_nm_fakemet = sig_decay_4b && get_cuts(cuts_4b_res, "fakemet");
   const NamedFunc res_nm_higam = sig_decay_4b && get_cuts(cuts_4b_res, "hig_am") && dphi_res;
   const NamedFunc res_nm_higdm = sig_decay_4b && get_cuts(cuts_4b_res, "hig_dm") && dphi_res;
   const NamedFunc res_nm_higdrmax = sig_decay_4b && get_cuts(cuts_4b_res, "hig_drmax") && dphi_res;
   const NamedFunc res_nm_met_higam = sig_decay_4b && get_cuts_Nmk(cuts_4b_res, {"hig_am", "met"}) && dphi_res;
+  const NamedFunc res_nm_higcuts = sig_decay_4b && get_cuts_Nmk(cuts_4b_res, {"hig_am", "hig_dm", "hig_drmax"}) && dphi_res;
   const NamedFunc res_test = get_cuts(cuts_4b_res, "") && dphi_res;
 
   const NamedFunc boo_skimcuts = sig_decay_4b && !res_baseline && "nvlep==0&&ntk==0" && "met/mht<2" && "met/met_calo<2" && "met>150" && "njet>=2" && dphi_res;
