@@ -73,8 +73,6 @@ using ZgUtilities::category_vbf4;
 using ZgUtilities::category_vbf3;
 using ZgUtilities::category_vbf2;
 using ZgUtilities::category_vbf1;
-using ZgUtilities::AddGaussStepExponential;
-using ZgUtilities::AddGaussStepBernstein;
 using SelectionList = Datacard::SelectionList;
 using Systematic = Datacard::Systematic;
 //const Process::Type data = Process::Type::data;
@@ -88,15 +86,15 @@ int main() {
 
   //Define processes
   vector<shared_ptr<Process>> processes = ZgSampleLoader() 
-        //.SetMacro("YEARS",{"2018"})
+        .SetMacro("YEARS",{"2018"})
         .LoadSamples("txt/samples_zgamma.txt","Datacard");
 
   vector<shared_ptr<Process>> processes_aux = ZgSampleLoader() 
-        //.SetMacro("YEARS",{"2018"})
+        .SetMacro("YEARS",{"2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardAux");
 
   //Define NamedFuncs
-  NamedFunc mllg = NamedFunc("llphoton_m[0]").Name("mllg");
+  NamedFunc mllg = NamedFunc("llphoton_refit_m").Name("mllg");
   //NamedFunc mllg_range_cut = NamedFunc("llphoton_m[0]>100&&llphoton_m[0]<165");
 
   const vector<FastForest> kinematic_bdt = XGBoostBDTs();
@@ -285,9 +283,9 @@ int main() {
   systematics.push_back(Systematic("CMS_res_g",{"fitvar"},
                                    {sys_llphoton_m_phresup},
                                    {sys_llphoton_m_phresdn},true));
-  systematics.push_back(Systematic("CMS_scale_m",{"fitvar"},
-                                   {sys_llphoton_m_muup},
-                                   {sys_llphoton_m_mudn},true));
+  //systematics.push_back(Systematic("CMS_scale_m",{"fitvar"},
+  //                                 {sys_llphoton_m_muup},
+  //                                 {sys_llphoton_m_mudn},true));
 
   //Make datacard
   PlotMaker pm;
@@ -295,7 +293,7 @@ int main() {
   pm.min_print_ = true;
 
   //set axis range to be larger than range in any individual category
-  pm.Push<Datacard>("test_datacard7", channels, systematics, 
+  pm.Push<Datacard>("test_datacard8", channels, systematics, 
       processes, weight,
       Axis(80, 95.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)

@@ -1,29 +1,88 @@
 /*************************************************************************
  *  Authors:   Tongguang Cheng
+ *  Adapted for H-->Zgamma by: Prasanna Siddireddy and Anders Barzdukas 
+ *  Contact at abarzdukas@ucsb.edu
  *************************************************************************/
 #ifndef KinZfitter_cpp
 #define KinZfitter_cpp
 
 /// KinFitter header
-#include "zgamma/KinZfitter.h"
+#include "zgamma/KinZfitter.hpp"
 
-KinZfitter::KinZfitter(bool isData) {
+using namespace std;
 
-  PDFName_ = "HZg_ggF_125GeV_ext1_M125_13TeV_powheg2_pythia8";
+KinZfitter::KinZfitter() {
+
+  //Default values drawn from HZg_Crystal_ball_and_3Gaussian_fit.txt
+  PDFName_ = "./txt/constrained_fit_input/HZg_Crystal_ball_and_3Gaussian_fit.txt";
+  meanCB_      = 90.8919;
+  sigmaCB_     = 4.007;
+  alphaCB_     = 1.1981;
+  nCB_         = 3.25604;
+  meanGauss1_  = 96.4278;
+  sigmaGauss1_ = 6.17509;
+  f1_          = 0.86449;
+  meanGauss2_  = 91.1649;
+  sigmaGauss2_ = 0.856305;
+  f2_          = 0.514371;
+  meanGauss3_  = 91.1513;
+  sigmaGauss3_ = 1.77148;
+  f3_          = 0.648225;
+  threegauss_  = true;
+
+  //This flag will bypass the section that reads a text file for the input values
   debug_ = false;
   if(debug_) std::cout << "KinZfitter. The debug flag is ON with "<<PDFName_<< std::endl;
-  isData_ = isData;
-
 }
 
-KinZfitter::KinZfitter(bool isData, TString pdf) {
+//This constructor takes a .txt file with the probability distribution function
+KinZfitter::KinZfitter(TString pdf_txtfile){
+  PDFName_ = pdf_txtfile;
+  debug_ = false;
 
-  PDFName_ = pdf;
-  debug_ = true;
+  std::ifstream input(PDFName_);
+  std::string line;
+  if(debug_) cout<<"PDFName_ in "<<PDFName_<<endl;
+
+  if(PDFName_.Contains("3G")){
+    threegauss_ = true;
+    while (!input.eof() && std::getline(input,line))
+      {
+        std::istringstream iss(line);
+        string p; double val;
+        if(iss >> p >> val) {
+          if(p=="meanCB")      { meanCB_ = val;}
+          if(p=="sigmaCB")     { sigmaCB_ = val;}
+          if(p=="alphaCB")     { alphaCB_ = val;}
+          if(p=="nCB")         { nCB_ = val;}
+          if(p=="meanGauss1")  { meanGauss1_ = val;}
+          if(p=="sigmaGauss1") { sigmaGauss1_ = val;}
+          if(p=="f1")          { f1_ = val;}
+          if(p=="meanGauss2")  { meanGauss2_ = val; }
+          if(p=="sigmaGauss2") { sigmaGauss2_ = val;}
+          if(p=="f2")          { f2_ = val;}
+          if(p=="meanGauss3")  { meanGauss3_ = val;}
+          if(p=="sigmaGauss3") { sigmaGauss3_ = val;}
+          if(p=="f3")          { f3_ = val;}
+        }
+      }
+  }
+  else {
+    threegauss_ = false;
+    while (!input.eof() && std::getline(input,line))
+      {
+      std::istringstream iss(line);
+      string p; double val;
+      if(iss >> p >> val) {
+        if(p=="bwMean")  { BWmean_ = val; }
+        if(p=="bwGamma" ){ BWgamma_ = val;  }
+        if(p=="Gsigma" ) { sigmaValG_ = val; }
+      }
+    }
+  }
+  input.close(); 
+
   if(debug_) std::cout << "KinZfitter. The debug flag is ON with "<<PDFName_<< std::endl;
-
-  isData_ = isData;
-
 }
 
 
@@ -74,11 +133,11 @@ double KinZfitter::masserror( std::vector<TLorentzVector> Lep, std::vector<doubl
       variedLep.SetPtEtaPhiM(Lep[i].Pt()+ pterr[i], Lep[i].Eta(), Lep[i].Phi(), Lep[i].M());
       TLorentzVector compositeParticleVariation ;
       for(unsigned int j=0; j<Lep.size(); j++)
-	{
-	  if(i!=j)compositeParticleVariation+=Lep[j];
-	  else compositeParticleVariation+=variedLep;
-	}
-      masserr += (compositeParticleVariation.M()-mass)*(compositeParticleVariation.M()-mass);
+        {
+          if(i!=j)compositeParticleVariation+=Lep[j];
+          else compositeParticleVariation+=variedLep;
+        }
+     masserr += (compositeParticleVariation.M()-mass)*(compositeParticleVariation.M()-mass);
     }
   return sqrt(masserr);
 
@@ -103,11 +162,9 @@ double KinZfitter::pterr(TLorentzVector ph){
 }
 
 
-void KinZfitter::Setup(std::map<unsigned int, TLorentzVector> selectedLeptons, std::map<unsigned int, TLorentzVector> selectedFsrPhotons, std::map<unsigned int, double> errorLeptons, int lepFlav, TString year) {
+void KinZfitter::Setup(std::map<unsigned int, TLorentzVector> selectedLeptons, std::map<unsigned int, TLorentzVector> selectedFsrPhotons, std::map<unsigned int, double> errorLeptons) {
 
   // reset everything for each event
-  idsZ1_.clear();
-
   p4sZ1_.clear();
   p4sZ1ph_.clear();
   p4sZ1REFIT_.clear();
@@ -118,76 +175,14 @@ void KinZfitter::Setup(std::map<unsigned int, TLorentzVector> selectedLeptons, s
   pTerrsZ1REFIT_.clear();
   pTerrsZ1phREFIT_.clear();
 
-  initZs(selectedLeptons, selectedFsrPhotons, errorLeptons, lepFlav, year);
-
-  if(debug_) cout<<"list ids"<<endl;
-  if(debug_) cout<<"IDs[0] "<<idsZ1_[0]<<" IDs[1] "<<idsZ1_[1]<<endl;
-
-  //fs_="";
-  //if(abs(idsZ1_[0])==11) fs_="2e";
-  //iif(abs(idsZ1_[0])==13) fs_="2mu";
-
-  if(debug_) cout<<"fs is "<<fs_<<endl;
-
-  /////////////
-//  string paramZ1_dummy("/homes/psiddire/draw_pico/data/dummy.txt");
-//  string paramZ1_dummy("/homes/abarzdukas/ZGamma/StudiesFromPrasanna/KinFit/ZMass/output_txt/dummy.txt");
-//  string paramZ1_dummy("/net/cms27/cms27r0/abarzdukas/ZGamma/StudiesFromPrasanna/KinFit/ZMass/output_txt/dummy.txt");
-//  TString paramZ1 = TString( paramZ1_dummy.substr(0, paramZ1_dummy.length() - 9));
-  //paramZ1+="_";
-  //paramZ1+=+fs_;
-  //paramZ1+=".txt";
-
-
-
-  TString paramZ1=PDFName_;
-
-
-  if(debug_) cout<<"paramZ1 in "<<paramZ1<<endl;
- 
-  std::ifstream input(paramZ1);
-  std::string line;
-  if(paramZ1.Contains("3G")){
-    threegauss_ = true;
-    while (!input.eof() && std::getline(input,line))
-      {
-        std::istringstream iss(line);
-        string p; double val;
-        if(iss >> p >> val) {
-          if(p=="meanCB")      { meanCB_ = val;}
-          if(p=="sigmaCB")     { sigmaCB_ = val;}
-          if(p=="alphaCB")     { alphaCB_ = val;}
-          if(p=="nCB")         { nCB_ = val;}
-          if(p=="meanGauss1")  { meanGauss1_ = val;}
-          if(p=="sigmaGauss1") { sigmaGauss1_ = val;}
-          if(p=="f1")          { f1_ = val;}
-          if(p=="meanGauss2")  { meanGauss2_ = val; }
-          if(p=="sigmaGauss2") { sigmaGauss2_ = val;}
-          if(p=="f2")          { f2_ = val;}
-          if(p=="meanGauss3")  { meanGauss3_ = val;}
-          if(p=="sigmaGauss3") { sigmaGauss3_ = val;}
-          if(p=="f3")          { f3_ = val;}
-        }
-      }
-  }
-  else {
-    threegauss_ = false;
-    while (!input.eof() && std::getline(input,line))
-      {
-      std::istringstream iss(line);
-      string p; double val;
-      if(iss >> p >> val) {
-			if(p=="bwMean")  { BWmean_ = val; }
-			if(p=="bwGamma" ){ BWgamma_ = val;  }
-			if(p=="Gsigma" ) { sigmaValG_ = val; }
-      }
-    }
-  }
- input.close(); 
+  gErrorIgnoreLevel = kWarning;
+  RooMsgService::instance().setStreamStatus(1,false);
+  initZs(selectedLeptons, selectedFsrPhotons, errorLeptons);
+  if(debug_){ cout << "Setup complete" << endl;} 
 }
 
 ///----------------------------------------------------------------------------------------------
-void KinZfitter::initZs(std::map<unsigned int, TLorentzVector> selectedLeptons, std::map<unsigned int, TLorentzVector> selectedFsrPhotons, std::map<unsigned int, double> errorLeptons, int lepFlav, TString year) {
+void KinZfitter::initZs(std::map<unsigned int, TLorentzVector> selectedLeptons, std::map<unsigned int, TLorentzVector> selectedFsrPhotons, std::map<unsigned int, double> errorLeptons) {
 
   if(debug_) cout<<"init leptons"<<endl;
 
@@ -196,23 +191,11 @@ void KinZfitter::initZs(std::map<unsigned int, TLorentzVector> selectedLeptons, 
       double pTerr = 0;
 
       TLorentzVector p4 = selectedLeptons[il];
-
-      int pdgId = lepFlav;
-
       if(debug_) cout << "lep_error before corrections = " << errorLeptons[il] << endl; 
-/*      if(lepFlav==13){
-        pTerr = lep_pterr(p4, errorLeptons[il],lepFlav,year);
-      } else {
-        pTerr = lep_pterr(p4, (errorLeptons[il]*p4.Pt()/p4.P()),lepFlav,year);
-      }
-*/
 
-      if(debug_) cout<<year<<endl;
       pTerr = errorLeptons[il];
-      if(debug_) cout<<"pdg id "<<pdgId<<endl;
       if(debug_) cout<<" pt err is "<<pTerr<<endl;
 
-      idsZ1_.push_back(pdgId);
       pTerrsZ1_.push_back(pTerr);
       p4sZ1_.push_back(p4);
 
@@ -220,7 +203,6 @@ void KinZfitter::initZs(std::map<unsigned int, TLorentzVector> selectedLeptons, 
 
   if(debug_) cout<<"init fsr photons"<<endl;
 
-//  if(idsZ1_[0]==13){
     TLorentzVector p4;
     for(unsigned int ifsr = 0; ifsr < selectedFsrPhotons.size(); ifsr++)
       {
@@ -231,7 +213,7 @@ void KinZfitter::initZs(std::map<unsigned int, TLorentzVector> selectedLeptons, 
 
         double pTerr = 0;
 
-        pTerr = pterr(p4); //,isData_);
+        pTerr = pterr(p4);
 
         if(debug_) cout<<" pt err is "<<pTerr<<endl;
         if(debug_) cout<<"for fsr Z1 photon"<<endl;
@@ -262,12 +244,9 @@ void KinZfitter::SetZ1Result(double l1, double l2, double lph1, double lph2) {
 
   p4sZ1REFIT_.push_back(Z1_1_True); p4sZ1REFIT_.push_back(Z1_2_True);
 
-//  if(idsZ1_[0]==13){
   TLorentzVector Z1ph;
   TLorentzVector Z1phTrue(0,0,0,0);
   for(unsigned int ifsr1 = 0; ifsr1<p4sZ1ph_.size(); ifsr1++) {
-//    if(idsZ1_[0]==11){break;}//Added Line for Z to ee events
-
     Z1ph = p4sZ1ph_[ifsr1];
 
     double l = 1.0;
@@ -277,10 +256,8 @@ void KinZfitter::SetZ1Result(double l1, double l2, double lph1, double lph2) {
     Z1phTrue.SetPtEtaPhiM(l*Z1ph.Pt(),Z1ph.Eta(),Z1ph.Phi(),Z1ph.M());
 
     p4sZ1phREFIT_.push_back(Z1phTrue);
-
   }
 
-//  }
   if(debug_) cout<<"end set Z1 result"<<endl;
 
 }
@@ -312,12 +289,10 @@ double KinZfitter::GetMZ1Err()
   pTErrs.push_back(pTerrsZ1_[0]);
   pTErrs.push_back(pTerrsZ1_[1]);
 
-//  if(idsZ1_[0]==13){
     for(unsigned int ifsr1 = 0; ifsr1<p4sZ1ph_.size(); ifsr1++) {
       p4s.push_back(p4sZ1ph_[ifsr1]);
       pTErrs.push_back(pTerrsZ1ph_[ifsr1]);
     }
-//  }
   return masserror(p4s,pTErrs);
 
 }
@@ -379,12 +354,32 @@ void KinZfitter::KinRefitZ1()
 
 }
 
+int KinZfitter::GetStatus()
+{
+  return status_;
+}
+
+int KinZfitter::GetCovMatStatus()
+{
+  return covmat_status_;
+}
+
+float KinZfitter::GetMinNll()
+{
+  return minnll_;
+}
 
 int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double & lph2)
 {
 
   l1= 1.0; l2 = 1.0;
   lph1 = 1.0; lph2 = 1.0;
+
+  //Declaring start time to help time which part of the refit is the longest
+  //clock_t time_start; time_start = static_cast<float>(clock())/CLOCKS_PER_SEC;
+  //This code is used to time the refit
+  //cout << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
+
 
   if(debug_) cout<<"start Z1 refit"<<endl;
 
@@ -422,24 +417,24 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
     Z1_ph2 = p4sZ1ph_[1]; pTerrZ1_ph2 = pTerrsZ1ph_[1];
     RECOpTph2 = Z1_ph2.Pt();
   }
-
-  RooRealVar* pT1RECO = new RooRealVar("pT1RECO", "pT1RECO", RECOpT1, 5, 500);
-  RooRealVar* pT2RECO = new RooRealVar("pT2RECO", "pT2RECO", RECOpT2, 5, 500);
-
-  double RECOpT1min = max(5.0, RECOpT1-2*pTerrZ1_1);
-  double RECOpT2min = max(5.0, RECOpT2-2*pTerrZ1_2);
-
-  RooRealVar* pTph1RECO = new RooRealVar("pTph1RECO", "pTph1RECO", RECOpTph1, 5, 500);
-  RooRealVar* pTph2RECO = new RooRealVar("pTph2RECO", "pTph2RECO", RECOpTph2, 5, 500);
-
-//  double RECOpTph1min = max(0.5, RECOpTph1-2*pTerrZ1_ph1);
-//  double RECOpTph2min = max(0.5, RECOpTph2-2*pTerrZ1_ph2);
   double RECOpTph1min = max(0.0, RECOpTph1-3*pTerrZ1_ph1);
   double RECOpTph2min = max(0.0, RECOpTph2-3*pTerrZ1_ph2);
+  double RECOpTph1max = RECOpTph1 < 2 ? RECOpTph1min : RECOpTph1+3*pTerrZ1_ph1;
+  double RECOpTph2max = RECOpTph2 < 2 ? RECOpTph2min : RECOpTph2+3*pTerrZ1_ph2;
+
+  RooRealVar* pTph1RECO = new RooRealVar("pTph1RECO", "pTph1RECO", RECOpTph1, 2, 1200);
+  RooRealVar* pTph2RECO = new RooRealVar("pTph2RECO", "pTph2RECO", RECOpTph2, 2, 1200);
+
+  RooRealVar* pTph1 = new RooRealVar("pTph1", "pTph1FIT", RECOpTph1, RECOpTph1min, RECOpTph1max);
+  RooRealVar* pTph2 = new RooRealVar("pTph2", "pTph2FIT", RECOpTph2, RECOpTph2min, RECOpTph2max);
+
+  RooRealVar* pT1RECO = new RooRealVar("pT1RECO", "pT1RECO", RECOpT1, 5, 1200);
+  RooRealVar* pT2RECO = new RooRealVar("pT2RECO", "pT2RECO", RECOpT2, 5, 1200);
+
+  double RECOpT1min = max(5.0, RECOpT1-3*pTerrZ1_1);
+  double RECOpT2min = max(5.0, RECOpT2-3*pTerrZ1_2);
 
   // observables pT1,2,ph1,ph2
-//  RooRealVar* pT1 = new RooRealVar("pT1", "pT1FIT", RECOpT1, RECOpT1min, RECOpT1+2*pTerrZ1_1 );
-//  RooRealVar* pT2 = new RooRealVar("pT2", "pT2FIT", RECOpT2, RECOpT2min, RECOpT2+2*pTerrZ1_2 );
   RooRealVar* pT1 = new RooRealVar("pT1", "pT1FIT", RECOpT1, RECOpT1min, RECOpT1+3*pTerrZ1_1 );
   RooRealVar* pT2 = new RooRealVar("pT2", "pT2FIT", RECOpT2, RECOpT2min, RECOpT2+3*pTerrZ1_2 );
 
@@ -459,15 +454,15 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
 
   // dot product to calculate (p1+p2+ph1+ph2).M()
   RooFormulaVar E1("E1", "TMath::Sqrt((@0*@0)/((TMath::Sin(@1))*(TMath::Sin(@1)))+@2*@2)",
-		   RooArgList(*pT1, *theta1, *m1));
+       RooArgList(*pT1, *theta1, *m1));
   RooFormulaVar E2("E2", "TMath::Sqrt((@0*@0)/((TMath::Sin(@1))*(TMath::Sin(@1)))+@2*@2)",
-		   RooArgList(*pT2, *theta2, *m2));
+       RooArgList(*pT2, *theta2, *m2));
   if(debug_) cout<<"E1 "<<E1.getVal()<<"; E2 "<<E2.getVal()<<endl;
 
   /////
 
-  RooRealVar* pTph1 = new RooRealVar("pTph1", "pTph1FIT", RECOpTph1, RECOpTph1min, RECOpTph1+2*pTerrZ1_ph1 );
-  RooRealVar* pTph2 = new RooRealVar("pTph2", "pTph2FIT", RECOpTph2, RECOpTph2min, RECOpTph2+2*pTerrZ1_ph2 );
+  //This code is used to time the refit
+  //cout << "After variable def: " << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
 
   double Vthetaph1, Vphiph1, Vthetaph2, Vphiph2;
   Vthetaph1 = (Z1_ph1).Theta(); Vthetaph2 = (Z1_ph2).Theta();
@@ -479,16 +474,16 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
   RooRealVar* phiph2   = new RooRealVar("phiph2", "phi2", Vphiph2);
 
   RooFormulaVar Eph1("Eph1", "TMath::Sqrt((@0*@0)/((TMath::Sin(@1))*(TMath::Sin(@1))))",
-		     RooArgList(*pTph1, *thetaph1));
+         RooArgList(*pTph1, *thetaph1));
   RooFormulaVar Eph2("Eph2", "TMath::Sqrt((@0*@0)/((TMath::Sin(@1))*(TMath::Sin(@1))))",
-		     RooArgList(*pTph2, *thetaph2));
+         RooArgList(*pTph2, *thetaph2));
 
   //// dot products of 4-vectors
 
   // 3-vector DOT
   RooFormulaVar* p1v3D2 = new RooFormulaVar("p1v3D2",
-					    "@0*@1*( ((TMath::Cos(@2))*(TMath::Cos(@3)))/((TMath::Sin(@2))*(TMath::Sin(@3)))+(TMath::Cos(@4-@5)))",
-					    RooArgList(*pT1, *pT2, *theta1, *theta2, *phi1, *phi2));
+              "@0*@1*( ((TMath::Cos(@2))*(TMath::Cos(@3)))/((TMath::Sin(@2))*(TMath::Sin(@3)))+(TMath::Cos(@4-@5)))",
+              RooArgList(*pT1, *pT2, *theta1, *theta2, *phi1, *phi2));
   if(debug_) cout<<"p1 DOT p2 is "<<p1v3D2->getVal()<<endl;
   // 4-vector DOT metric 1 -1 -1 -1
   RooFormulaVar p1D2("p1D2", "@0*@1-@2", RooArgList(E1, E2, *p1v3D2));
@@ -497,16 +492,16 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
 
   // 3-vector DOT
   RooFormulaVar* p1v3Dph1 = new RooFormulaVar("p1v3Dph1",
-					      "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
-					      RooArgList(*pT1, *pTph1, *theta1, *thetaph1, *phi1, *phiph1));
+                "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
+                RooArgList(*pT1, *pTph1, *theta1, *thetaph1, *phi1, *phiph1));
 
   // 4-vector DOT metric 1 -1 -1 -1
   RooFormulaVar p1Dph1("p1Dph1", "@0*@1-@2", RooArgList(E1, Eph1, *p1v3Dph1));
 
   // 3-vector DOT
   RooFormulaVar* p2v3Dph1 = new RooFormulaVar("p2v3Dph1",
-					      "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
-					      RooArgList(*pT2, *pTph1, *theta2, *thetaph1, *phi2, *phiph1));
+                "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
+                RooArgList(*pT2, *pTph1, *theta2, *thetaph1, *phi2, *phiph1));
   // 4-vector DOT metric 1 -1 -1 -1
   RooFormulaVar p2Dph1("p2Dph1", "@0*@1-@2", RooArgList(E2, Eph1, *p2v3Dph1));
 
@@ -514,16 +509,16 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
 
   // 3-vector DOT
   RooFormulaVar* p1v3Dph2 = new RooFormulaVar("p1v3Dph2",
-					      "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
-					      RooArgList(*pT1, *pTph2, *theta1, *thetaph2, *phi1, *phiph2));
+                "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
+                RooArgList(*pT1, *pTph2, *theta1, *thetaph2, *phi1, *phiph2));
 
   // 4-vector DOT metric 1 -1 -1 -1
   RooFormulaVar p1Dph2("p1Dph2", "@0*@1-@2", RooArgList(E1, Eph2, *p1v3Dph2));
 
   // 3-vector DOT
   RooFormulaVar* p2v3Dph2 = new RooFormulaVar("p2v3Dph2",
-					      "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
-					      RooArgList(*pT2, *pTph2, *theta2, *thetaph2, *phi2, *phiph2));
+                "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
+                RooArgList(*pT2, *pTph2, *theta2, *thetaph2, *phi2, *phiph2));
   // 4-vector DOT metric 1 -1 -1 -1
   RooFormulaVar p2Dph2("p2Dph2", "@0*@1-@2", RooArgList(E2, Eph2, *p2v3Dph2));
 
@@ -531,10 +526,14 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
 
   // 3-vector DOT
   RooFormulaVar* ph1v3Dph2 = new RooFormulaVar("ph1v3Dph2",
-						 "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
-					       RooArgList(*pTph1, *pTph2, *thetaph1, *thetaph2, *phiph1, *phiph2));
+                 "@0*@1*( (TMath::Cos(@2)*TMath::Cos(@3))/(TMath::Sin(@2)*TMath::Sin(@3))+TMath::Cos(@4-@5))",
+                 RooArgList(*pTph1, *pTph2, *thetaph1, *thetaph2, *phiph1, *phiph2));
   // 4-vector DOT metric 1 -1 -1 -1
   RooFormulaVar ph1Dph2("ph1Dph2", "@0*@1-@2", RooArgList(Eph1, Eph2, *ph1v3Dph2));
+
+  //This code is used to time the refit
+  //cout << "After dot products: " << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
+
 
   // mZ1
   RooFormulaVar* mZ1;
@@ -542,12 +541,14 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
     mZ1 = new RooFormulaVar("mZ1", "TMath::Sqrt(2*@0+@1*@1+@2*@2)", RooArgList(p1D2, *m1, *m2));
   } else if(p4sZ1ph_.size()==1) {
     mZ1 = new RooFormulaVar("mZ1", "TMath::Sqrt(2*@0+2*@1+2*@2+@3*@3+@4*@4)",
-			    RooArgList(p1D2, p1Dph1, p2Dph1, *m1, *m2));
+          RooArgList(p1D2, p1Dph1, p2Dph1, *m1, *m2));
   } else {
     mZ1 = new RooFormulaVar("mZ1", "TMath::Sqrt(2*@0+2*@1+2*@2+2*@3+2*@4+2*@5+@6*@6+@7*@7)",
-			    RooArgList(p1D2, p1Dph1, p2Dph1, p1Dph2, p2Dph2, ph1Dph2, *m1, *m2));
+          RooArgList(p1D2, p1Dph1, p2Dph1, p1Dph2, p2Dph2, ph1Dph2, *m1, *m2));
   }
 
+  //If mll is outside the bounds of the fit return mll without a fit
+  if(mZ1 -> getVal() < 60 || mZ1 -> getVal() > 120){return mZ1 -> getVal();}
 
 
   if(debug_) cout<<"mZ1 is "<<mZ1->getVal()<<endl;
@@ -593,6 +594,8 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
   RooRealVar BWGamma("BWGamma", "", BWgamma_);
   RooRealVar meanGauss("meanGauss", "", sigmaValG_);
 
+  //This code is used to time the refit
+  //cout << "Before model creation: " << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
 
 
   if(threegauss_==true){
@@ -616,6 +619,7 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
 
 
   } else {
+
   VoiToFit = new RooVoigtian("VoiToFit","Voigtian Fit to m_{ll}", *mZ1, BWMean, BWGamma, meanGauss);
   VoiPDF = new RooAddPdf("VoiShape","",*VoiToFit);
   
@@ -633,6 +637,11 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
 
   }
 
+
+  //This code is used to time the refit
+  //cout << "After Model creation: " << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
+
+
   // observable set
   RooArgSet *rastmp;
   if(p4sZ1ph_.size()==0){
@@ -643,8 +652,6 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
     rastmp = new RooArgSet(*pT1RECO, *pT2RECO, *pTph1RECO, *pTph2RECO);
   }
 
-
-
   RooDataSet* pTs = new RooDataSet("pTs", "pTs", *rastmp);
   pTs->add(*rastmp);
 
@@ -652,8 +659,19 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
   //nll = model->createNLL(*pTs);
   //RooMinuit(*nll).migrad();
 
-  RooFitResult* r = model->fitTo(*pTs, RooFit::Save(), RooFit::PrintLevel(-1));
+  //This code is used to time the refit
+  //cout << "Before fit: " << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
+
+
+  RooFitResult* r = model->fitTo(*pTs, RooFit::Save(), RooFit::PrintLevel(-1));//,RooFit::Timer(true));
   const TMatrixDSym& covMatrix = r->covarianceMatrix();
+  status_ = r->status();
+  covmat_status_ = r->covQual();
+  minnll_ = r -> minNll();
+
+  //This code is used to time the refit
+  //cout << "After fit: " << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
+
 
   const RooArgList& finalPars = r->floatParsFinal();
   for (int i=0 ; i<finalPars.getSize(); i++) {
@@ -676,16 +694,12 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
   double pTerrZ1REFIT1 = pT1->getError();
   double pTerrZ1REFIT2 = pT2->getError();
 
-  cout << "l1 after refit: " << pT1->getVal() << endl;
-  cout << "l2 after refit: " << pT2->getVal() << endl;
-
-
   pTerrsZ1REFIT_.push_back(pTerrZ1REFIT1);
   pTerrsZ1REFIT_.push_back(pTerrZ1REFIT2);
 
   double pTerrZ1phREFIT1;
   double pTerrZ1phREFIT2;
-  if(p4sZ1ph_.size()>=1) {// && (idsZ1_[0]==13)) {
+  if(p4sZ1ph_.size()>=1) {
 
     if(debug_) cout<<"set refit result for Z1 fsr photon 1"<<endl;
 
@@ -693,18 +707,20 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
     pTerrZ1phREFIT1 = pTph1->getError();
     if(debug_) cout<<"scale "<<lph1<<" pterr "<<pTerrZ1phREFIT1<<endl;
 
-    cout << "lph1: " << pTph1->getVal() << endl;
-
     pTerrsZ1phREFIT_.push_back(pTerrZ1phREFIT1);
 
   }
-  if(p4sZ1ph_.size()==2){ // && (idsZ1_[0]==13)) {
+  if(p4sZ1ph_.size()==2){
 
     lph2 = pTph2->getVal()/RECOpTph2;
     pTerrZ1phREFIT2 = pTph2->getError();
     pTerrsZ1phREFIT_.push_back(pTerrZ1phREFIT2);
 
   }
+
+  //This code is used to time the refit
+  //cout << "Before delete statements: " << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
+
 
  // delete pT1; delete pT2;delete pTph1; delete pTph2;
  //delete pT1RECO; delete pT2RECO; delete pTph1RECO; delete pTph2RECO;  delete m1; delete m2; delete theta1; 
@@ -725,6 +741,10 @@ int KinZfitter::PerZ1Likelihood(double & l1, double & l2, double & lph1, double 
   delete theta1; delete phi1; delete theta2; delete phi2;
   delete m1; delete m2; delete pTph1RECO; delete pTph2RECO;
   delete pT1; delete pT2;  delete pT1RECO; delete pT2RECO;
+
+  //This code is used to time the refit
+  //cout << "After delete statements: " << static_cast<float>(clock())/CLOCKS_PER_SEC - time_start<< endl;
+
 
   if(debug_) cout<<"end Z1 refit"<<endl;
 

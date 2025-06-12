@@ -24,6 +24,7 @@
 #include "core/sample_loader.hpp"
 #include "core/table.hpp"
 #include "core/table_row.hpp"
+#include "zgamma/KinZfitter.hpp"
 
 namespace ZgUtilities {
   TLorentzVector AssignL1(const Baby &b, bool gen = false);
@@ -121,20 +122,10 @@ namespace ZgUtilities {
   void SetProcessesBackground(
       std::vector<std::shared_ptr<Process>> &processes);
 
-  //Adds second order exponential function convoluted with a Gaussian
-  void AddGaussStepExponential(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
-                               std::vector<std::shared_ptr<RooAbsPdf>> &aux_pdfs,
-                               std::vector<std::shared_ptr<RooRealVar>> &vars,
-                               std::shared_ptr<RooRealVar> &mllg,
-                               std::string category,
-                               unsigned int order);
-
-  //Adds Bernstein polynomial times a step function convoluted with a 
-  //Gaussian to the list of RooAbsPdfs
-  void AddGaussStepBernstein(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
-                             std::vector<std::shared_ptr<RooRealVar>> &vars,
-                             std::shared_ptr<RooRealVar> &mllg,
-                             std::string category,
-                             unsigned int order);
+  //returns three-body invariant mass with custom refit
+  //TODO update this
+  std::vector<double> get_lep_pt_custom_refit(const Baby &b, 
+      std::shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt_var, 
+      NamedFunc mu_pt_var);
 }
 #endif

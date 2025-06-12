@@ -36,6 +36,8 @@ public:
   std::string PlainName() const;
   std::string PrettyName() const;
 
+  NamedFunc & EnableCaching(bool enable_caching=true);
+
   NamedFunc & Function(const std::function<ScalarFunc> &function);
   NamedFunc & Function(const std::function<VectorFunc> &function);
   const std::function<ScalarFunc> & ScalarFunction() const;
@@ -60,6 +62,11 @@ private:
   std::string name_;//!<String representation of the function
   std::function<ScalarFunc> scalar_func_;//<!Scalar function. Cannot be valid at same time as NamedFunc::vector_func_.
   std::function<VectorFunc> vector_func_;//<!Vector function. Cannot be valid at same time as NamedFunc::scalar_func_.
+  bool enable_caching_;
+  mutable ScalarType cached_scalar_result_;
+  mutable VectorType cached_vector_result_;
+  mutable const Baby* cached_baby_;
+  mutable long cached_entry_;
 
   void CleanName();
 };

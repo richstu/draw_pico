@@ -1,14 +1,15 @@
 #include "zgamma/zg_utilities.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <functional>
 #include <iostream>
 #include <map>
-#include <cmath>
 #include <memory>
-#include <sstream>
-#include <string>
-#include <stdlib.h>
 #include <regex>
+#include <sstream>
+#include <stdlib.h>
+#include <string>
 #include <vector>
 
 #include "RooAbsPdf.h"
@@ -28,15 +29,17 @@
 #include "core/sample_loader.hpp"
 #include "core/utilities.hpp"
 #include "zgamma/zg_functions.hpp"
-#include "zgamma/KinZfitter.h"
+#include "zgamma/KinZfitter.hpp"
 
 namespace ZgUtilities {
   using std::vector;
   using std::string;
+  using std::map;
   using std::to_string;
   using std::cout;
   using std::endl;
   using std::shared_ptr;
+  using std::function;
   using fastforest::FastForest;
   using NamedFuncUtilities::MapNamedFunc;
   // Returns negative lepton 4-momentum
@@ -139,7 +142,7 @@ namespace ZgUtilities {
   }
 
   double AssignL1Error(const Baby &b) {
-    std::cout << " CRASH LEP" << std::endl;
+    //std::cout << " CRASH LEP" << std::endl;
     double l1Err = 0.0;
     int il(-1);
     int flav = b.ll_lepid() ->at(0);
@@ -164,7 +167,7 @@ namespace ZgUtilities {
 
   // Returns positive lepton 4-momentum error
   double AssignL2Error(const Baby &b) {
-    std::cout << " CRASH SLEP" << std::endl;
+    //std::cout << " CRASH SLEP" << std::endl;
     double l2Err = 0.0;
     int il(-1);
     int flav = b.ll_lepid() ->at(0);
@@ -614,6 +617,7 @@ namespace ZgUtilities {
     }
     return NamedFunc("vbf_bdtscore",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
       int bdt_index = (((b.event()%314159)+1)%4);
       return bdt_scores[bdt_index].GetScalar(b);
     });
@@ -625,8 +629,9 @@ namespace ZgUtilities {
     for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
       bdt_scores.push_back(vbf_bdt->GetDiscriminant());
     }
-    return NamedFunc("Vbf1",[bdt_scores](const Baby &b) 
+    return NamedFunc("vbf1",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
       int bdt_index = (((b.event()%314159)+1)%4);
       float score = bdt_scores[bdt_index].GetScalar(b);
       if (score > 0.489) return 1.0;
@@ -640,8 +645,9 @@ namespace ZgUtilities {
     for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
       bdt_scores.push_back(vbf_bdt->GetDiscriminant());
     }
-    return NamedFunc("vb2",[bdt_scores](const Baby &b) 
+    return NamedFunc("vbf2",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
       int bdt_index = (((b.event()%314159)+1)%4);
       float score = bdt_scores[bdt_index].GetScalar(b);
       if (score > 0.286 && score < 0.489) return 1.0;
@@ -657,6 +663,7 @@ namespace ZgUtilities {
     }
     return NamedFunc("vbf3",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
       int bdt_index = (((b.event()%314159)+1)%4);
       float score = bdt_scores[bdt_index].GetScalar(b);
       if (score > 0.083 && score < 0.286) return 1.0;
@@ -672,6 +679,7 @@ namespace ZgUtilities {
     }
     return NamedFunc("vbf4",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
       int bdt_index = (((b.event()%314159)+1)%4);
       float score = bdt_scores[bdt_index].GetScalar(b);
       if (score < 0.083) return 1.0;
@@ -767,7 +775,7 @@ namespace ZgUtilities {
 
   //returns NamedFunc that selects high BDT score category "ggF 2"
   NamedFunc category_ggf2(const vector<FastForest> &xgb_bdts) {
-    return NamedFunc("ggf3",[xgb_bdts](const Baby &b) 
+    return NamedFunc("ggf2",[xgb_bdts](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = GetXGBoostBDTScore(xgb_bdts, b);
       if (score>0.64&&score<0.81) return 1.0;
@@ -777,7 +785,7 @@ namespace ZgUtilities {
 
   //returns NamedFunc that selects very high BDT score category "ggF 1"
   NamedFunc category_ggf1(const vector<FastForest> &xgb_bdts) {
-    return NamedFunc("ggf3",[xgb_bdts](const Baby &b) 
+    return NamedFunc("ggf1",[xgb_bdts](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = GetXGBoostBDTScore(xgb_bdts, b);
       if (score>0.81) return 1.0;
@@ -795,6 +803,14 @@ namespace ZgUtilities {
         (ZgFunctions::HLT_pass_dilepton||ZgFunctions::HLT_pass_singlelepton)&&ZgFunctions::stitch);
     zg_sample_loader.LoadNamedFunc("hzg_elchannel",ZgFunctions::Ztoee);
     zg_sample_loader.LoadNamedFunc("hzg_muchannel",ZgFunctions::ZtoMuMu);
+    zg_sample_loader.LoadNamedFunc("use_event&&(trig_single_el||trig_single_mu"
+        "||trig_double_el||trig_double_mu)&&photon_isjet",
+        ("use_event&&(trig_single_el||trig_single_mu||trig_double_el||"
+        "trig_double_mu)")&&ZgFunctions::photon_isjet);
+    zg_sample_loader.LoadNamedFunc("use_event&&(trig_single_el||trig_single_mu"
+        "||trig_double_el||trig_double_mu)&&!photon_isjet",
+        ("use_event&&(trig_single_el||trig_single_mu||trig_double_el||"
+        "trig_double_mu)")&&!ZgFunctions::photon_isjet);
     //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isjet",
     //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isjet);
     //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isother",
@@ -888,8 +904,7 @@ namespace ZgUtilities {
 
   double KinRefit(const Baby &b) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData);
+    kinZfitter = new KinZfitter();
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -899,7 +914,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0),b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     double massZ1REFIT = kinZfitter->GetRefitMZ1();
     delete kinZfitter;
@@ -908,8 +923,7 @@ namespace ZgUtilities {
 
   double KinRefit(const Baby &b, TString txtFile) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -919,7 +933,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0),b.SampleTypeString()  );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
 
     double massZ1REFIT = kinZfitter->GetRefitMZ1();
@@ -929,8 +943,7 @@ namespace ZgUtilities {
 
   std::vector<TLorentzVector> RefitP4(const Baby &b, TString txtFile) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -940,7 +953,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0) ,b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     delete kinZfitter;
@@ -949,8 +962,7 @@ namespace ZgUtilities {
 
   double difference_check(const Baby &b, TString txtFile){
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -960,7 +972,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0) ,b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     delete kinZfitter;
@@ -969,8 +981,7 @@ namespace ZgUtilities {
 
   double difference_check_lly(const Baby &b, TString txtFile){
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -981,7 +992,7 @@ namespace ZgUtilities {
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0) ,b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     TLorentzVector ph = AssignGamma(b);
@@ -1080,8 +1091,7 @@ namespace ZgUtilities {
 
   double KinRefitCorrected(const Baby &b, TString txtFile) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
 
@@ -1092,7 +1102,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignCorrL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0),b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     double massZ1REFIT = kinZfitter->GetRefitMZ1();
     delete kinZfitter;
@@ -1101,8 +1111,7 @@ namespace ZgUtilities {
 
   std::vector<TLorentzVector> RefitP4Corr(const Baby &b, TString txtFile) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignCorrL1(b);
@@ -1112,7 +1121,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignCorrL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0) ,b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     delete kinZfitter;
@@ -1124,6 +1133,42 @@ namespace ZgUtilities {
     for (std::shared_ptr<Process> process : processes) {
       process->type_ = Process::Type::background;
     }
+  }
+
+  //returns lepton pt invariant mass with custom refit
+  vector<double> get_lep_pt_custom_refit(const Baby &b, 
+      shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt_var, 
+      NamedFunc mu_pt_var) {
+
+    std::map<unsigned int, TLorentzVector> selectedLeptons;
+    selectedLeptons[0] = TLorentzVector();
+    selectedLeptons[1] = TLorentzVector();
+    int l1_idx = b.ll_i1()->at(0);
+    int l2_idx = b.ll_i2()->at(0);
+    if (b.ll_lepid()->at(0) == 11) {
+      vector<double> el_pt = el_pt_var.GetVector(b);
+      selectedLeptons[0].SetPtEtaPhiM(el_pt[l1_idx], b.el_eta()->at(l1_idx),
+                                      b.el_phi()->at(l1_idx), 0.000511);
+      selectedLeptons[1].SetPtEtaPhiM(el_pt[l2_idx], b.el_eta()->at(l2_idx),
+                                      b.el_phi()->at(l2_idx), 0.000511);
+    }
+    else {
+      vector<double> mu_pt = mu_pt_var.GetVector(b);
+      selectedLeptons[0].SetPtEtaPhiM(mu_pt[l1_idx], b.mu_eta()->at(l1_idx),
+                                      b.mu_phi()->at(l1_idx), 0.105);
+      selectedLeptons[1].SetPtEtaPhiM(mu_pt[l2_idx], b.mu_eta()->at(l2_idx),
+                                      b.mu_phi()->at(l2_idx), 0.105);
+    }
+    map<unsigned int, double> errorLeptons;
+    errorLeptons[0] = AssignL1Error(b);
+    errorLeptons[1] = AssignL2Error(b);
+    map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
+
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kinZfitter->KinRefitZ1();
+    vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
+    vector<double> refit_pt = {reFit[0].Pt(), reFit[1].Pt()};
+    return refit_pt;
   }
 
 }

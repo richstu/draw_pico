@@ -1,10 +1,15 @@
 #ifndef H_SYST_FUNCTIONS
 #define H_SYST_FUNCTIONS
 
+#include <memory>
+#include <vector>
+
 #include "TLorentzVector.h"
 
 #include "core/baby.hpp"
 #include "core/named_func.hpp"
+
+#include "zgamma/KinZfitter.hpp"
 
 namespace ZgFunctions {
 
@@ -288,16 +293,16 @@ namespace ZgFunctions {
   extern const NamedFunc sys_ll_m_mudn;
 
   //Higgs candidate mass with electron scale variation up
-  extern const NamedFunc sys_llphoton_m_elscaleup;
+  extern NamedFunc sys_llphoton_m_elscaleup;
 
   //Higgs candidate mass with electron scale variation down
-  extern const NamedFunc sys_llphoton_m_elscaledn;
+  extern NamedFunc sys_llphoton_m_elscaledn;
 
   //Higgs candidate mass with electron resolution variation up
-  extern const NamedFunc sys_llphoton_m_elresup;
+  extern NamedFunc sys_llphoton_m_elresup;
 
   //Higgs candidate mass with electron resolution variation down
-  extern const NamedFunc sys_llphoton_m_elresdn;
+  extern NamedFunc sys_llphoton_m_elresdn;
 
   //Higgs candidate mass with muon variation up
   extern const NamedFunc sys_llphoton_m_muup;
@@ -306,16 +311,16 @@ namespace ZgFunctions {
   extern const NamedFunc sys_llphoton_m_mudn;
 
   //Higgs candidate mass with photon scale variation up
-  extern const NamedFunc sys_llphoton_m_phscaleup;
+  extern NamedFunc sys_llphoton_m_phscaleup;
 
   //Higgs candidate mass with photon scale variation down
-  extern const NamedFunc sys_llphoton_m_phscaledn;
+  extern NamedFunc sys_llphoton_m_phscaledn;
 
   //Higgs candidate mass with photon resolution variation up
-  extern const NamedFunc sys_llphoton_m_phresup;
+  extern NamedFunc sys_llphoton_m_phresup;
 
   //Higgs candidate mass with photon resolution variation down
-  extern const NamedFunc sys_llphoton_m_phresdn;
+  extern NamedFunc sys_llphoton_m_phresdn;
 
   //helper function to get Z candidate four vector after varying electron energy
   TLorentzVector AssignElectronVariationZ(const Baby &b, const NamedFunc &el_pt, 
@@ -344,6 +349,35 @@ namespace ZgFunctions {
                                    const NamedFunc &mu_pt,
                                    const NamedFunc &photon_pt,
                                    const std::string &name);
+
+  //Gets NamedFunc that is double (l1, l2) of muon refit pt with variation
+  NamedFunc assign_muvariation_lep_refit_pt(
+      const NamedFunc &variation_mu_pt, 
+      std::shared_ptr<KinZfitter> kin_z_fitter, 
+      const std::string &name);
+
+  //Gets NamedFunc that is double (l1, l2) of electron refit pt with variation
+  NamedFunc assign_elvariation_lep_refit_pt(
+      const NamedFunc &variation_el_pt, 
+      std::shared_ptr<KinZfitter> kin_z_fitter, 
+      const std::string &name);
+
+  //Gets NamedFugc that is Z 4-momentum with muon variation
+  NamedFunc assign_muvariation_ll_refit_4p(
+      const NamedFunc &variation_mu_refit_pt, const std::string &name);
+
+  //Gets NamedFunc that is Z 4-momentum with electron variation
+  NamedFunc assign_elvariation_ll_refit_4p(
+      const NamedFunc &variation_el_refit_pt, const std::string &name);
+
+  //Gets NamedFunc that is Higgs 4-momentum with variation
+  NamedFunc assign_variation_llphoton_4p(const NamedFunc &variation_ll_4p, 
+                                         const NamedFunc &variation_photon_pt, 
+                                         const std::string &name);
+
+  //Gets NamedFunc that is Higgs candidate mass with variation
+  NamedFunc assign_variation_llphoton_m(const NamedFunc &variation_llphoton_4p, 
+                                        const std::string &name);
 
 }
 
