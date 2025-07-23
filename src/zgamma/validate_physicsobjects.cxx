@@ -20,6 +20,8 @@
 #include "zgamma/zg_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
 #include "zgamma/photon_weighter.hpp"
+#include "zgamma/kinr2_weighter.hpp"
+#include "zgamma/kinr3_weighter.hpp"
 
 #include "core/baby.hpp"
 #include "core/mva_wrapper.hpp"
@@ -35,6 +37,7 @@ using std::shared_ptr;
 using std::string;
 using std::set;
 using std::vector;
+using ZgFunctions::njet_hornveto;
 using ZgFunctions::lead_jet_pt;
 using ZgFunctions::lead_jet_eta;
 using ZgFunctions::lead_jet_phi;
@@ -47,13 +50,22 @@ using ZgFunctions::w_years;
 using ZgFunctions::photon_relpterr;
 using ZgFunctions::photon_isjet;
 using ZgFunctions::llphoton_rel_pt;
+using ZgFunctions::photon_mht_dphi;
+using ZgFunctions::mht;
+using ZgFunctions::ht;
+using ZgFunctions::lead_jet_photon_dr;
+using ZgFunctions::lead_jet_photon_deta;
+using ZgFunctions::lead_jet_llphoton_dr;
+using ZgFunctions::lead_jet_llphoton_dphi;
+using ZgFunctions::llphoton_j_balance;
+using ZgFunctions::llphoton_dijet_balance_hornveto;
 using ZgFunctions::zg_baseline;
 using ZgUtilities::SetProcessesBackground;
 using ZgUtilities::ZgSampleLoader;
 
 //alias to avoid naming confusion
-const NamedFunc llphoton_coscaptheta0 = NamedFunc("llphoton_cosTheta[0]")
-    .Name("llphoton_coscaptheta0");
+const NamedFunc llphoton_refit_coscaptheta = NamedFunc(
+    "llphoton_refit_cosTheta").Name("llphoton_refit_coscaptheta");
 
 //makes plots for electrons: pT eta phi (6 total)
 void AddElectronPlots(PlotMaker& pm, const NamedFunc& selection, 
@@ -278,15 +290,16 @@ void AddMultiplicityPlots(PlotMaker& pm, const NamedFunc& selection,
       Axis(5,-0.5,4.5, "nbdfm", "N_{b medium}", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
-      Axis(5,-0.5,4.5, "njet", "N_{jet}", {}), 
+      Axis(5,-0.5,4.5, njet_hornveto, "N_{jet}", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
       Axis(3,1.5,4.5, "nlep", "N_{lep}", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
 }
 
-//Adds plots of variables using in ggH BDT (8 total):
-// photon IDMVA, resolution, drmin, drmax, costheta, cosTheta, phi, pT/m lly
+//Adds plots of variables using in ggH BDT (9 total):
+// photon IDMVA, resolution, drmin, drmax, costheta, cosTheta, phi, pT/m lly,
+// dphi(ph,MHT)
 void AddGGHBDTPlots(PlotMaker& pm, const NamedFunc& selection, 
                     const vector<shared_ptr<Process>>& procs, 
                     const vector<PlotOpt>& ops,
@@ -307,17 +320,61 @@ void AddGGHBDTPlots(PlotMaker& pm, const NamedFunc& selection,
       Axis(25,0.0,5.0, "photon_drmax[0]", "Photon #Delta R_{max}(l)", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
-      Axis(25,-1.0,1.0, "llphoton_costheta[0]", "ll#gamma cos(#theta)", {}), 
+      Axis(25,-1.0,1.0, "llphoton_refit_costheta", "ll#gamma cos(#theta)", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
-      Axis(25,-1.0,1.0, llphoton_coscaptheta0, "ll#gamma cos(#Theta)", {}), 
+      Axis(25,-1.0,1.0, llphoton_refit_coscaptheta, 
+           "ll#gamma cos(#Theta)", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
-      Axis(25,-3.1416,3.1416, "llphoton_psi[0]", "ll#gamma #phi", {}), 
+      Axis(25,-3.1416,3.1416, "llphoton_refit_psi", "ll#gamma #phi", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
+      Axis(25,0.0,3.1416, photon_mht_dphi, 
+           "#Delta #phi(#gamma, H_{T}^{miss})", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
 }
 
-//Adds plots of dijet variables (15 total): jet pt eta phi m, deta, dphi,
+//Adds plots of single jet variables (7 total): jet pt eta m, drphoton, 
+// dphi(llg,j) dr(llg, j), MHT/HT(llgj)
+void AddOneJetPlots(PlotMaker& pm, const NamedFunc& selection, 
+                    const vector<shared_ptr<Process>>& procs, 
+                    const vector<PlotOpt>& ops,
+                    const NamedFunc& weight, const string tag) {
+  string balance_str = "|#sum_{ll,#gamma,j} #vec{p}_{T}|"
+      "/(#sum_{ll,#gamma,j} |#vec{p}_{T}|)";
+
+  pm.Push<Hist1D>(
+      Axis(25,30.0,200.0, lead_jet_pt, "Lead jet p_{T} [GeV]", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
+      Axis(25,-5.0,5.0, lead_jet_eta, "Lead jet #eta", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
+      Axis(25,-3.1416,3.1416, lead_jet_phi, "Lead jet #phi", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
+      Axis(25,0.0,50.0, lead_jet_m, "Lead jet mass [GeV]", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
+      Axis(25,0.0,6.0, lead_jet_photon_dr, "#Delta R(#gamma, jet 1)", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
+      Axis(25,0.0,3.1416, lead_jet_llphoton_dphi, 
+           "#Delta #phi(ll#gamma, j)", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  //pm.Push<Hist1D>(
+  //    Axis(25,0.0,6.0, lead_jet_llphoton_dr, "#Delta R(ll#gamma, j)", {}), 
+  //    selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
+      Axis(25,0.0,1.0, llphoton_j_balance, balance_str, {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
+      Axis(25,0.0,8.0, lead_jet_photon_deta, "#Delta #eta(#gamma, jet 1)", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+}
+
+//Adds plots of dijet variables (16 total): jet pt eta phi m, deta, dphi, m,
 // dr(ph j1), dr(ph j2), dphi(jj,lly), zep, balance
 void AddDijetPlots(PlotMaker& pm, const NamedFunc& selection, 
                     const vector<shared_ptr<Process>>& procs, 
@@ -325,7 +382,7 @@ void AddDijetPlots(PlotMaker& pm, const NamedFunc& selection,
                     const NamedFunc& weight, const string tag) {
   string dijet_balance_str = "|#sum_{ll,#gamma,j1,j2} #vec{p}_{T}|"
       "/(#sum_{ll,#gamma,j1,j2} |#vec{p}_{T}|)";
-  dijet_balance_str = "Dijet balance (vector p_{T} sum over scalar p_{T} sum)";
+  //"Dijet balance (vector p_{T} sum over scalar p_{T} sum)";
 
   pm.Push<Hist1D>(
       Axis(25,30.0,200.0, lead_jet_pt, "Lead jet p_{T} [GeV]", {}), 
@@ -358,6 +415,9 @@ void AddDijetPlots(PlotMaker& pm, const NamedFunc& selection,
       Axis(25,0.0,8.0, "dijet_deta", "Dijet #Delta #eta", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
+      Axis(25,0.0,1000.0, "dijet_m", "Dijet m [GeV]", {}), 
+      selection, procs, ops).Weight(weight).Tag(tag);
+  pm.Push<Hist1D>(
       Axis(25,0.0,6.0, "photon_jet1_dr[0]", "#Delta R(#gamma, jet 1)", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
@@ -372,7 +432,7 @@ void AddDijetPlots(PlotMaker& pm, const NamedFunc& selection,
       "|#eta_{#gamma}-(#eta_{j1}+#eta_{j2})/2|", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
-      Axis(25,0.0,1.0, "llphoton_dijet_balance[0]", dijet_balance_str, {}), 
+      Axis(25,0.0,1.0, llphoton_dijet_balance_hornveto, dijet_balance_str, {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
 }
 
@@ -440,21 +500,38 @@ float get_w_fakephoton(int run, bool this_photon_isjet, float ph_pt,
   static const std::vector<float> fakeph_resbins = {0.0,0.025,0.05,1.0};
 
   const std::vector<float> fakeph_jet_sfs_run2 = {
-    0.87784536,0.86090972,0.83359961,1.00905351,
-    1.20656524,1.15353438,1.28262424,1.15435585,
-    0.52378337,0.87839728,0.63154299,1.13529129};
+    0.85684466,0.90360388,0.82272545,1.00025058,
+    1.20129657,1.16192069,1.27456654,1.14376074,
+    0.50902299,0.92226917,0.69454103,1.13170511};
   const std::vector<float> fakeph_pu_sfs_run2 = {
-    1.38054607,1.29143011,1.22872195,1.26953528,
-    1.11197443,1.34174906,1.19494895,1.25048567,
-    2.59609818,1.86582932,3.16422829,1.41518427};
+    1.38771387,1.27605916,1.23235274,1.27256870,
+    1.11569483,1.33530506,1.20094417,1.25885960,
+    2.63670521,1.74375207,2.99392752,1.42523144};
   const std::vector<float> fakeph_jet_sfs_run3 = {
-    0.73009776,1.02800363,0.76673460,1.29045474,
-    1.03924426,1.12586378,0.90955539,1.10089699,
-    0.74353182,0.34798856,0.79232260,0.69352779};
+    0.77089199,1.04485994,0.75233695,1.35449009,
+    1.07213326,1.15309458,0.93544900,1.10502158,
+    0.72741386,0.38346193,0.78431428,0.67860034};
   const std::vector<float> fakeph_pu_sfs_run3 = {
-    1.26284615,1.17956303,1.28810042,1.39744805,
-    1.45429152,1.37924462,1.47740148,1.47429645,
-    2.11270871,3.20168632,1.77614373,1.49915009};
+    1.25312566,1.17516818,1.29227994,1.38287744,
+    1.43193820,1.36144623,1.46038732,1.47166753,
+    2.15195528,3.11101515,1.79624813,1.52849321};
+
+  //const std::vector<float> fakeph_jet_sfs_run2 = {
+  //  0.87784536,0.86090972,0.83359961,1.00905351,
+  //  1.20656524,1.15353438,1.28262424,1.15435585,
+  //  0.52378337,0.87839728,0.63154299,1.13529129};
+  //const std::vector<float> fakeph_pu_sfs_run2 = {
+  //  1.38054607,1.29143011,1.22872195,1.26953528,
+  //  1.11197443,1.34174906,1.19494895,1.25048567,
+  //  2.59609818,1.86582932,3.16422829,1.41518427};
+  //const std::vector<float> fakeph_jet_sfs_run3 = {
+  //  0.73009776,1.02800363,0.76673460,1.29045474,
+  //  1.03924426,1.12586378,0.90955539,1.10089699,
+  //  0.74353182,0.34798856,0.79232260,0.69352779};
+  //const std::vector<float> fakeph_pu_sfs_run3 = {
+  //  1.26284615,1.17956303,1.28810042,1.39744805,
+  //  1.45429152,1.37924462,1.47740148,1.47429645,
+  //  2.11270871,3.20168632,1.77614373,1.49915009};
 
   ph_idmva += 0.0;
   ph_res += 0.0;
@@ -681,40 +758,89 @@ float get_w_llph_pt(int run, int type, bool this_photon_isjet,
   return 1.0;
 }
 
-//Gets llphotonjj pt weight
-//TODO change name to balance
-float get_w_llpjj_pt(int run, int type, float llpjj_pt) {
-  static const std::vector<float> llpjj_ptbins = {
-      0.0,0.04,0.08,0.12,0.16,0.2,0.25,0.3,0.35,0.4,0.5,10.0};
-  const std::vector<float> llpjj_zg_sfs_run2 = {
-      0.70453953,0.73207184,0.93890318,0.88896998,0.99276156,1.32036498,
-      1.02410519,1.20595101,1.89196258,1.29782599,2.42313670};
-  const std::vector<float> llpjj_dy_sfs_run2 = {
-      0.79156433,1.08118413,0.79126029,1.01151693,0.99202259,0.77389878,
-      1.39061548,1.40040932,0.89391995,1.45405375,0.54732485};
-  const std::vector<float> llpjj_zg_sfs_run3 = {
-      0.70713096,0.74551468,0.85878921,0.96392069,0.91411744,1.09116120,
-      1.47887854,1.79511457,1.57404356,1.63071287,1.71266180};
-  const std::vector<float> llpjj_dy_sfs_run3 = {
-      0.51945187,0.95900398,0.89510479,0.80162416,1.33578125,1.02527533,
-      0.95155497,0.72837226,1.17599449,1.33340708,1.59637861};
-
-  const std::vector<float> *llpjj_sfs;
-  bool is_dy = (type >= 6000 && type < 7000);
+//Gets kinematic weight based on njets and llph pt
+float get_w_njetllppt(int run, int type, bool this_photon_isjet, unsigned njet,
+                      float llphoton_pt) {
+  static const std::vector<std::vector<float>> llph_ptbins = {
+      {0.0,5.0,10.0,15.0,20.0,30.0,40.0,60.0,500.0},
+      {0.0,5.0,10.0,15.0,20.0,30.0,40.0,60.0,80.0,500.0},
+      {0.0,15.0,20.0,30.0,40.0,60.0,80.0,100.0,500.0},
+      {0.0,30.0,40.0,60.0,80.0,100.0,500.0},
+      {0.0,40.0,80.0,500.0}};
+  const std::vector<float> llph_zg_sfs_run2 = {0.80623375,0.98728861,1.09007587,1.12982048,1.04563518,1.08183541,1.14721794,1.79522212,0.84544127,0.99422440,1.07228402,1.08490245,1.04738104,0.92861855,0.89989957,0.89030472,0.92478768,0.81226445,0.99444598,1.26592290,1.02204209,1.16380069,1.20656299,1.07962487,0.93711102,1.91263847,1.58812619,1.67492654,1.51083693,1.75313924,1.38765928,2.42818403,2.04236119,2.34767202};
+  const std::vector<float> llph_jt_sfs_run2 = {0.52759428,0.94672659,0.92687646,0.87733130,1.04759928,1.04153855,1.11926704,0.68490687,0.79541302,1.04462792,1.02358053,1.28877724,1.33704146,0.97186080,0.88996256,1.07518832,1.85029751,2.52369420,0.99418519,0.58596215,1.79905613,1.72349024,1.08914131,1.92039349,2.14087000,0.73879319,1.33738705,4.94650827,1.03023125,0.85828922,1.67599062,0.98405204,1.04917358,9.75588524};
+  const std::vector<float> llph_pu_sfs_run2 = {1.02604182,0.85739171,0.99970025,0.92119874,1.04109324,0.99141783,1.08166334,1.03169936,0.74652625,0.59762620,0.94363450,0.78914442,0.73591122,0.91648742,1.09927625,1.06541621,0.40082252,0.36152466,1.11641651,0.96094671,0.88053618,0.68638325,0.83738310,1.17631472,0.83232927,0.58799216,1.44809140,0.26164992,1.54062711,0.96656605,0.86374618,0.91790564,1.64359966,0.60883852};
+  const std::vector<float> llph_zg_sfs_run3 = {0.79216234,0.98797848,1.08132550,1.14426404,1.17073853,0.99171215,1.13434350,1.28072103,0.74621961,0.97953192,0.87541025,0.84131401,0.81519191,0.80701996,0.87130593,0.91077624,0.92378771,0.94272380,1.00000000,0.99661488,1.38506015,0.88849222,1.07392994,1.00000000,0.86983201,1.71182050,1.14216455,1.20494410,1.47898667,1.35404301,1.28129400,2.47166162,2.10490842,1.86651853};
+  const std::vector<float> llph_jt_sfs_run3 = {0.70468737,0.73611903,0.75230296,1.07412840,1.01071862,1.23875016,1.76108060,2.00100730,0.97354194,0.90733630,0.16546342,0.82018876,0.89096690,0.79489918,0.95232895,0.99141989,1.20811277,1.72107678,1.00000000,1.00749554,0.52524413,0.22781915,1.19902188,1.00000000,0.47423065,0.86273709,2.71032672,0.98070137,0.93926077,0.75732255,0.90693770,2.43376125,1.05964347,3.19957301};
+  const std::vector<float> llph_pu_sfs_run3 = {0.87577039,1.02969007,0.99535298,0.93629769,1.00954979,1.13907595,1.11085669,1.47883679,0.76881009,0.85509520,1.44672558,0.92098064,1.04178747,1.02757921,0.88811284,0.88028106,1.18732115,0.36654054,1.00000000,0.91348132,0.79966611,1.25019790,1.06472689,1.00000000,1.92995434,0.78456503,0.37607582,2.13562035,0.84583460,1.47584016,1.02630482,0.58896534,1.23550467,1.14755462};
+  //const std::vector<float> llph_zg_sfs_run2 = {0.80772367,0.98728861,
+  //    1.09007587,1.12982048,1.04563518,1.08183541,1.14721794,1.79522210,
+  //    0.84544127,0.99547330,1.07228402,1.08490241,1.04738105,0.92861855,
+  //    0.89989956,0.89030470,0.92370392,0.79492430,0.99444599,1.25144629,
+  //    1.02204209,1.16380069,1.20656298,1.08095213,0.93711102,1.91263847,
+  //    1.58812619,1.80851156,1.51083693,1.75313924,1.38765927,2.42818403,
+  //    2.04236119,2.19308193};
+  //const std::vector<float> llph_jt_sfs_run2 = {0.67947889,0.94672655,
+  //    0.92687643,0.87733130,1.04759929,1.04153855,1.11926704,0.68490692,
+  //    0.79541302,0.82162972,1.02358053,1.28877712,1.33704144,0.97186077,
+  //    0.88996261,1.07518833,1.72103828,1.21923082,0.99418526,0.75364733,
+  //    1.79905611,1.72349023,1.08914135,1.84806228,2.14087002,0.73879319,
+  //    1.33738705,1.46243682,1.03023125,0.85828922,1.67599058,0.98405204,
+  //    1.04917358,1.32686727};
+  //const std::vector<float> llph_pu_sfs_run2 = {0.83835202,0.85739175,
+  //    0.99970024,0.92119874,1.04109324,0.99141782,1.08166334,1.03169936,
+  //    0.74652625,0.79064952,0.94363450,0.78914448,0.73591122,0.91648742,
+  //    1.09927622,1.06541623,0.50304943,0.91818505,1.11641647,0.92314645,
+  //    0.88053618,0.68638324,0.83738311,1.20580591,0.83232926,0.58799216,
+  //    1.44809140,0.91826333,1.54062711,0.96656605,0.86374621,0.91790564,
+  //    1.64359966,1.12955685};
+  //const std::vector<float> llph_zg_sfs_run3 = {0.79216234,0.98797847,
+  //    1.08132550,1.14426403,1.17073852,0.99171214,1.13434350,1.28072103,
+  //    0.74621961,0.97940986,0.97332915,0.84131400,0.81519191,0.80701996,
+  //    0.87130592,0.91077623,0.92378771,0.85274864,1.00000000,0.99661488,
+  //    1.38124120,0.91608605,1.07392994,1.00000000,0.90810124,1.71182050,
+  //    0.95292323,1.29985891,1.47898667,1.37457652,1.28129400,1.00000000,
+  //    2.10490842,1.86362157};
+  //const std::vector<float> llph_jt_sfs_run3 = {0.70468737,0.73611902,
+  //    0.75230296,1.07412840,1.01071862,1.23875017,1.76108060,2.00100728,
+  //    0.97354194,0.89588518,0.91434776,0.82018881,0.89096691,0.79489919,
+  //    0.95232896,0.99141990,1.20811277,1.08696043,1.00000000,1.00749554,
+  //    0.75948356,0.76267754,1.19902182,1.00000000,0.89395629,0.86273709,
+  //    1.01448287,1.25618477,0.93926077,0.98642525,0.90693770,1.00000000,
+  //    1.05964347,1.07372398};
+  //const std::vector<float> llph_pu_sfs_run3 = {0.87577039,1.02969014,
+  //    0.99535299,0.93629769,1.00954979,1.13907595,1.11085668,1.47883678,
+  //    0.76881009,0.86422131,0.96718141,0.92098063,1.04178746,1.02757920,
+  //    0.88811285,0.88028106,1.18732115,0.71620675,1.00000000,0.91348132,
+  //    0.74597989,0.97835574,1.06472692,1.00000000,1.61800255,0.78456503,
+  //    0.92071796,1.80476075,0.84583460,1.37259819,1.02630482,1.00000000,
+  //    1.23550467,1.25662578};
+  std::vector<float> llph_sfs;
+  bool is_dyjet = (type >= 6000 && type < 7000 && this_photon_isjet);
+  bool is_dypu = (type >= 6000 && type < 7000 && !this_photon_isjet);
   bool is_zg = (type >= 17000 && type < 18000);
-  if (run == 2 && is_dy) llpjj_sfs = &llpjj_dy_sfs_run2;
-  else if (run == 2 && is_zg) llpjj_sfs = &llpjj_zg_sfs_run2;
-  else if (run == 3 && is_dy) llpjj_sfs = &llpjj_dy_sfs_run3;
-  else if (run == 3 && is_zg) llpjj_sfs = &llpjj_zg_sfs_run3;
+  if (run == 2 && is_dyjet) llph_sfs = llph_jt_sfs_run2;
+  else if (run == 2 && is_dypu) llph_sfs = llph_pu_sfs_run2;
+  else if (run == 2 && is_zg) llph_sfs = llph_zg_sfs_run2;
+  else if (run == 3 && is_dyjet) llph_sfs = llph_jt_sfs_run3;
+  else if (run == 3 && is_dypu) llph_sfs = llph_pu_sfs_run3;
+  else if (run == 3 && is_zg) llph_sfs = llph_zg_sfs_run3;
   else return 1.0;
-  for (unsigned ipt = 0; ipt < (llpjj_ptbins.size()-1); ipt++) {
-    if (llpjj_pt >= llpjj_ptbins[ipt] && llpjj_pt < llpjj_ptbins[ipt+1]) {
-      return llpjj_sfs->at(ipt);
-      break;
+  unsigned njet_bins = llph_ptbins.size();
+  for (unsigned ijet = 0; ijet < njet_bins; ijet++) {
+    if ((njet==ijet) || (njet>=ijet && ijet==llph_ptbins.size()-1)) {
+      for (unsigned ipt = 0; ipt < (llph_ptbins[ijet].size()-1); ipt++) {
+        if (llphoton_pt >= llph_ptbins[ijet][ipt] 
+            && llphoton_pt < llph_ptbins[ijet][ipt+1]) {
+          return llph_sfs[ipt+ijet*njet_bins];
+        }
+      }
     }
   }
   return 1.0;
 }
+
+//accidentally deleted llpjj weight...
 
 //evaluates Chebyshev polynomial (first kind)
 float eval_cheby(vector<float> coefs, float x) {
@@ -739,7 +865,7 @@ int main() {
   //---------------------------------------------------------------------------
 
   string production = "pinnaclesv0";
-  string years = "Run3";
+  string years = "Run2";
 
   //---------------------------------------------------------------------------
   //                                    initialization
@@ -916,11 +1042,11 @@ int main() {
       "&&llphoton_m[0]>80&&llphoton_m[0]<100").Name("Ztomumugamma_CR");
   NamedFunc zlly_ctrlregion = NamedFunc("nlep>=2&&nphoton==1&&pass"
       "&&llphoton_m[0]>80&&llphoton_m[0]<100").Name("Ztoeegamma_CR");
-  NamedFunc zeeyjj_ctrlregion = NamedFunc(zeey_ctrlregion&&"njet>=2")
+  NamedFunc zeeyjj_ctrlregion = NamedFunc(zeey_ctrlregion&&njet_hornveto>=2)
                                 .Name("Ztoeegamma_jj_CR");
-  NamedFunc zmmyjj_ctrlregion = NamedFunc(zmmy_ctrlregion&&"njet>=2")
+  NamedFunc zmmyjj_ctrlregion = NamedFunc(zmmy_ctrlregion&&njet_hornveto>=2)
                                 .Name("Ztomumugamma_jj_CR");
-  NamedFunc zllyjj_ctrlregion = NamedFunc(zlly_ctrlregion&&"njet>=2")
+  NamedFunc zllyjj_ctrlregion = NamedFunc(zlly_ctrlregion&&njet_hornveto>=2)
                                 .Name("Ztollgamma_jj_CR");
   NamedFunc sideband = NamedFunc(zg_baseline
       &&"(llphoton_m[0]<120||llphoton_m[0]>130)").Name("sideband");
@@ -1145,6 +1271,8 @@ int main() {
 
   const rw_mmp dnn_photon_weighter;
 
+  const kinr2_weighter dnn_kinematic_weighter;
+
   const NamedFunc w_photon_shape("w_photon_shape",
       [dnn_photon_weighter](const Baby &b) -> NamedFunc::ScalarType{
     if (b.SampleTypeString().Contains("-")) 
@@ -1157,6 +1285,27 @@ int main() {
          *TMath::CosH(b.photon_eta()->at(0))))};
     float dnn_output = dnn_photon_weighter.evaluate(dnn_input);
     return (dnn_output/(1.0-dnn_output));
+  });
+
+  const NamedFunc w_kinematicdnn("w_kinematicdnn",
+      [dnn_kinematic_weighter](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString().Contains("-")) 
+      return 1.; //data
+    if (!((b.type() >= 6000 && b.type() < 7000) 
+          || (b.type() > 17000 && b.type() < 18000))) return 1.0;
+    vector<float> dnn_input = {b.photon_idmva()->at(0), 
+        static_cast<float>(photon_mht_dphi.GetScalar(b)), 
+        static_cast<float>(njet_hornveto.GetScalar(b)), 
+        b.ll_pt()->at(0), b.photon_pt()->at(0), b.llphoton_pt()->at(0), 
+        static_cast<float>(mht.GetScalar(b)), 
+        static_cast<float>(ht.GetScalar(b))};
+    float dnn_output = dnn_kinematic_weighter.evaluate(dnn_input);
+    float w = dnn_output/(1.0-dnn_output);
+    if (w > 5.0)
+      w = 5.0;
+    else if (w < 0.1)
+      w = 0.1;
+    return w;
   });
 
   //NamedFunc wrapper to get fake photon weight
@@ -1197,8 +1346,8 @@ int main() {
                          b.llphoton_pt()->at(0));
   });
 
-  //NamedFunc wrapper to get llphotonjj pt weight
-  const NamedFunc w_llpjj_pt("w_llpjj_pt",
+  //NamedFunc wrapper to get njet-llphoton pt weight
+  const NamedFunc w_njllppt("w_njllppt",
       [](const Baby &b) -> NamedFunc::ScalarType{
     if (b.SampleTypeString().Contains("-")) 
       return 1.0; //data
@@ -1207,34 +1356,49 @@ int main() {
       run = 3;
     if (!((b.type() >= 6000 && b.type() < 7000) 
           || (b.type() > 17000 && b.type() < 18000))) return 1.0;
-    //float pt_x = b.llphoton_pt()->at(0)*cos(b.llphoton_phi()->at(0));
-    //float pt_y = b.llphoton_pt()->at(0)*sin(b.llphoton_phi()->at(0));
-    //float b_lead_jet_pt = -999;
-    //float b_subl_jet_pt = -999;
-    //float b_lead_jet_phi = 0.0;
-    //float b_subl_jet_phi = 0.0;
-    //for (unsigned ijet = 0; ijet<b.jet_pt()->size(); ijet++) {
-    //  if (b.jet_isgood()->at(ijet)) {
-    //    if (b.jet_pt()->at(ijet) > b_lead_jet_pt) {
-    //      b_subl_jet_pt = b_lead_jet_pt;
-    //      b_subl_jet_phi = b_lead_jet_phi;
-    //      b_lead_jet_pt = b.jet_pt()->at(ijet);
-    //      b_lead_jet_phi = b.jet_phi()->at(ijet);
-    //    }
-    //    else if (b.jet_pt()->at(ijet) > b_subl_jet_pt) {
-    //      b_subl_jet_pt = b.jet_pt()->at(ijet);
-    //      b_subl_jet_phi = b.jet_phi()->at(ijet);
-    //    }
-    //  }
-    //}
-    //pt_x += b_lead_jet_pt*cos(b_lead_jet_phi);
-    //pt_y += b_lead_jet_pt*sin(b_lead_jet_phi);
-    //pt_x += b_subl_jet_pt*cos(b_subl_jet_phi);
-    //pt_y += b_subl_jet_pt*sin(b_subl_jet_phi);
-    //float llpjj_pt =  hypot(pt_x, pt_y);
-    if (b.njet() < 2) return 1.0;
-    return get_w_llpjj_pt(run, b.type(), b.llphoton_dijet_balance()->at(0));
+    bool b_photon_isjet = static_cast<bool>(photon_isjet.GetScalar(b));
+    return get_w_njetllppt(run, b.type(), b_photon_isjet, b.njet(),
+                           b.llphoton_pt()->at(0));
   });
+
+  //NamedFunc wrapper to get llphotonjj pt weight
+  //const NamedFunc w_llpjj_pt("w_llpjj_pt",
+  //    [](const Baby &b) -> NamedFunc::ScalarType{
+  //  if (b.SampleTypeString().Contains("-")) 
+  //    return 1.0; //data
+  //  int run = 2;
+  //  if (b.SampleTypeString().Contains("202"))
+  //    run = 3;
+  //  if (!((b.type() >= 6000 && b.type() < 7000) 
+  //        || (b.type() > 17000 && b.type() < 18000))) return 1.0;
+  //  //float pt_x = b.llphoton_pt()->at(0)*cos(b.llphoton_phi()->at(0));
+  //  //float pt_y = b.llphoton_pt()->at(0)*sin(b.llphoton_phi()->at(0));
+  //  //float b_lead_jet_pt = -999;
+  //  //float b_subl_jet_pt = -999;
+  //  //float b_lead_jet_phi = 0.0;
+  //  //float b_subl_jet_phi = 0.0;
+  //  //for (unsigned ijet = 0; ijet<b.jet_pt()->size(); ijet++) {
+  //  //  if (b.jet_isgood()->at(ijet)) {
+  //  //    if (b.jet_pt()->at(ijet) > b_lead_jet_pt) {
+  //  //      b_subl_jet_pt = b_lead_jet_pt;
+  //  //      b_subl_jet_phi = b_lead_jet_phi;
+  //  //      b_lead_jet_pt = b.jet_pt()->at(ijet);
+  //  //      b_lead_jet_phi = b.jet_phi()->at(ijet);
+  //  //    }
+  //  //    else if (b.jet_pt()->at(ijet) > b_subl_jet_pt) {
+  //  //      b_subl_jet_pt = b.jet_pt()->at(ijet);
+  //  //      b_subl_jet_phi = b.jet_phi()->at(ijet);
+  //  //    }
+  //  //  }
+  //  //}
+  //  //pt_x += b_lead_jet_pt*cos(b_lead_jet_phi);
+  //  //pt_y += b_lead_jet_pt*sin(b_lead_jet_phi);
+  //  //pt_x += b_subl_jet_pt*cos(b_subl_jet_phi);
+  //  //pt_y += b_subl_jet_pt*sin(b_subl_jet_phi);
+  //  //float llpjj_pt =  hypot(pt_x, pt_y);
+  //  if (b.njet() < 2) return 1.0;
+  //  return get_w_llpjj_pt(run, b.type(), b.llphoton_dijet_balance()->at(0));
+  //});
 
   const NamedFunc w_lumi_years("w_lumi*w_years",
       [](const Baby &b) -> NamedFunc::ScalarType{
@@ -1374,11 +1538,11 @@ int main() {
   bool do_sideband = true;
   if (do_sideband) {
     vector<NamedFunc> weights = {"weight"*w_years*w_photon_shape*w_photon_lowpt
-                                 *w_fake*w_llph_pt*w_llpjj_pt};
-    //vector<NamedFunc> weights = {"weight"*w_years*w_photon_shape*w_photon_lowpt
-    //                             *w_fake*w_llph_pt*w_llpjj_pt,
-    //                             "weight"*w_years*w_photon_shape*w_photon_lowpt
-    //                             };
+                                 *w_fake*w_kinematicdnn};
+                                 //"weight"*w_years*w_photon_shape*w_photon_lowpt
+                                 //*w_fake*w_llph_pt,
+                                 //"weight"*w_years*w_photon_shape*w_photon_lowpt
+                                 //*w_fake};
     for (NamedFunc& weight : weights) {
       AddElectronPlots(pm, sideband&&"ll_lepid[0]==11", procs, ops, weight, 
                        tag);
@@ -1388,7 +1552,8 @@ int main() {
       AddDilepphotonPlots(pm, sideband, procs, ops, weight, tag, true);
       AddMultiplicityPlots(pm, sideband, procs, ops, weight, tag);
       AddGGHBDTPlots(pm, sideband, procs, ops, weight, tag);
-      AddDijetPlots(pm, sideband&&"njet>=2", procs, ops, weight, tag);
+      AddOneJetPlots(pm, sideband&&njet_hornveto==1, procs, ops, weight, tag);
+      AddDijetPlots(pm, sideband&&njet_hornveto>=2, procs, ops, weight, tag);
     }
   }
 

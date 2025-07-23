@@ -226,6 +226,15 @@ namespace ZgFunctions {
     return 1.0;
   });
 
+  //weight implementing variation in PS weights
+  const NamedFunc sys_w_ps_2023("sys_w_lumi_2023",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString()=="2023" || b.SampleTypeString()=="2023BPix") {
+      return 1.014;
+    }
+    return 1.0;
+  });
+
   //weight implementing upward variation in pileup weights 
   const NamedFunc sys_w_pu_up("sys_w_pu_up",
       [](const Baby &b) -> NamedFunc::ScalarType{

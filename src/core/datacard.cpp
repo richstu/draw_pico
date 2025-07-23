@@ -111,8 +111,6 @@ Datacard::SelectionList & Datacard::SelectionList::AddSelection(
 //Systematic
 //----------------------------------------------------------------------------
 
-//TODO implement sample comparison systematics somehow (ex. Tune)
-
 /*!\brief Constructor for symmetric systematics
  
  \param[in] name             Name of systematic
@@ -120,12 +118,16 @@ Datacard::SelectionList & Datacard::SelectionList::AddSelection(
  \param[in] selection_names  Name of selections to replace OR "weight" OR 
                              "fitvar"
  \param[in] variations       Replacement selections/weights
+
+ \param[in] alt_procs        Alternative processes variation
 */
 Datacard::Systematic::Systematic(const std::string &name, 
     const std::vector<std::string> &selection_names, 
     const std::vector<NamedFunc> &variations,
-    const bool save_shape) :
+    const bool save_shape,
+    const std::vector<std::shared_ptr<Process>> &alt_procs) :
   save_shape_(save_shape),
+  is_altproc_(false),
   is_symmetric_(true),
   name_(name) {
   if (selection_names.size() != variations.size()) {
@@ -135,6 +137,12 @@ Datacard::Systematic::Systematic(const std::string &name,
   for (unsigned int ivar = 0; ivar < selection_names.size(); ivar++) {
     variation_[selection_names[ivar]] = std::make_shared<NamedFunc>(
         variations[ivar]);
+  }
+  if (alt_procs.size() > 0) {
+    is_altproc_ = true;
+    for (unsigned int iproc = 0; iproc < alt_procs.size(); iproc++) {
+      alt_procs_.push_back(alt_procs[iproc]);
+    }
   }
 }
 
@@ -148,13 +156,20 @@ Datacard::Systematic::Systematic(const std::string &name,
  \param[in] variations_up    Replacement selections/weights
 
  \param[in] variations_dn    Replacement selections/weights
+
+ \param[in] alt_procs_up     Alternative processes up variation
+
+ \param[in] alt_procs_dn     Alternative processes down variation
 */
 Datacard::Systematic::Systematic(const std::string &name, 
     const std::vector<std::string> &selection_names, 
     const std::vector<NamedFunc> &variations_up,
     const std::vector<NamedFunc> &variations_dn,
-    const bool save_shape) :
+    const bool save_shape,
+    const std::vector<std::shared_ptr<Process>> &alt_procs_up,
+    const std::vector<std::shared_ptr<Process>> &alt_procs_dn) :
   save_shape_(save_shape),
+  is_altproc_(false),
   is_symmetric_(false),
   name_(name) {
   if ((selection_names.size() != variations_up.size()) 
@@ -168,7 +183,24 @@ Datacard::Systematic::Systematic(const std::string &name,
     variation_dn_[selection_names[ivar]] = std::make_shared<NamedFunc>(
         variations_dn[ivar]);
   }
+  if (alt_procs_up.size() > 0) {
+    is_altproc_ = true;
+    if (alt_procs_up.size() != alt_procs_dn.size()) {
+      throw std::invalid_argument("Up and down variations must be same "
+                                  "length.");
+    }
+    for (unsigned int iproc = 0; iproc < alt_procs_up.size(); iproc++) {
+      alt_procs_up_.push_back(alt_procs_up[iproc]);
+      alt_procs_dn_.push_back(alt_procs_dn[iproc]);
+    }
+  }
 }
+
+/*!\brief Constructor for asymmetric alt sample systematics
+ 
+ \param[in] name             Name of systematic
+
+*/
 
 //----------------------------------------------------------------------------
 //DatacardProcess
@@ -193,9 +225,19 @@ Datacard::DatacardProcess::DatacardProcess(const Figure &figure) :
 */
 Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(
     const Figure &figure, const std::shared_ptr<Process> &process, 
-    const Axis &axis, bool in_datacard) :
+    const Axis &axis, bool in_datacard, bool is_variation) :
     DatacardProcess(figure, process),
-    rrv_weight_(RooRealVar("weight","",-50.0,50.0)) {
+    rrv_weight_(RooRealVar("weight","",-50.0,50.0)),
+    is_variation_(is_variation) {
+  is_parametric_ = false;
+  if (process==nullptr) {
+    is_data_ = false;
+    is_signal_ = false;
+    name_ = "null";
+    replace_with_param_ = false;
+    n_variations_ = 0;
+    return;
+  }
   if (process_->type_ == Process::Type::data) {
     is_data_ = true;
     is_signal_ = false;
@@ -214,7 +256,7 @@ Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(
   replace_with_param_ = false;
   const Datacard* datacard = static_cast<const Datacard*>(&figure_);
   n_variations_ = 1;
-  if (in_datacard_) {
+  if (in_datacard_ && !is_variation_) {
     n_variations_ = datacard->n_variations_;
   }
   float axis_min = axis.Bins().at(0);
@@ -352,6 +394,7 @@ Datacard::DatacardProcessParametric::DatacardProcessParametric(
   is_data_ = false;
   is_signal_ = false; 
   in_datacard_ = true;
+  is_parametric_ = true;
 }
 
 /*! \brief Wraps a vector of PDFs as a vector of single-entry vectors of PDFs
@@ -475,53 +518,89 @@ Datacard::Datacard(const std::string &name,
   for (const Systematic &systematic : systematics_extended_) {
     std::vector<const std::unordered_map<std::string, 
         std::shared_ptr<NamedFunc>>*> variations;
-    if (systematic.is_symmetric_) {
-      variations.push_back(&systematic.variation_);
-      variation_name_.push_back(systematic.name_);
+    if (systematic.is_altproc_) {
+      if (systematic.is_symmetric_) {
+        datacard_process_variation_.push_back(
+            std::vector<std::unique_ptr<DatacardProcessNonparametric>>());
+        for (const std::shared_ptr<Process> & process : 
+             systematic.alt_procs_) {
+          datacard_process_variation_.back().push_back(
+            std::unique_ptr<DatacardProcessNonparametric>(
+            new DatacardProcessNonparametric(*this, process, axis, false, 
+                                             true)));
+        }
+      }
+      else {
+        datacard_process_variation_.push_back(
+            std::vector<std::unique_ptr<DatacardProcessNonparametric>>());
+        for (const std::shared_ptr<Process> & process : 
+             systematic.alt_procs_up_) {
+          datacard_process_variation_.back().push_back(
+              std::unique_ptr<DatacardProcessNonparametric>(
+              new DatacardProcessNonparametric(*this, process, axis, false, 
+                                               true)));
+        }
+        datacard_process_variation_.push_back(
+            std::vector<std::unique_ptr<DatacardProcessNonparametric>>());
+        for (const std::shared_ptr<Process> & process : 
+             systematic.alt_procs_dn_) {
+          datacard_process_variation_.back().push_back(
+              std::unique_ptr<DatacardProcessNonparametric>(
+              new DatacardProcessNonparametric(*this, process, axis, false, 
+                                               true)));
+        }
+      }
     }
     else {
-      variations.push_back(&systematic.variation_up_);
-      variations.push_back(&systematic.variation_dn_);
-      variation_name_.push_back(systematic.name_+"Up");
-      variation_name_.push_back(systematic.name_+"Down");
-    }
-    for (const std::unordered_map<std::string, std::shared_ptr<NamedFunc>>* 
-        variation : variations) {
+      if (systematic.is_symmetric_) {
+        variations.push_back(&systematic.variation_);
+        variation_name_.push_back(systematic.name_);
+      }
+      else {
+        variations.push_back(&systematic.variation_up_);
+        variations.push_back(&systematic.variation_dn_);
+        variation_name_.push_back(systematic.name_+"Up");
+        variation_name_.push_back(systematic.name_+"Down");
+      }
+      for (const std::unordered_map<std::string, std::shared_ptr<NamedFunc>>* 
+          variation : variations) {
 
-      channel_selection_.push_back(std::vector<NamedFunc>());
-      for (const SelectionList &channel_map : channels) {
-        NamedFunc channel_selection(1);
-        for (unsigned isel = 0; isel < channel_map.selection_.size(); isel++) {
-          std::string selection_name = channel_map.name_[isel];
-          if (variation->count(selection_name) != 0) {
-            channel_selection = channel_selection 
-                                && *(variation->at(selection_name));
-          }
-          else {
-            channel_selection = channel_selection 
-                                && channel_map.selection_[isel];
-          }
-        } //loop over selections in list
-        channel_selection_[ivariation].push_back(channel_selection);
-      } //loop over channels (selection lists)
-        
-      if (variation->count("weight") != 0) {
-        weight_.push_back(*(variation->at("weight")));
-      }
-      else {
-        weight_.push_back(weight);
-      }
-      if (variation->count("fitvar") != 0) {
-        fit_var_.push_back(*(variation->at("fitvar")));
-      }
-      else {
-        fit_var_.push_back(axis.var_);
-      }
-      save_shape_.push_back(systematic.save_shape_);
-        
-      ivariation++;
-      n_variations_++;
-    } //loop over variations (systematics)
+        channel_selection_.push_back(std::vector<NamedFunc>());
+        for (const SelectionList &channel_map : channels) {
+          NamedFunc channel_selection(1);
+          for (unsigned isel = 0; isel < channel_map.selection_.size(); 
+               isel++) {
+            std::string selection_name = channel_map.name_[isel];
+            if (variation->count(selection_name) != 0) {
+              channel_selection = channel_selection 
+                                  && *(variation->at(selection_name));
+            }
+            else {
+              channel_selection = channel_selection 
+                                  && channel_map.selection_[isel];
+            }
+          } //loop over selections in list
+          channel_selection_[ivariation].push_back(channel_selection);
+        } //loop over channels (selection lists)
+          
+        if (variation->count("weight") != 0) {
+          weight_.push_back(*(variation->at("weight")));
+        }
+        else {
+          weight_.push_back(weight);
+        }
+        if (variation->count("fitvar") != 0) {
+          fit_var_.push_back(*(variation->at("fitvar")));
+        }
+        else {
+          fit_var_.push_back(axis.var_);
+        }
+        save_shape_.push_back(systematic.save_shape_);
+          
+        ivariation++;
+        n_variations_++;
+      } //loop over variations (systematics)
+    } //not alt sample systematic
   } //loop over systematics
   
   //initialize processes
@@ -678,41 +757,52 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
                    "--------------\n";
   //systematics
   unsigned int ivar = 0;
+  unsigned int ialt = 0;
   for (Systematic& systematic : systematics_extended_) {
     if (ivar == 0) {
       ivar++;
       continue;
     }
-    if ((systematic.variation_.count("fitvar") == 0)
-        && (systematic.variation_up_.count("fitvar") == 0)) {
-      //only make lnN constraints for non-shape systematics
+    if (systematic.is_altproc_) {
       datacard_file << std::left << std::setw(25) << systematic.name_;
       datacard_file << std::left << std::setw(8) << "lnN";
       for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
         for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
           if (datacard_process_[iproc]->in_datacard_ 
               && !datacard_process_[iproc]->is_data_) {
+            if (datacard_process_[iproc]->is_parametric_) {
+              datacard_file << std::left << std::setw(19) << "-";
+              continue;
+            }
+            if (datacard_process_variation_[ialt][iproc]->name_ == "null") {
+              datacard_file << std::left << std::setw(19) << "-";
+              continue;
+            }
             if (systematic.is_symmetric_) {
               float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+              float alt_yield = datacard_process_variation_[ialt][iproc]
+                                 ->Yield(ichan, 0);
               float syst = 1.0;
               if (nom_yield > 0.0)
-                syst = (datacard_process_[iproc]->Yield(ichan, ivar)
-                        /nom_yield);
+                syst = alt_yield/nom_yield;
               //systematics less than 0.1% are dropped
               if (fabs(syst-1.0)<1.0e-3)
                 datacard_file << std::left << std::setw(19) << "-";
               else
                 datacard_file << std::left << std::setw(19) << syst;
-            }
+            } //process is symmetric
             else {
               float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+              float alt_yield_up = datacard_process_variation_[ialt][iproc]
+                                   ->Yield(ichan, 0);
+              float alt_yield_dn = datacard_process_variation_[ialt+1][iproc]
+                                   ->Yield(ichan, 0);
+
               float syst_up = 1.0;
               float syst_dn = 1.0;
               if (nom_yield > 0.0) {
-                syst_up = (datacard_process_[iproc]->Yield(ichan, ivar)
-                           /nom_yield);
-                syst_dn = (datacard_process_[iproc]->Yield(ichan, ivar+1)
-                           /nom_yield);
+                syst_up = alt_yield_up/nom_yield;
+                syst_dn = alt_yield_dn/nom_yield;
               }
               //systematics less than 0.1% are dropped
               if ((fabs(syst_up-1.0)<1.0e-3) && (fabs(syst_dn-1.0)<1.0e-3))
@@ -723,19 +813,73 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
                 datacard_file << std::left << std::setw(19) 
                               << syst_string.str();
               }
-            } //asymmetric systematic
-          } //process is in syst section
+            } //process not symmetric
+          } //process in datacard and not data
         } //loop over processes
       } //loop over channels
       datacard_file << "\n";
-    } //not shape systematic
-
-    if (systematic.is_symmetric_) {
-      ivar++;
-    }
+      if (systematic.is_symmetric_) {
+        ialt++;
+      }
+      else {
+        ialt += 2;
+      }
+    } //altproc systematic
     else {
-      ivar += 2;
-    }
+      if ((systematic.variation_.count("fitvar") == 0)
+          && (systematic.variation_up_.count("fitvar") == 0)) {
+        //only make lnN constraints for non-shape systematics
+        //TODO change this
+        datacard_file << std::left << std::setw(25) << systematic.name_;
+        datacard_file << std::left << std::setw(8) << "lnN";
+        for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+          for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+            if (datacard_process_[iproc]->in_datacard_ 
+                && !datacard_process_[iproc]->is_data_) {
+              if (systematic.is_symmetric_) {
+                float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+                float syst = 1.0;
+                if (nom_yield > 0.0)
+                  syst = (datacard_process_[iproc]->Yield(ichan, ivar)
+                          /nom_yield);
+                //systematics less than 0.1% are dropped
+                if (fabs(syst-1.0)<1.0e-3)
+                  datacard_file << std::left << std::setw(19) << "-";
+                else
+                  datacard_file << std::left << std::setw(19) << syst;
+              }
+              else {
+                float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+                float syst_up = 1.0;
+                float syst_dn = 1.0;
+                if (nom_yield > 0.0) {
+                  syst_up = (datacard_process_[iproc]->Yield(ichan, ivar)
+                             /nom_yield);
+                  syst_dn = (datacard_process_[iproc]->Yield(ichan, ivar+1)
+                             /nom_yield);
+                }
+                //systematics less than 0.1% are dropped
+                if ((fabs(syst_up-1.0)<1.0e-3) && (fabs(syst_dn-1.0)<1.0e-3))
+                  datacard_file << std::left << std::setw(19) << "-";
+                else {
+                  std::ostringstream syst_string;
+                  syst_string << syst_dn << "/" << syst_up;
+                  datacard_file << std::left << std::setw(19) 
+                                << syst_string.str();
+                }
+              } //asymmetric systematic
+            } //process is in syst section
+          } //loop over processes
+        } //loop over channels
+        datacard_file << "\n";
+      } //not shape systematic
+      if (systematic.is_symmetric_) {
+        ivar++;
+      }
+      else {
+        ivar += 2;
+      }
+    } //not alt proc systematic
   }
 
   //Parameters: deal with this in HtoZG_fitting
@@ -799,6 +943,13 @@ std::set<const Process*> Datacard::GetProcesses() const {
       &datacard_process : datacard_process_nonparametric_) {
     processes.insert(datacard_process->process_.get());
   }
+  for (unsigned ialt = 0; ialt < datacard_process_variation_.size(); ialt++) {
+    for (const std::unique_ptr<Datacard::DatacardProcessNonparametric> 
+        &datacard_process : datacard_process_variation_[ialt]) {
+      if (datacard_process->name_ != "null")
+        processes.insert(datacard_process->process_.get());
+    }
+  }
   return processes;
 }
 
@@ -811,6 +962,16 @@ Figure::FigureComponent * Datacard::GetComponent(const Process *process) {
       &datacard_process : datacard_process_nonparametric_) {
     if (datacard_process->process_.get() == process){
       return datacard_process.get();
+    }
+  }
+  for (unsigned ialt = 0; ialt < datacard_process_variation_.size(); ialt++) {
+    for (const std::unique_ptr<Datacard::DatacardProcessNonparametric> 
+        &datacard_process : datacard_process_variation_[ialt]) {
+      if (datacard_process->name_ != "null") {
+        if (datacard_process->process_.get() == process){
+          return datacard_process.get();
+        }
+      }
     }
   }
   throw std::invalid_argument(("Could not find process "

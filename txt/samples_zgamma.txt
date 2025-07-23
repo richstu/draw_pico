@@ -270,6 +270,32 @@
 #add FILENAMES_HZG_ALL *ZH_HtoZG_ZtoAll_M-125_TuneCP5*.root
 #add FILENAMES_HZG_ALL *ttHtoZG_Zto2L_M-125_TuneCP5*.root
 
+#add FILENAMES_HZG_TUNEUP *GluGluHToZG_ZToLL_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *VBFHToZG_ZToLL_M-125_CP5TuneUp_withDipoleRecoil*.root
+#add FILENAMES_HZG_TUNEUP *WplusH_HToZG_WToAll_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *WminusH_HToZG_WToAll_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *ZH_HToZG_ZToAll_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *ttHToZG_ZToLL_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *GluGluHtoZG_Zto2L_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *VBFHtoZG_Zto2L_M-125_CP5TuneUp_withDipoleRecoil*.root
+#add FILENAMES_HZG_TUNEUP *WplusH_HtoZG_WtoAll_Zto2L_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *WminusH_HtoZG_WtoAll_Zto2L_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *ZH_HtoZG_ZtoAll_M-125_CP5TuneUp*.root
+#add FILENAMES_HZG_TUNEUP *ttHtoZG_Zto2L_M-125_CP5TuneUp*.root
+
+#add FILENAMES_HZG_TUNEDN *GluGluHToZG_ZToLL_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *VBFHToZG_ZToLL_M-125_CP5TuneDown_withDipoleRecoil*.root
+#add FILENAMES_HZG_TUNEDN *WplusH_HToZG_WToAll_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *WminusH_HToZG_WToAll_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *ZH_HToZG_ZToAll_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *ttHToZG_ZToLL_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *GluGluHtoZG_Zto2L_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *VBFHtoZG_Zto2L_M-125_CP5TuneDown_withDipoleRecoil*.root
+#add FILENAMES_HZG_TUNEDN *WplusH_HtoZG_WtoAll_Zto2L_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *WminusH_HtoZG_WtoAll_Zto2L_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *ZH_HtoZG_ZtoAll_M-125_CP5TuneDown*.root
+#add FILENAMES_HZG_TUNEDN *ttHtoZG_Zto2L_M-125_CP5TuneDown*.root
+
 #add FILENAMES_HMUMU_GGF *GluGluHToMuMu*.root
 #add FILENAMES_HMUMU_VBF *VBFHToMuMu*.root
 #add FILENAMES_HMUMU_WMH *WminusHToMuMu*.root
@@ -421,6 +447,34 @@
     Color = 1
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMUMU_ALL
     Selection = use_event
+
+[[DatacardTuneUp]]
+  [null]
+  [Htozg_el]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
+    Selection = hzg_elchannel
+  [Htozg_mu]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
+    Selection = hzg_muchannel
+  [null]
+
+[[DatacardTuneDown]]
+  [null]
+  [Htozg_el]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
+    Selection = hzg_elchannel
+  [Htozg_mu]
+    ProcessType = 2
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
+    Selection = hzg_muchannel
+  [null]
 
 [[DatacardAux]]
   [Htozg120_el]

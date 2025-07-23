@@ -89,6 +89,16 @@ int main() {
         .SetMacro("YEARS",{"2018"})
         .LoadSamples("txt/samples_zgamma.txt","Datacard");
 
+  //TODO implement nullptrs in sample loader
+  //TODO implement processes in samples.txt
+  vector<shared_ptr<Process>> processes_tuneup = ZgSampleLoader() 
+        .SetMacro("YEARS",{"2018"})
+        .LoadSamples("txt/samples_zgamma.txt","DatacardTuneUp");
+
+  vector<shared_ptr<Process>> processes_tunedn = ZgSampleLoader() 
+        .SetMacro("YEARS",{"2018"})
+        .LoadSamples("txt/samples_zgamma.txt","DatacardTuneDown");
+
   vector<shared_ptr<Process>> processes_aux = ZgSampleLoader() 
         .SetMacro("YEARS",{"2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardAux");
@@ -213,7 +223,6 @@ int main() {
 
   vector<Systematic> systematics;
   //no CAT guidance on alphaS naming
-  systematics.push_back(Systematic("alphas",{"weight"},{weight*sys_w_alphas}));
   systematics.push_back(Systematic("pdf_Higgs_gg",{"weight"},
                                    {weight*sys_w_pdf_ggf}));
   systematics.push_back(Systematic("pdf_Higgs_qqbar",{"weight"},
@@ -235,6 +244,19 @@ int main() {
                                    {weight*sys_w_htozg_br}));
   systematics.push_back(Systematic("BR_hmm",{"weight"},
                                    {weight*sys_w_htomumu_br}));
+  //no CAT guidance on parameter naming
+  systematics.push_back(Systematic("param_alphas",{"weight"},
+                                   {weight*sys_w_alphas}));
+  systematics.push_back(Systematic("param_mq",{"weight"},
+                                   {weight*sys_w_mq}));
+  systematics.push_back(Systematic("UEPS_ISR",{"weight"},
+                                   {weight*"sys_ps[0]"},
+                                   {weight*"sys_ps[2]"}));
+  systematics.push_back(Systematic("UEPS_FSR",{"weight"},
+                                   {weight*"sys_ps[1]"},
+                                   {weight*"sys_ps[3]"}));
+  systematics.push_back(Systematic("UEPS_UE", {}, {}, {}, false, 
+                                   processes_tuneup, processes_tunedn));
   //no lumi correlation yet, waiting on official recos from LUM
   systematics.push_back(Systematic("lumi_13TeV",{"weight"},
                                    {weight*sys_w_lumi_run2}));
@@ -268,9 +290,6 @@ int main() {
   systematics.push_back(Systematic("CMS_btag_light",{"weight"},
                                    {weight*"sys_udsghig[0]/w_bhig_df"},
                                    {weight*"sys_udsghig[1]/w_bhig_df"}));
-  //no CAT guidance on mq naming
-  systematics.push_back(Systematic("mq",{"weight"},
-                                   {weight*sys_w_mq}));
   systematics.push_back(Systematic("CMS_scale_e",{"fitvar"},
                                    {sys_llphoton_m_elscaleup},
                                    {sys_llphoton_m_elscaledn},true));
@@ -293,12 +312,13 @@ int main() {
   pm.min_print_ = true;
 
   //set axis range to be larger than range in any individual category
-  pm.Push<Datacard>("test_datacard8", channels, systematics, 
+  pm.Push<Datacard>("test_datacard9", channels, systematics, 
       processes, weight,
       Axis(80, 95.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)
       .AddParametricProcess("background");
 
+  pm.max_entries_ = 10000;
   pm.MakePlots(1.0);
 
   return 0;

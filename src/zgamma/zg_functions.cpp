@@ -1,8 +1,11 @@
+#include <array>
+#include <cmath>
 #include <vector>
 
 #include "core/baby.hpp"
 #include "core/named_func.hpp"
 #include "core/named_func_utilities.hpp"
+#include "core/utilities.hpp"
 #include "zgamma/zg_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
 
@@ -170,17 +173,30 @@ namespace ZgFunctions {
   const NamedFunc sublead_el_pt = ReduceNamedFunc(FilterNamedFunc("el_pt","el_sig"),
       reduce_sublead).Name("sublead_el_pt");
 
+  //fixed signal jet criteria
+  const NamedFunc jet_isgood_hornveto = NamedFunc("jet_isgood&&(jet_pt>50||"
+      "jet_eta<-3.0||(jet_eta>-2.5&&jet_eta<2.5)||jet_eta>3.0)").Name(
+      "jet_isgood_hornveto");
+
+  //fixed njet
+  const NamedFunc njet_hornveto = ReduceNamedFunc(jet_isgood_hornveto, 
+      reduce_sum).Name("njet_hornveto");
+
   //signal jet pt
-  const NamedFunc sig_jet_pt = FilterNamedFunc("jet_pt","jet_isgood").Name("sig_jet_pt");
+  const NamedFunc sig_jet_pt = FilterNamedFunc("jet_pt",jet_isgood_hornveto)
+      .Name("sig_jet_pt");
 
   //signal jet eta
-  const NamedFunc sig_jet_eta = FilterNamedFunc("jet_eta","jet_isgood").Name("sig_jet_eta");
+  const NamedFunc sig_jet_eta = FilterNamedFunc("jet_eta",jet_isgood_hornveto)
+      .Name("sig_jet_eta");
 
   //signal jet phi
-  const NamedFunc sig_jet_phi = FilterNamedFunc("jet_phi","jet_isgood").Name("sig_jet_phi");
+  const NamedFunc sig_jet_phi = FilterNamedFunc("jet_phi",jet_isgood_hornveto)
+      .Name("sig_jet_phi");
 
   //signal jet m
-  const NamedFunc sig_jet_m = FilterNamedFunc("jet_m","jet_isgood").Name("sig_jet_m");
+  const NamedFunc sig_jet_m = FilterNamedFunc("jet_m",jet_isgood_hornveto)
+      .Name("sig_jet_m");
 
   //leading jet pt
   const NamedFunc lead_jet_pt = ReduceNamedFunc(sig_jet_pt,reduce_max).Name("lead_jet_pt");
@@ -488,6 +504,250 @@ namespace ZgFunctions {
     return false;
   });
 
+  std::array<float, 2> get_mht(const Baby &b) {
+    float mht_x(0.0), mht_y(0.0);
+    for (unsigned iel = 0; iel < b.el_sig()->size(); iel++) {
+      if (b.el_sig()->at(iel)) {
+        float pt = b.el_pt()->at(iel);
+        mht_x -= pt*cos(b.el_phi()->at(iel));
+        mht_y -= pt*sin(b.el_phi()->at(iel));
+      }
+    }
+    for (unsigned imu = 0; imu < b.mu_sig()->size(); imu++) {
+      if (b.mu_sig()->at(imu)) {
+        float pt = b.mu_pt()->at(imu);
+        mht_x -= pt*cos(b.mu_phi()->at(imu));
+        mht_y -= pt*sin(b.mu_phi()->at(imu));
+      }
+    }
+    for (unsigned iph = 0; iph < b.photon_sig()->size(); iph++) {
+      if (b.photon_sig()->at(iph)) {
+        float pt = b.photon_pt()->at(iph);
+        mht_x -= pt*cos(b.photon_phi()->at(iph));
+        mht_y -= pt*sin(b.photon_phi()->at(iph));
+      }
+    }
+    std::vector<double> isgood = jet_isgood_hornveto.GetVector(b);
+    for (unsigned ijet = 0; ijet < isgood.size(); ijet++) {
+      if (isgood[ijet]) {
+        float pt = b.jet_pt()->at(ijet);
+        mht_x -= pt*cos(b.jet_phi()->at(ijet));
+        mht_y -= pt*sin(b.jet_phi()->at(ijet));
+      }
+    }
+    return {mht_x, mht_y};
+  }
+
+  //magnitude of vector sum of lepton, photon, and jet pts
+  const NamedFunc mht("mht",[](const Baby &b) -> NamedFunc::ScalarType{
+    std::array<float, 2> mht_p = get_mht(b);
+    return sqrt(mht_p[0]*mht_p[0]+mht_p[1]*mht_p[1]);
+  });
+
+  //scalar sum of lepton, photon, and jet pts
+  const NamedFunc ht("ht",[](const Baby &b) -> NamedFunc::ScalarType{
+    float sum_ht = 0.0;
+    for (unsigned iel = 0; iel < b.el_sig()->size(); iel++) {
+      if (b.el_sig()->at(iel)) {
+        sum_ht += b.el_pt()->at(iel);
+      }
+    }
+    for (unsigned imu = 0; imu < b.mu_sig()->size(); imu++) {
+      if (b.mu_sig()->at(imu)) {
+        sum_ht += b.mu_pt()->at(imu);
+      }
+    }
+    for (unsigned iph = 0; iph < b.photon_sig()->size(); iph++) {
+      if (b.photon_sig()->at(iph)) {
+        sum_ht += b.photon_pt()->at(iph);
+      }
+    }
+    std::vector<double> isgood = jet_isgood_hornveto.GetVector(b);
+    for (unsigned ijet = 0; ijet < isgood.size(); ijet++) {
+      if (isgood[ijet]) {
+        sum_ht += b.jet_pt()->at(ijet);
+      }
+    }
+    return sum_ht;
+  });
+
+  //angle of vector sum of lepton, photon, and jet pts
+  const NamedFunc mht_phi("mht_phi",[](const Baby &b) -> NamedFunc::ScalarType{
+    std::array<float, 2> mht_p = get_mht(b);
+    return atan2(mht_p[1], mht_p[0]);
+  });
+
+  //angle between photon and MHT
+  const NamedFunc photon_mht_dphi("photon_mht_dphi",[](const Baby &b) 
+      -> NamedFunc::ScalarType{
+    return deltaPhi(b.photon_phi()->at(0), mht_phi.GetScalar(b));
+  });
+
+  //dR between jet and photon
+  const NamedFunc jet_photon_dr("jet_photon_dr",[](const Baby &b) 
+      -> NamedFunc::VectorType{
+    std::vector<double> dr;
+    for (unsigned ijet = 0; ijet < b.jet_eta()->size(); ijet++) {
+      if (b.nphoton()==0) {
+        dr.push_back(-999.0);
+      }
+      else {
+        dr.push_back(deltaR(b.jet_eta()->at(ijet), b.jet_phi()->at(ijet), 
+                            b.photon_eta()->at(0), b.photon_phi()->at(0)));
+      }
+    }
+    return dr;
+  });
+
+  //deta between jet and photon
+  const NamedFunc jet_photon_deta("jet_photon_deta",[](const Baby &b) 
+      -> NamedFunc::VectorType{
+    std::vector<double> deta;
+    for (unsigned ijet = 0; ijet < b.jet_eta()->size(); ijet++) {
+      if (b.nphoton()==0) {
+        deta.push_back(-999.0);
+      }
+      else {
+        deta.push_back(fabs(b.jet_eta()->at(ijet)-b.photon_eta()->at(0)));
+      }
+    }
+    return deta;
+  });
+
+  //signal jet photon dR
+  const NamedFunc sig_jet_photon_dr = FilterNamedFunc(jet_photon_dr,
+      jet_isgood_hornveto).Name("sig_jet_photon_dr");
+  
+  //lead jet photon dR
+  const NamedFunc lead_jet_photon_dr = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_photon_dr},reduce_maxfirst)
+      .Name("lead_jet_photon_dr");
+
+  //signal jet photon deta
+  const NamedFunc sig_jet_photon_deta = FilterNamedFunc(jet_photon_deta,
+      jet_isgood_hornveto).Name("sig_jet_photon_deta");
+  
+  //lead jet photon deta
+  const NamedFunc lead_jet_photon_deta = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_photon_deta},reduce_maxfirst)
+      .Name("lead_jet_photon_deta");
+
+  //dR between Higgs candidate and leading jet
+  const NamedFunc lead_jet_llphoton_dr(
+      "lead_jet_llphoton_dr",[](const Baby &b) -> NamedFunc::ScalarType{
+    float lead_jet_pt0 = 0.0;
+    float lead_jet_eta0 = 0.0;
+    float lead_jet_phi0 = 0.0;
+    std::vector<double> isgood = jet_isgood_hornveto.GetVector(b);
+    for (unsigned ijet = 0; ijet < b.jet_eta()->size(); ijet++) {
+      if (isgood[ijet]) {
+        if (b.jet_pt()->at(ijet) > lead_jet_pt0) {
+          lead_jet_pt0 = b.jet_pt()->at(ijet);
+          lead_jet_eta0 = b.jet_eta()->at(ijet);
+          lead_jet_phi0 = b.jet_phi()->at(ijet);
+        }
+      }
+    }
+    return deltaR(lead_jet_eta0, lead_jet_phi0, b.llphoton_refit_eta(), 
+                  b.llphoton_refit_phi());
+  });
+
+  //dphi between Higgs candidate and leading jet
+  const NamedFunc lead_jet_llphoton_dphi(
+      "lead_jet_llphoton_dphi",[](const Baby &b) -> NamedFunc::ScalarType{
+    float lead_jet_pt0 = 0.0;
+    float lead_jet_phi0 = 0.0;
+    std::vector<double> isgood = jet_isgood_hornveto.GetVector(b);
+    for (unsigned ijet = 0; ijet < b.jet_eta()->size(); ijet++) {
+      if (isgood[ijet]) {
+        if (b.jet_pt()->at(ijet) > lead_jet_pt0) {
+          lead_jet_pt0 = b.jet_pt()->at(ijet);
+          lead_jet_phi0 = b.jet_phi()->at(ijet);
+        }
+      }
+    }
+    return deltaPhi(lead_jet_phi0, b.llphoton_refit_phi());
+  });
+
+  //MHT(llgj)/HT(llgj)
+  const NamedFunc llphoton_j_balance(
+      "llphoton_j_balance",[](const Baby &b) -> NamedFunc::ScalarType{
+    float mht_x(0.0), mht_y(0.0), ht0(0.0);
+    if (b.ll_lepid()->at(0) == 11) {
+      mht_x -= b.ll_refit_l1_pt()*cos(b.el_phi()->at(b.ll_i1()->at(0)));
+      mht_y -= b.ll_refit_l1_pt()*sin(b.el_phi()->at(b.ll_i1()->at(0)));
+      mht_x -= b.ll_refit_l2_pt()*cos(b.el_phi()->at(b.ll_i2()->at(0)));
+      mht_y -= b.ll_refit_l2_pt()*sin(b.el_phi()->at(b.ll_i2()->at(0)));
+    }
+    else {
+      mht_x -= b.ll_refit_l1_pt()*cos(b.mu_phi()->at(b.ll_i1()->at(0)));
+      mht_y -= b.ll_refit_l1_pt()*sin(b.mu_phi()->at(b.ll_i1()->at(0)));
+      mht_x -= b.ll_refit_l2_pt()*cos(b.mu_phi()->at(b.ll_i2()->at(0)));
+      mht_y -= b.ll_refit_l2_pt()*sin(b.mu_phi()->at(b.ll_i2()->at(0)));
+    }
+    ht0 += b.ll_refit_l1_pt();
+    ht0 += b.ll_refit_l2_pt();
+    mht_x -= b.photon_pt()->at(0)*cos(b.photon_phi()->at(0));
+    mht_y -= b.photon_pt()->at(0)*sin(b.photon_phi()->at(0));
+    ht0 += b.photon_pt()->at(0);
+    float lead_jet_pt0 = 0.0;
+    float lead_jet_phi0 = 0.0;
+    std::vector<double> isgood = jet_isgood_hornveto.GetVector(b);
+    for (unsigned ijet = 0; ijet < b.jet_eta()->size(); ijet++) {
+      if (isgood[ijet]) {
+        if (b.jet_pt()->at(ijet) > lead_jet_pt0) {
+          lead_jet_pt0 = b.jet_pt()->at(ijet);
+          lead_jet_phi0 = b.jet_phi()->at(ijet);
+        }
+      }
+    }
+    mht_x -= lead_jet_pt0*cos(lead_jet_phi0);
+    mht_y -= lead_jet_pt0*sin(lead_jet_phi0);
+    ht0 += lead_jet_pt0;
+    return sqrt(mht_x*mht_x+mht_y*mht_y)/ht0;
+  });
+
+  //MHT(llgjj)/HT(llgjj)
+  const NamedFunc llphoton_dijet_balance_hornveto(
+      "llphoton_j_balance",[](const Baby &b) -> NamedFunc::ScalarType{
+    float mht_x(0.0), mht_y(0.0), ht0(0.0);
+    if (b.ll_lepid()->at(0) == 11) {
+      mht_x -= b.ll_refit_l1_pt()*cos(b.el_phi()->at(b.ll_i1()->at(0)));
+      mht_y -= b.ll_refit_l1_pt()*sin(b.el_phi()->at(b.ll_i1()->at(0)));
+      mht_x -= b.ll_refit_l2_pt()*cos(b.el_phi()->at(b.ll_i2()->at(0)));
+      mht_y -= b.ll_refit_l2_pt()*sin(b.el_phi()->at(b.ll_i2()->at(0)));
+    }
+    else {
+      mht_x -= b.ll_refit_l1_pt()*cos(b.mu_phi()->at(b.ll_i1()->at(0)));
+      mht_y -= b.ll_refit_l1_pt()*sin(b.mu_phi()->at(b.ll_i1()->at(0)));
+      mht_x -= b.ll_refit_l2_pt()*cos(b.mu_phi()->at(b.ll_i2()->at(0)));
+      mht_y -= b.ll_refit_l2_pt()*sin(b.mu_phi()->at(b.ll_i2()->at(0)));
+    }
+    ht0 += b.ll_refit_l1_pt();
+    ht0 += b.ll_refit_l2_pt();
+    mht_x -= b.photon_pt()->at(0)*cos(b.photon_phi()->at(0));
+    mht_y -= b.photon_pt()->at(0)*sin(b.photon_phi()->at(0));
+    ht0 += b.photon_pt()->at(0);
+    float lead_jet_pt0 = 0.0;
+    float lead_jet_phi0 = 0.0;
+    std::vector<double> isgood = jet_isgood_hornveto.GetVector(b);
+    int igjet = 0;
+    for (unsigned ijet = 0; ijet < b.jet_eta()->size(); ijet++) {
+      if (isgood[ijet]) {
+        if (b.jet_pt()->at(ijet) > lead_jet_pt0) {
+          lead_jet_pt0 = b.jet_pt()->at(ijet);
+          lead_jet_phi0 = b.jet_phi()->at(ijet);
+        }
+        if (igjet>1)
+          break;
+        igjet++;
+      }
+    }
+    mht_x -= lead_jet_pt0*cos(lead_jet_phi0);
+    mht_y -= lead_jet_pt0*sin(lead_jet_phi0);
+    ht0 += lead_jet_pt0;
+    return sqrt(mht_x*mht_x+mht_y*mht_y)/ht0;
+  });
 }
 
 

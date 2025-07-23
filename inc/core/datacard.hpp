@@ -51,13 +51,16 @@ public:
     Systematic(const std::string &name, 
                const std::vector<std::string> &selection_names, 
                const std::vector<NamedFunc> &variations,
-               const bool save_shape = false);
+               const bool save_shape = false,
+               const std::vector<std::shared_ptr<Process>> &alt_procs = {});
 
     Systematic(const std::string &name, 
                const std::vector<std::string> &selection_names, 
                const std::vector<NamedFunc> &variations_up,
                const std::vector<NamedFunc> &variations_dn,
-               const bool save_shape = false);
+               const bool save_shape = false,
+               const std::vector<std::shared_ptr<Process>> &alt_procs_up = {},
+               const std::vector<std::shared_ptr<Process>> &alt_procs_dn = {});
 
     Systematic() = default;
     Systematic(const Systematic &) = default;
@@ -66,6 +69,7 @@ public:
     Systematic& operator=(Systematic &&) = default;
 
     bool save_shape_;
+    bool is_altproc_; //!< systematic type
     bool is_symmetric_; //!< systematic type
     std::string name_; //!< systematic name
                        
@@ -75,6 +79,13 @@ public:
         //!< map from selection to replace (or "weight") to alt up NamedFunc
     std::unordered_map<std::string, std::shared_ptr<NamedFunc>> variation_dn_;
         //!< map from selection to replace (or "weight") to alt dn NamedFunc
+    std::vector<std::shared_ptr<Process>> alt_procs_;
+        //!< alternate processes
+    std::vector<std::shared_ptr<Process>> alt_procs_up_;
+        //!< alternate processes
+    std::vector<std::shared_ptr<Process>> alt_procs_dn_;
+        //!< alternate processes
+        
   };
 
   /*!\brief Interface representing processes appearing in the datacard, see 
@@ -95,6 +106,7 @@ public:
     bool is_data_;                  //!< If process is data
     bool is_signal_;                //!< If process is signal
     bool in_datacard_;              //!< If process is to be included in model
+    bool is_parametric_;            //!< If process is parametric
     std::vector<bool> is_profiled_; //!< If each channel is profiled
     std::vector<float> data_norm_;  //!< Number of data events for each channel
   };
@@ -106,7 +118,8 @@ public:
   public:
     DatacardProcessNonparametric(const Figure &figure,
                                  const std::shared_ptr<Process> &process,
-                                 const Axis &axis, bool in_datacard=true);
+                                 const Axis &axis, bool in_datacard=true,
+                                 bool is_variation=false);
     ~DatacardProcessNonparametric() = default;
     void RecordEvent(const Baby &baby) final;
     void WriteWorkspace(unsigned int channel) final;
@@ -124,6 +137,7 @@ public:
     std::vector<RooRealVar> var_; //!< Signal extraction variable
 
     RooRealVar rrv_weight_;       //!< Weight variable
+    bool is_variation_;           //!< Is variation process
     bool replace_with_param_;     //!< Processis replaced by parametric model
     std::vector<std::shared_ptr<RooAbsPdf>> param_pdf_; //!< Parametric model
                                                         //!< by channel
@@ -212,6 +226,8 @@ public:
   std::vector<DatacardProcess*> datacard_process_; //!<All Processes
   std::vector<std::unique_ptr<DatacardProcessNonparametric>> 
       datacard_process_nonparametric_; //!<Nonparametric processes in datacard
+  std::vector<std::vector<std::unique_ptr<DatacardProcessNonparametric>>> 
+      datacard_process_variation_; //!<Variation processes in datacard
   std::vector<std::unique_ptr<DatacardProcessParametric>> 
       datacard_process_parametric_; //!<Parametric processes in datacard
   bool save_data_as_hist_;                   //!<Save data as RooDataHist
