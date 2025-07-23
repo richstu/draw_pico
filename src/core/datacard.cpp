@@ -45,6 +45,7 @@
 #include "core/datacard.hpp"
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -269,12 +270,14 @@ Datacard::DatacardProcessNonparametric::DatacardProcessNonparametric(
     var_[ichan].setBins(axis.Nbins());
     dataset_.push_back(std::vector<RooDataSet>());
     yield_.push_back(std::vector<double>());
+    sumw2_.push_back(std::vector<double>());
     for (unsigned isyst = 0; isyst < n_variations_; isyst++) {
       //currently for ease of use, RooDataSets are created for all variations,
       //even if they are not used
       dataset_[ichan].push_back(RooDataSet("","",RooArgSet(var_[ichan],
           rrv_weight_), RooFit::WeightVar(rrv_weight_)));
       yield_[ichan].push_back(0.0);
+      sumw2_[ichan].push_back(0.0);
     } // loop over variations
   } // loop over channels
 }
@@ -289,6 +292,7 @@ void Datacard::DatacardProcessNonparametric::RecordEvent(const Baby &baby) {
       float fit_var = datacard->fit_var_[isyst].GetScalar(baby);
       if (datacard->channel_selection_[isyst][ichan].GetScalar(baby)) {
         yield_[ichan][isyst] += weight;
+        sumw2_[ichan][isyst] += weight*weight;
         if (datacard->save_shape_[isyst]) {
           var_[ichan].setVal(fit_var);
           rrv_weight_.setVal(weight);
@@ -348,6 +352,15 @@ std::string Datacard::DatacardProcessNonparametric::PDFName(
 float Datacard::DatacardProcessNonparametric::Yield(unsigned int channel, 
                                                     unsigned int variation) {
   return yield_[channel][variation];
+}
+
+/*! \brief Returns SumW2 of events in a given channel
+ 
+  \param[in] channel    index of channel
+*/
+float Datacard::DatacardProcessNonparametric::SumW2(unsigned int channel, 
+                                                    unsigned int variation) {
+  return sumw2_[channel][variation];
 }
 
 /*! \brief Writes datasets to a workspace and saves to opened ROOT file
@@ -452,6 +465,16 @@ float Datacard::DatacardProcessParametric::Yield(unsigned int channel,
   return 1.0;
 }
 
+/*! \brief Returns a sumw2 of 0.0 
+ 
+*/
+float Datacard::DatacardProcessParametric::SumW2(unsigned int channel, 
+                                                 unsigned int variation) {
+  channel += 0;
+  variation += 0;
+  return 0.0;
+}
+
 /*! \brief Dummy function for interface
  
   \param[in] channel    index of channel to write
@@ -493,7 +516,8 @@ Datacard::Datacard(const std::string &name,
     n_processes_(processes.size()),
     n_systematics_(systematics.size()),
     axis_(axis),
-    save_data_as_hist_(save_as_hist) {
+    save_data_as_hist_(save_as_hist),
+    include_stat_uncertainties_(false) {
 
   if (!weight.IsScalar()) {
     throw std::invalid_argument(("Weight NamedFunc "+weight.Name()
@@ -681,11 +705,28 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
     if (datacard_process_[iproc]->in_datacard_)
       n_processes_indatacard++;
   }
+  int n_stat_systematics = 0;
+  if (include_stat_uncertainties_) {
+    for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+      if (datacard_process_[iproc]->in_datacard_ 
+          && !datacard_process_[iproc]->is_data_
+          && !datacard_process_[iproc]->is_parametric_) {
+        for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+          float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+          float nom_unc = sqrt(datacard_process_[iproc]->SumW2(ichan, 0));
+          float syst = nom_unc/nom_yield+1.0;
+          //skip stat uncertainties less than 0.1%
+          if (fabs(syst-1.0) >= 1.0e-3)
+            n_stat_systematics++;
+        }
+      }
+    }
+  }
   datacard_file << "max  " << n_channels_ << " number of categories\n";
   //subtract 1 for data, which is not counted, and 1 for combine conventions
   datacard_file << "jmax " << n_processes_indatacard-2 
                 << " number of samples minus one\n";
-  datacard_file << "kmax " << n_systematics_ 
+  datacard_file << "kmax " << (n_systematics_ + n_stat_systematics)
                 << " number of nuisance parameters\n";
   datacard_file << "----------------------------------------------------------"
                    "----------------------------------------------------------"
@@ -720,6 +761,9 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   datacard_file << "----------------------------------------------------------"
                    "----------------------------------------------------------"
                    "--------------\n";
+  const int w_name = 35;
+  const int w_type = 8;
+  const int w_entry = 19;
   //process rates
   std::ostringstream bin_str, proc_str, index_str, rate_str;
   for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
@@ -728,30 +772,30 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
     for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
       if (datacard_process_[iproc]->in_datacard_ 
           && !datacard_process_[iproc]->is_data_) {
-        bin_str << std::left << std::setw(19) << channel_name_[ichan];
-        proc_str << std::left << std::setw(19) 
+        bin_str << std::left << std::setw(w_entry) << channel_name_[ichan];
+        proc_str << std::left << std::setw(w_entry) 
                  << datacard_process_[iproc]->name_;
         if (datacard_process_[iproc]->is_signal_) {
-          index_str << std::left << std::setw(19) << signal_number;
+          index_str << std::left << std::setw(w_entry) << signal_number;
           signal_number -= 1;
         }
         else { //background
-          index_str << std::left << std::setw(19) << background_number;
+          index_str << std::left << std::setw(w_entry) << background_number;
           background_number += 1;
         }
-        rate_str << std::left << std::setw(19) 
+        rate_str << std::left << std::setw(w_entry) 
                  << datacard_process_[iproc]->Yield(ichan);
       }
     }
   }
-  datacard_file << std::left << std::setw(33) << "bin" << bin_str.str() 
-                << "\n";
-  datacard_file << std::left << std::setw(33) << "process" << proc_str.str() 
-                << "\n";
-  datacard_file << std::left << std::setw(33) << "process" << index_str.str() 
-                << "\n";
-  datacard_file << std::left << std::setw(33) << "rate" << rate_str.str() 
-                << "\n";
+  datacard_file << std::left << std::setw(w_name+w_type) << "bin" 
+                << bin_str.str() << "\n";
+  datacard_file << std::left << std::setw(w_name+w_type) << "process" 
+                << proc_str.str() << "\n";
+  datacard_file << std::left << std::setw(w_name+w_type) << "process" 
+                << index_str.str() << "\n";
+  datacard_file << std::left << std::setw(w_name+w_type) << "rate" 
+                << rate_str.str() << "\n";
   datacard_file << "----------------------------------------------------------"
                    "----------------------------------------------------------"
                    "--------------\n";
@@ -764,18 +808,18 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
       continue;
     }
     if (systematic.is_altproc_) {
-      datacard_file << std::left << std::setw(25) << systematic.name_;
-      datacard_file << std::left << std::setw(8) << "lnN";
+      datacard_file << std::left << std::setw(w_name) << systematic.name_;
+      datacard_file << std::left << std::setw(w_type) << "lnN";
       for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
         for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
           if (datacard_process_[iproc]->in_datacard_ 
               && !datacard_process_[iproc]->is_data_) {
             if (datacard_process_[iproc]->is_parametric_) {
-              datacard_file << std::left << std::setw(19) << "-";
+              datacard_file << std::left << std::setw(w_entry) << "-";
               continue;
             }
             if (datacard_process_variation_[ialt][iproc]->name_ == "null") {
-              datacard_file << std::left << std::setw(19) << "-";
+              datacard_file << std::left << std::setw(w_entry) << "-";
               continue;
             }
             if (systematic.is_symmetric_) {
@@ -787,9 +831,10 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
                 syst = alt_yield/nom_yield;
               //systematics less than 0.1% are dropped
               if (fabs(syst-1.0)<1.0e-3)
-                datacard_file << std::left << std::setw(19) << "-";
+                datacard_file << std::left << std::setw(w_entry) << "-";
               else
-                datacard_file << std::left << std::setw(19) << syst;
+                datacard_file << std::left << std::setw(w_entry) 
+                              << std::setprecision(5) << syst;
             } //process is symmetric
             else {
               float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
@@ -806,11 +851,12 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
               }
               //systematics less than 0.1% are dropped
               if ((fabs(syst_up-1.0)<1.0e-3) && (fabs(syst_dn-1.0)<1.0e-3))
-                datacard_file << std::left << std::setw(19) << "-";
+                datacard_file << std::left << std::setw(w_entry) << "-";
               else {
                 std::ostringstream syst_string;
-                syst_string << syst_dn << "/" << syst_up;
-                datacard_file << std::left << std::setw(19) 
+                syst_string << std::setprecision(5) << syst_dn << "/" 
+                            << syst_up;
+                datacard_file << std::left << std::setw(w_entry) 
                               << syst_string.str();
               }
             } //process not symmetric
@@ -826,53 +872,50 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
       }
     } //altproc systematic
     else {
-      if ((systematic.variation_.count("fitvar") == 0)
-          && (systematic.variation_up_.count("fitvar") == 0)) {
-        //only make lnN constraints for non-shape systematics
-        //TODO change this
-        datacard_file << std::left << std::setw(25) << systematic.name_;
-        datacard_file << std::left << std::setw(8) << "lnN";
-        for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
-          for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
-            if (datacard_process_[iproc]->in_datacard_ 
-                && !datacard_process_[iproc]->is_data_) {
-              if (systematic.is_symmetric_) {
-                float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
-                float syst = 1.0;
-                if (nom_yield > 0.0)
-                  syst = (datacard_process_[iproc]->Yield(ichan, ivar)
-                          /nom_yield);
-                //systematics less than 0.1% are dropped
-                if (fabs(syst-1.0)<1.0e-3)
-                  datacard_file << std::left << std::setw(19) << "-";
-                else
-                  datacard_file << std::left << std::setw(19) << syst;
+      datacard_file << std::left << std::setw(w_name) << systematic.name_;
+      datacard_file << std::left << std::setw(w_type) << "lnN";
+      for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+        for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+          if (datacard_process_[iproc]->in_datacard_ 
+              && !datacard_process_[iproc]->is_data_) {
+            if (systematic.is_symmetric_) {
+              float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+              float syst = 1.0;
+              if (nom_yield > 0.0)
+                syst = (datacard_process_[iproc]->Yield(ichan, ivar)
+                        /nom_yield);
+              //systematics less than 0.1% are dropped
+              if (fabs(syst-1.0)<1.0e-3)
+                datacard_file << std::left << std::setw(w_entry) << "-";
+              else
+                datacard_file << std::left << std::setw(w_entry) 
+                              << std::setprecision(5) << syst;
+            }
+            else {
+              float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+              float syst_up = 1.0;
+              float syst_dn = 1.0;
+              if (nom_yield > 0.0) {
+                syst_up = (datacard_process_[iproc]->Yield(ichan, ivar)
+                           /nom_yield);
+                syst_dn = (datacard_process_[iproc]->Yield(ichan, ivar+1)
+                           /nom_yield);
               }
+              //systematics less than 0.1% are dropped
+              if ((fabs(syst_up-1.0)<1.0e-3) && (fabs(syst_dn-1.0)<1.0e-3))
+                datacard_file << std::left << std::setw(w_entry) << "-";
               else {
-                float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
-                float syst_up = 1.0;
-                float syst_dn = 1.0;
-                if (nom_yield > 0.0) {
-                  syst_up = (datacard_process_[iproc]->Yield(ichan, ivar)
-                             /nom_yield);
-                  syst_dn = (datacard_process_[iproc]->Yield(ichan, ivar+1)
-                             /nom_yield);
-                }
-                //systematics less than 0.1% are dropped
-                if ((fabs(syst_up-1.0)<1.0e-3) && (fabs(syst_dn-1.0)<1.0e-3))
-                  datacard_file << std::left << std::setw(19) << "-";
-                else {
-                  std::ostringstream syst_string;
-                  syst_string << syst_dn << "/" << syst_up;
-                  datacard_file << std::left << std::setw(19) 
-                                << syst_string.str();
-                }
-              } //asymmetric systematic
-            } //process is in syst section
-          } //loop over processes
-        } //loop over channels
-        datacard_file << "\n";
-      } //not shape systematic
+                std::ostringstream syst_string;
+                syst_string << std::setprecision(5) << syst_dn << "/" 
+                            << syst_up;
+                datacard_file << std::left << std::setw(w_entry) 
+                              << syst_string.str();
+              }
+            } //asymmetric systematic
+          } //process is in syst section
+        } //loop over processes
+      } //loop over channels
+      datacard_file << "\n";
       if (systematic.is_symmetric_) {
         ivar++;
       }
@@ -881,8 +924,54 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
       }
     } //not alt proc systematic
   }
+  if (include_stat_uncertainties_) {
+    for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
+      for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
+        if (datacard_process_[iproc]->in_datacard_ 
+            && !datacard_process_[iproc]->is_data_
+            && !datacard_process_[iproc]->is_parametric_) {
+          float nom_yield = datacard_process_[iproc]->Yield(ichan, 0);
+          float nom_unc = sqrt(datacard_process_[iproc]->SumW2(ichan, 0));
+          float syst = nom_unc/nom_yield+1.0;
+          //skip stat uncertainties less than 0.1%
+          if (fabs(syst-1.0)<1.0e-3)
+            continue;
+          datacard_file << std::left << std::setw(w_name) 
+                        << ("MCstat_" + datacard_process_[iproc]->name_ + "_" 
+                            + channel_name_[ichan]);
+          datacard_file << std::left << std::setw(w_type) << "lnN";
+          for (unsigned ichan2 = 0; ichan2 < n_channels_; ichan2++) {
+            for (unsigned iproc2 = 0; iproc2 < n_processes_; iproc2++) {
+              if (ichan2 == ichan && iproc2 == iproc) {
+                datacard_file << std::left << std::setw(w_entry) 
+                              << std::setprecision(5) << syst;
+              }
+              else if (datacard_process_[iproc2]->in_datacard_ 
+                       && !datacard_process_[iproc2]->is_data_) {
+                datacard_file << std::left << std::setw(w_entry) << "-";
+              }
+            } //second loop over processes
+          } //second loop over channels
+          datacard_file << "\n";
+        } //in datacard and not data and not parametric
+      } //loop over processes
+    } //loop over channels
+  } //stat uncertainties
 
-  //Parameters: deal with this in HtoZG_fitting
+  //Parameters
+  for (Systematic& systematic : systematics_extended_) {
+    if (!systematic.is_altproc_) {
+      if ((systematic.variation_.count("fitvar") > 0)
+           || (systematic.variation_up_.count("fitvar") > 0)) {
+        datacard_file << std::left << std::setw(w_name) << systematic.name_;
+        datacard_file << std::left << std::setw(w_type) << "param";
+        datacard_file << std::left << std::setw(10) << 0.0;
+        datacard_file << std::left << std::setw(10) << 1.0 << std::endl;
+      }
+    }
+  }
+
+  //Discrete index parameters: deal with this in HtoZG_fitting?
   //datacard_file << "\n";
   //for (unsigned ichan = 0; ichan < n_channels_; ichan++) {
   //  for (unsigned iproc = 0; iproc < n_processes_; iproc++) {
@@ -921,6 +1010,15 @@ Datacard& Datacard::AddParametricProcess(
 */
 Datacard& Datacard::SaveDataAsHist(bool save_data_as_hist) {
   save_data_as_hist_ = save_data_as_hist;
+  return *this;
+}
+
+/*! \brief Sets whether to include statistical uncertainties
+ 
+  \param[in] include_stat whether to save data as RooDataHist
+*/
+Datacard& Datacard::IncludeStatUncertainties(bool include_stat) {
+  include_stat_uncertainties_ = include_stat;
   return *this;
 }
 

@@ -101,6 +101,8 @@ public:
     virtual std::string PDFName(unsigned int channel) = 0;
     virtual float Yield(unsigned int channel, 
                         unsigned int variation = 0) = 0;
+    virtual float SumW2(unsigned int channel, 
+                        unsigned int variation = 0) = 0;
 
     std::string name_;              //!< Process name
     bool is_data_;                  //!< If process is data
@@ -127,6 +129,7 @@ public:
     std::string DataName(unsigned int channel, unsigned int variation);
     std::string PDFName(unsigned int channel) final;
     float Yield(unsigned int channel, unsigned int variation = 0) final;
+    float SumW2(unsigned int channel, unsigned int variation = 0) final;
 
     unsigned int n_variations_; //!< Number of datasets to store per channel
 
@@ -134,6 +137,8 @@ public:
         //!< data indexed by channel, then variation
     std::vector<std::vector<double>> yield_;
         //!< yields indexed by channel, then variation
+    std::vector<std::vector<double>> sumw2_;
+        //!< sumw2 indexed by channel, then variation
     std::vector<RooRealVar> var_; //!< Signal extraction variable
 
     RooRealVar rrv_weight_;       //!< Weight variable
@@ -165,6 +170,7 @@ public:
     std::string WSName(unsigned int channel) final; 
     std::string PDFName(unsigned int channel) final; 
     float Yield(unsigned int channel, unsigned int variation = 0) final;
+    float SumW2(unsigned int channel, unsigned int variation = 0) final;
 
     std::vector<std::vector<std::shared_ptr<RooAbsPdf>>> pdf_; //!<channel PDF
 
@@ -194,6 +200,7 @@ public:
       const std::vector<std::shared_ptr<Process>> &processes);
   Datacard& AddParametricProcess(const std::string &name);
   Datacard& SaveDataAsHist(bool save_data_as_hist = true);
+  Datacard& IncludeStatUncertainties(bool include_stat = true);
   Datacard(Datacard &&) = default;
   Datacard& operator=(Datacard &&) = default;
   ~Datacard() = default;
@@ -231,6 +238,7 @@ public:
   std::vector<std::unique_ptr<DatacardProcessParametric>> 
       datacard_process_parametric_; //!<Parametric processes in datacard
   bool save_data_as_hist_;                   //!<Save data as RooDataHist
+  bool include_stat_uncertainties_; //!<Include stat uncertainties
 
 private:
 

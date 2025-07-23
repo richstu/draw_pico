@@ -249,13 +249,13 @@ int main() {
                                    {weight*sys_w_alphas}));
   systematics.push_back(Systematic("param_mq",{"weight"},
                                    {weight*sys_w_mq}));
-  systematics.push_back(Systematic("UEPS_ISR",{"weight"},
+  systematics.push_back(Systematic("ps_isr",{"weight"},
                                    {weight*"sys_ps[0]"},
                                    {weight*"sys_ps[2]"}));
-  systematics.push_back(Systematic("UEPS_FSR",{"weight"},
+  systematics.push_back(Systematic("ps_fsr",{"weight"},
                                    {weight*"sys_ps[1]"},
                                    {weight*"sys_ps[3]"}));
-  systematics.push_back(Systematic("UEPS_UE", {}, {}, {}, false, 
+  systematics.push_back(Systematic("underlying_event", {}, {}, {}, false, 
                                    processes_tuneup, processes_tunedn));
   //no lumi correlation yet, waiting on official recos from LUM
   systematics.push_back(Systematic("lumi_13TeV",{"weight"},
@@ -316,9 +316,10 @@ int main() {
       processes, weight,
       Axis(80, 95.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)
-      .AddParametricProcess("background");
+      .AddParametricProcess("background")
+      .IncludeStatUncertainties();
 
-  pm.max_entries_ = 10000;
+  //pm.max_entries_ = 1000;
   pm.MakePlots(1.0);
 
   return 0;
