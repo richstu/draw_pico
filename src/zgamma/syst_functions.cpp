@@ -24,7 +24,7 @@ using NamedFuncUtilities::reduce_max;
 using NamedFuncUtilities::reduce_maxfirst;
 using NamedFuncUtilities::reduce_sublead;
 using NamedFuncUtilities::reduce_subleadfirst;
-using ZgUtilities::get_lep_pt_custom_refit;
+using ZgUtilities::get_lep_custom_refit;
 
 namespace ZgFunctions {
 
@@ -326,16 +326,16 @@ namespace ZgFunctions {
   //for reference, electrons and muons failing eta, dxy, or dz cuts are dropped from pico lists
 
   //el_sig with electron scale variation up
-  const NamedFunc sys_el_sig_scaleup = NamedFunc("(sys_el_pt_scaleup>7)&&el_idLoose").Name("sys_el_sig_scaleup");
+  const NamedFunc sys_el_sig_scaleup = NamedFunc("(sys_el_pt_scaleup>7)&&el_idLoose").Name("sys_el_sig_scaleup").EnableCaching(true);
 
   //el_sig with electron scale variation down
-  const NamedFunc sys_el_sig_scaledn = NamedFunc("(sys_el_pt_scaledn>7)&&el_idLoose").Name("sys_el_sig_scaledn");
+  const NamedFunc sys_el_sig_scaledn = NamedFunc("(sys_el_pt_scaledn>7)&&el_idLoose").Name("sys_el_sig_scaledn").EnableCaching(true);
 
   //el_sig with electron resolution variation up
-  const NamedFunc sys_el_sig_resup = NamedFunc("(sys_el_pt_resup>7)&&el_idLoose").Name("sys_el_sig_resup");
+  const NamedFunc sys_el_sig_resup = NamedFunc("(sys_el_pt_resup>7)&&el_idLoose").Name("sys_el_sig_resup").EnableCaching(true);
 
   //el_sig with electron resolution variation down
-  const NamedFunc sys_el_sig_resdn = NamedFunc("(sys_el_pt_resdn>7)&&el_idLoose").Name("sys_el_sig_resdn");
+  const NamedFunc sys_el_sig_resdn = NamedFunc("(sys_el_pt_resdn>7)&&el_idLoose").Name("sys_el_sig_resdn").EnableCaching(true);
 
   //mu_sig with muon systematics up
   const NamedFunc sys_mu_sig_up = NamedFunc("mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)&&((mu_pt+mu_ptErr)>5)").Name("sys_mu_sig_up");
@@ -378,6 +378,77 @@ namespace ZgFunctions {
 
   //nlep with muon systematics down
   const NamedFunc sys_nlep_mudn = NamedFunc("nel"+sys_nmu_dn).Name("sys_nlep_mudn");
+
+  //Gets NamedFunc that is number of ll candidates with variation
+  NamedFunc assign_variation_nll(const NamedFunc &variation_el_sig, 
+                                 const NamedFunc &variation_mu_sig,
+                                 const string &name) {
+    return NamedFunc(("sys_nll_"+name).c_str(),[variation_el_sig, 
+        variation_mu_sig] (const Baby &b) -> NamedFunc::ScalarType{
+          float nll = 0;
+          vector<double> el_sig = variation_el_sig.GetVector(b);
+          vector<double> mu_sig = variation_mu_sig.GetVector(b);
+          for (unsigned iel = 0; iel < b.el_charge()->size(); iel++) {
+            if (el_sig[iel]) {
+              for (unsigned iel2 = 0; iel2 < iel; iel2++) {
+                if (el_sig[iel2]) {
+                  if ((b.el_charge()->at(iel)+b.el_charge()->at(iel2))==0) {
+                    nll += 1.0;
+                  }
+                }
+              }
+            }
+          }
+          for (unsigned imu = 0; imu < b.mu_charge()->size(); imu++) {
+            if (mu_sig[imu]) {
+              for (unsigned imu2 = 0; imu2 < imu; imu2++) {
+                if (mu_sig[imu2]) {
+                  if ((b.mu_charge()->at(imu)+b.mu_charge()->at(imu2))==0) {
+                    nll += 1;
+                  }
+                }
+              }
+            }
+          }
+          return nll;
+        }).EnableCaching(true);
+  }
+
+  //nll with electron scale variation up
+  NamedFunc sys_nll_elscaleup = assign_variation_nll(sys_el_sig_scaleup, 
+      "mu_sig", "elscaleup");
+
+  //nll with electron scale variation down
+  NamedFunc sys_nll_elscaledn = assign_variation_nll(sys_el_sig_scaledn, 
+      "mu_sig", "elscaledn");
+
+  //nll with electron resolution variation up
+  NamedFunc sys_nll_elresup = assign_variation_nll(sys_el_sig_resup, 
+      "mu_sig", "elresup");
+
+  //nll with electron resolution variation down
+  NamedFunc sys_nll_elresdn = assign_variation_nll(sys_el_sig_resdn, 
+      "mu_sig", "elresdn");
+
+  //nll with muon scale variation up
+  //TODO fix with appropriate sys in next production
+  NamedFunc sys_nll_muscaleup = assign_variation_nll("el_sig", 
+      sys_mu_sig_up, "muscaleup");
+
+  //nll with muon scale variation down
+  //TODO fix with appropriate sys in next production
+  NamedFunc sys_nll_muscaledn = assign_variation_nll("el_sig", 
+      sys_mu_sig_dn, "muscaledn");
+
+  //nll with muon resolution variation up
+  //TODO fix with appropriate sys in next production
+  NamedFunc sys_nll_muresup = assign_variation_nll("el_sig", 
+      sys_mu_sig_up, "muresup");
+
+  //nll with muon resolution variation down
+  //TODO fix with appropriate sys in next production
+  NamedFunc sys_nll_muresdn = assign_variation_nll("el_sig", 
+      sys_mu_sig_dn, "muresdn");
 
   //leading electron pt with electron scale variation up
   const NamedFunc sys_lead_el_pt_scaleup = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_scaleup",
@@ -431,63 +502,261 @@ namespace ZgFunctions {
       "mu_pt-mu_ptErr",sys_mu_sig_dn),
       reduce_sublead).Name("sys_sublead_mu_pt_dn");
 
+  //Gets NamedFunc that is trigger+pT cut flag with variation
+  NamedFunc assign_variation_trig_pt(const NamedFunc &variation_el_pt, 
+                                     const NamedFunc &variation_el_sig,
+                                     const NamedFunc &variation_mu_pt,
+                                     const NamedFunc &variation_mu_sig,
+                                     const string &name) {
+    return NamedFunc(("sys_trig_pt_"+name).c_str(),[variation_el_pt, 
+        variation_el_sig, variation_mu_pt, variation_mu_sig] (const Baby &b) 
+        -> NamedFunc::ScalarType{
+
+          vector<double> el_sig = variation_el_sig.GetVector(b);
+          vector<double> mu_sig = variation_mu_sig.GetVector(b);
+          vector<double> el_pt = variation_el_pt.GetVector(b);
+          vector<double> mu_pt = variation_mu_pt.GetVector(b);
+          float lead_ele_pt = -999.0;
+          float subl_ele_pt = -999.0;
+          float lead_muo_pt = -999.0;
+          float subl_muo_pt = -999.0;
+          for (unsigned iel = 0; iel < el_sig.size(); iel++) {
+            if (el_sig[iel]) {
+              if (el_pt[iel] > lead_ele_pt) {
+                subl_ele_pt = lead_ele_pt;
+                lead_ele_pt = el_pt[iel];
+              }
+              else if (el_pt[iel] > subl_ele_pt) {
+                subl_ele_pt = el_pt[iel];
+              }
+            }
+          }
+          for (unsigned imu = 0; imu < mu_sig.size(); imu++) {
+            if (mu_sig[imu]) {
+              if (mu_pt[imu] > lead_muo_pt) {
+                subl_muo_pt = lead_muo_pt;
+                lead_muo_pt = mu_pt[imu];
+              }
+              else if (mu_pt[imu] > subl_muo_pt) {
+                subl_muo_pt = mu_pt[imu];
+              }
+            }
+          }
+          double el_cut = 35;
+          double mu_cut = 25;
+          if (b.SampleTypeString()=="2016APV" 
+              || b.SampleTypeString()=="-2016APV" 
+              || b.SampleTypeString()=="2016" 
+              || b.SampleTypeString()=="-2016")
+            el_cut = 30;
+          else if (b.SampleTypeString()=="2017" 
+                   || b.SampleTypeString()=="-2017")
+            mu_cut = 28;
+          if (b.nel()>=1)
+            if (b.trig_single_el() && lead_ele_pt>el_cut) return true;
+          if (b.nel()>=2)
+            if (b.trig_double_el() && lead_ele_pt>25 
+                && subl_ele_pt>15) return true;
+          if (b.nmu()>=1)
+            if (b.trig_single_mu() && lead_muo_pt>mu_cut) return true;
+          if (b.nmu()>=2)
+            if (b.trig_double_mu() && lead_muo_pt>20 
+                && subl_muo_pt>10) return true;
+          return false;
+        }).EnableCaching(true);
+  }
+
+  //trigger and pT cuts with electron scale variation up
+  NamedFunc sys_trig_pt_elscaleup = assign_variation_trig_pt(
+      "sys_el_pt_scaleup", sys_el_sig_scaleup, "mu_pt", "mu_sig", "elscaleup");
+
+  //trigger and pT cuts with electron scale variation down
+  NamedFunc sys_trig_pt_elscaledn = assign_variation_trig_pt(
+      "sys_el_pt_scaledn", sys_el_sig_scaledn, "mu_pt", "mu_sig", "elscaledn");
+
+  //trigger and pT cuts with electron resolution variation up
+  NamedFunc sys_trig_pt_elresup = assign_variation_trig_pt(
+      "sys_el_pt_resup", sys_el_sig_resup, "mu_pt", "mu_sig", "elresup");
+
+  //trigger and pT cuts with electron resolution variation down
+  NamedFunc sys_trig_pt_elresdn = assign_variation_trig_pt(
+      "sys_el_pt_resdn", sys_el_sig_resdn, "mu_pt", "mu_sig", "elresdn");
+
+  //trigger and pT cuts with muon scale variation up
+  //TODO fix with next production
+  NamedFunc sys_trig_pt_muscaleup = assign_variation_trig_pt("el_pt",
+      "el_sig", "mu_pt+mu_ptErr", sys_mu_sig_up, "muscaleup");
+
+  //trigger and pT cuts with muon scale variation down
+  //TODO fix with next production
+  NamedFunc sys_trig_pt_muscaledn = assign_variation_trig_pt("el_pt",
+      "el_sig", "mu_pt-mu_ptErr", sys_mu_sig_dn, "muscaledn");
+
+  //trigger and pT cuts with muon resolution variation up
+  //TODO fix with next production
+  NamedFunc sys_trig_pt_muresup = assign_variation_trig_pt("el_pt",
+      "el_sig", "mu_pt+mu_ptErr", sys_mu_sig_up, "muresup");
+
+  //trigger and pT cuts with muon resolution variation down
+  //TODO fix with next production
+  NamedFunc sys_trig_pt_muresdn = assign_variation_trig_pt("el_pt",
+      "el_sig", "mu_pt-mu_ptErr", sys_mu_sig_dn, "muresdn");
+
   //for reference, photons failing origin eta cuts are dropped from pico list
 
   //photon_sig with photon scale variation up
-  const NamedFunc sys_photon_sig_scaleup = NamedFunc("(sys_photon_pt_scaleup>15)&&photon_elveto&&(photon_drmin>0.3)&&photon_id80"&&!photon_sigel).Name("sys_photon_sig_elscaleup");
+  NamedFunc sys_photon_sig_scaleup = NamedFunc(("(sys_photon_pt_scaleup>15)&&"
+      "photon_elveto&&(photon_drmin>0.3)&&photon_id80")&&!photon_sigel)
+      .Name("sys_photon_sig_elscaleup").EnableCaching(true);
 
   //photon_sig with photon scale variation down
-  const NamedFunc sys_photon_sig_scaledn = NamedFunc("(sys_photon_pt_scaledn>15)&&photon_elveto&&(photon_drmin>0.3)&&photon_id80"&&!photon_sigel).Name("sys_photon_sig_elscaledn");
+  NamedFunc sys_photon_sig_scaledn = NamedFunc(("(sys_photon_pt_scaledn>15)&&"
+      "photon_elveto&&(photon_drmin>0.3)&&photon_id80")&&!photon_sigel)
+      .Name("sys_photon_sig_elscaledn").EnableCaching(true);
 
   //photon_sig with photon resolution variation up
-  const NamedFunc sys_photon_sig_resup = NamedFunc("(sys_photon_pt_resup>15)&&photon_elveto&&(photon_drmin>0.3)&&photon_id80"&&!photon_sigel).Name("sys_photon_sig_elresup");
+  NamedFunc sys_photon_sig_resup = NamedFunc(("(sys_photon_pt_resup>15)&&"
+      "photon_elveto&&(photon_drmin>0.3)&&photon_id80")&&!photon_sigel)
+      .Name("sys_photon_sig_elresup").EnableCaching(true);
 
   //photon_sig with photon resolution variation down
-  const NamedFunc sys_photon_sig_resdn = NamedFunc("(sys_photon_pt_resdn>15)&&photon_elveto&&(photon_drmin>0.3)&&photon_id80"&&!photon_sigel).Name("sys_photon_sig_elresdn");
+  NamedFunc sys_photon_sig_resdn = NamedFunc(("(sys_photon_pt_resdn>15)&&"
+      "photon_elveto&&(photon_drmin>0.3)&&photon_id80")&&!photon_sigel)
+      .Name("sys_photon_sig_elresdn").EnableCaching(true);
 
   //nphoton with photon scale variation up
-  const NamedFunc sys_nphoton_scaleup = ReduceNamedFunc(sys_photon_sig_scaleup,reduce_sum).Name("sys_nphoton_scaleup");
+  NamedFunc sys_nphoton_scaleup = ReduceNamedFunc(sys_photon_sig_scaleup,
+      reduce_sum).Name("sys_nphoton_scaleup").EnableCaching(true);
 
   //nphoton with photon scale variation down
-  const NamedFunc sys_nphoton_scaledn = ReduceNamedFunc(sys_photon_sig_scaledn,reduce_sum).Name("sys_nphoton_scaledn");
+  NamedFunc sys_nphoton_scaledn = ReduceNamedFunc(sys_photon_sig_scaledn,
+      reduce_sum).Name("sys_nphoton_scaledn").EnableCaching(true);
 
   //nphoton with photon resolution variation up
-  const NamedFunc sys_nphoton_resup = ReduceNamedFunc(sys_photon_sig_resup,reduce_sum).Name("sys_nphoton_resup");
+  NamedFunc sys_nphoton_resup = ReduceNamedFunc(sys_photon_sig_resup,
+      reduce_sum).Name("sys_nphoton_resup").EnableCaching(true);
 
   //nphoton with photon resolution variation down
-  const NamedFunc sys_nphoton_resdn = ReduceNamedFunc(sys_photon_sig_resdn,reduce_sum).Name("sys_nphoton_resdn");
+  NamedFunc sys_nphoton_resdn = ReduceNamedFunc(sys_photon_sig_resdn,
+      reduce_sum).Name("sys_nphoton_resdn").EnableCaching(true);
 
   //signal photon pt with photon scale variation up
-  const NamedFunc sys_sig_photon_pt_scaleup = FilterNamedFunc("sys_photon_pt_scaleup",
-      sys_photon_sig_scaleup).Name("sys_sig_photon_pt_scaleup");
+  NamedFunc sys_sig_photon_pt_scaleup = FilterNamedFunc("sys_photon_pt_scaleup",
+      sys_photon_sig_scaleup).Name("sys_sig_photon_pt_scaleup")
+      .EnableCaching(true);
 
   //signal photon pt with photon scale variation downn
-  const NamedFunc sys_sig_photon_pt_scaledn = FilterNamedFunc("sys_photon_pt_scaledn",
-      sys_photon_sig_scaledn).Name("sys_sig_photon_pt_scaledn");
+  NamedFunc sys_sig_photon_pt_scaledn = FilterNamedFunc("sys_photon_pt_scaledn",
+      sys_photon_sig_scaledn).Name("sys_sig_photon_pt_scaledn")
+      .EnableCaching(true);
 
   //signal photon pt with photon resolution variation up
-  const NamedFunc sys_sig_photon_pt_resup = FilterNamedFunc("sys_photon_pt_resup",
-      sys_photon_sig_resup).Name("sys_sig_photon_pt_resup");
+  NamedFunc sys_sig_photon_pt_resup = FilterNamedFunc("sys_photon_pt_resup",
+      sys_photon_sig_resup).Name("sys_sig_photon_pt_resup")
+      .EnableCaching(true);
 
   //signal photon pt with photon resolution variation down
-  const NamedFunc sys_sig_photon_pt_resdn = FilterNamedFunc("sys_photon_pt_resdn",
-      sys_photon_sig_resdn).Name("sys_sig_photon_pt_resdn");
+  NamedFunc sys_sig_photon_pt_resdn = FilterNamedFunc("sys_photon_pt_resdn",
+      sys_photon_sig_resdn).Name("sys_sig_photon_pt_resdn")
+      .EnableCaching(true);
+
+  //signal photon eta with photon scale variation up
+  NamedFunc sys_sig_photon_eta_scaleup = FilterNamedFunc("photon_eta",
+      sys_photon_sig_scaleup).Name("sys_sig_photon_eta_scaleup")
+      .EnableCaching(true);
+
+  //signal photon eta with photon scale variation downn
+  NamedFunc sys_sig_photon_eta_scaledn = FilterNamedFunc("photon_eta",
+      sys_photon_sig_scaledn).Name("sys_sig_photon_eta_scaledn")
+      .EnableCaching(true);
+
+  //signal photon eta with photon resolution variation up
+  NamedFunc sys_sig_photon_eta_resup = FilterNamedFunc("photon_eta",
+      sys_photon_sig_resup).Name("sys_sig_photon_eta_resup")
+      .EnableCaching(true);
+
+  //signal photon eta with photon resolution variation down
+  NamedFunc sys_sig_photon_eta_resdn = FilterNamedFunc("photon_eta",
+      sys_photon_sig_resdn).Name("sys_sig_photon_eta_resdn")
+      .EnableCaching(true);
+
+  //signal photon phi with photon scale variation up
+  NamedFunc sys_sig_photon_phi_scaleup = FilterNamedFunc("photon_phi",
+      sys_photon_sig_scaleup).Name("sys_sig_photon_phi_scaleup")
+      .EnableCaching(true);
+
+  //signal photon phi with photon scale variation downn
+  NamedFunc sys_sig_photon_phi_scaledn = FilterNamedFunc("photon_phi",
+      sys_photon_sig_scaledn).Name("sys_sig_photon_phi_scaledn")
+      .EnableCaching(true);
+
+  //signal photon phi with photon resolution variation up
+  NamedFunc sys_sig_photon_phi_resup = FilterNamedFunc("photon_phi",
+      sys_photon_sig_resup).Name("sys_sig_photon_phi_resup")
+      .EnableCaching(true);
+
+  //signal photon phi with photon resolution variation down
+  NamedFunc sys_sig_photon_phi_resdn = FilterNamedFunc("photon_phi",
+      sys_photon_sig_resdn).Name("sys_sig_photon_phi_resdn")
+      .EnableCaching(true);
 
   //leading photon pt with photon scale variation up
-  const NamedFunc sys_lead_photon_pt_scaleup = ReduceNamedFunc(sys_sig_photon_pt_scaleup,
-      reduce_max).Name("sys_lead_photon_pt_scaleup");
+  NamedFunc sys_lead_photon_pt_scaleup = ReduceNamedFunc(
+      sys_sig_photon_pt_scaleup, reduce_max).Name("sys_lead_photon_pt_scaleup")
+      .EnableCaching(true);
 
   //leading photon pt with photon scale variation downn
-  const NamedFunc sys_lead_photon_pt_scaledn = ReduceNamedFunc(sys_sig_photon_pt_scaledn,
-      reduce_max).Name("sys_lead_photon_pt_scaledn");
+  NamedFunc sys_lead_photon_pt_scaledn = ReduceNamedFunc(
+      sys_sig_photon_pt_scaledn, reduce_max).Name("sys_lead_photon_pt_scaledn")
+      .EnableCaching(true);
 
   //leading photon pt with photon resolution variation up
-  const NamedFunc sys_lead_photon_pt_resup = ReduceNamedFunc(sys_sig_photon_pt_resup,
-      reduce_max).Name("sys_lead_photon_pt_resup");
+  NamedFunc sys_lead_photon_pt_resup = ReduceNamedFunc(sys_sig_photon_pt_resup,
+      reduce_max).Name("sys_lead_photon_pt_resup").EnableCaching(true);
 
   //leading photon pt with photon resolution variation down
-  const NamedFunc sys_lead_photon_pt_resdn = ReduceNamedFunc(sys_sig_photon_pt_resdn,
-      reduce_max).Name("sys_lead_photon_pt_resdn");
+  NamedFunc sys_lead_photon_pt_resdn = ReduceNamedFunc(sys_sig_photon_pt_resdn,
+      reduce_max).Name("sys_lead_photon_pt_resdn").EnableCaching(true);
+
+  //leading photon eta with photon scale variation up
+  NamedFunc sys_lead_photon_eta_scaleup = MultiReduceNamedFunc(
+      {sys_sig_photon_pt_scaleup,sys_sig_photon_eta_scaleup}, reduce_maxfirst)
+      .Name("sys_lead_photon_eta_scaleup").EnableCaching(true);
+
+  //leading photon eta with photon scale variation down
+  NamedFunc sys_lead_photon_eta_scaledn = MultiReduceNamedFunc(
+      {sys_sig_photon_pt_scaledn,sys_sig_photon_eta_scaledn}, reduce_maxfirst)
+      .Name("sys_lead_photon_eta_scaledn").EnableCaching(true);
+
+  //leading photon eta with photon resolution variation up
+  NamedFunc sys_lead_photon_eta_resup = MultiReduceNamedFunc(
+      {sys_sig_photon_pt_resup,sys_sig_photon_eta_resup}, reduce_maxfirst)
+      .Name("sys_lead_photon_eta_resup").EnableCaching(true);
+
+  //leading photon eta with photon resolution variation down
+  NamedFunc sys_lead_photon_eta_resdn = MultiReduceNamedFunc(
+      {sys_sig_photon_pt_resdn,sys_sig_photon_eta_resdn}, reduce_maxfirst)
+      .Name("sys_lead_photon_eta_resdn").EnableCaching(true);
+
+  //leading photon phi with photon scale variation up
+  NamedFunc sys_lead_photon_phi_scaleup = MultiReduceNamedFunc(
+      {sys_sig_photon_pt_scaleup,sys_sig_photon_phi_scaleup}, reduce_maxfirst)
+      .Name("sys_lead_photon_phi_scaleup").EnableCaching(true);
+
+  //leading photon phi with photon scale variation down
+  NamedFunc sys_lead_photon_phi_scaledn = MultiReduceNamedFunc(
+      {sys_sig_photon_pt_scaledn,sys_sig_photon_phi_scaledn}, reduce_maxfirst)
+      .Name("sys_lead_photon_phi_scaledn").EnableCaching(true);
+
+  //leading photon phi with photon resolution variation up
+  NamedFunc sys_lead_photon_phi_resup = MultiReduceNamedFunc(
+      {sys_sig_photon_pt_resup,sys_sig_photon_phi_resup}, reduce_maxfirst)
+      .Name("sys_lead_photon_phi_resup").EnableCaching(true);
+
+  //leading photon phi with photon resolution variation down
+  NamedFunc sys_lead_photon_phi_resdn = MultiReduceNamedFunc(
+      {sys_sig_photon_pt_resdn,sys_sig_photon_phi_resdn}, reduce_maxfirst)
+      .Name("sys_lead_photon_phi_resdn").EnableCaching(true);
 
   //signal photon ID80 flag with photon scale variation up
   const NamedFunc sys_sig_photon_id80_scaleup = FilterNamedFunc("photon_id80",
@@ -529,252 +798,604 @@ namespace ZgFunctions {
     return momentum;
   });
 
+  //get Z candidate properties with variation
+  //returns (pt, eta, phi, m, lepid, i1, i2, idx)
+  NamedFunc assign_variation_ll(const NamedFunc &el_pt, 
+                                const NamedFunc &el_sig,
+                                const NamedFunc &mu_pt, 
+                                const NamedFunc &mu_sig,
+                                bool is_el,
+                                const string &name) {
+    return NamedFunc(("sys_ll_"+name).c_str(),[el_pt, el_sig, mu_pt, mu_sig, 
+        is_el] (const Baby &b) -> NamedFunc::VectorType{
+          int reeval_pdgid = 11;
+          if (!is_el)
+            reeval_pdgid = 13;
+          int lepid(0), i1(0), i2(0), idx(-1); 
+          //idx points to original index in ll lists, or -1 if reevaluated
+          float pt(0.0), eta(0.0), phi(0.0), m(0.0);
+          TLorentzVector lep1, lep2, z;
+          float min_dm = 999;
+          for (unsigned ill = 0; ill<b.ll_pt()->size(); ill++) {
+            if (b.ll_lepid()->at(ill) != reeval_pdgid) {
+              float dm = fabs(b.ll_m()->at(ill)-91.1876);
+              if (dm < min_dm) {
+                min_dm = dm;
+                pt = b.ll_pt()->at(ill);
+                eta = b.ll_eta()->at(ill);
+                phi = b.ll_phi()->at(ill);
+                m = b.ll_m()->at(ill);
+                lepid = b.ll_lepid()->at(ill);
+                i1 = b.ll_i1()->at(ill);
+                i2 = b.ll_i2()->at(ill);
+                idx = static_cast<int>(ill);
+              }
+            }
+          }
+          if (is_el) {
+            std::vector<double> b_el_sig = el_sig.GetVector(b);
+            std::vector<double> b_el_pt = el_pt.GetVector(b);
+            for (unsigned iel1 = 0; iel1<b.el_pt()->size(); iel1++) {
+              if (!b_el_sig.at(iel1)) continue;
+              for (unsigned iel2 = iel1+1; iel2<b.el_pt()->size(); iel2++) {
+                if (!b_el_sig.at(iel2)) continue;
+                if (b.el_charge()->at(iel1) == b.el_charge()->at(iel2)) 
+                  continue;
+                lep1.SetPtEtaPhiM(b_el_pt.at(iel1), b.el_eta()->at(iel1), 
+                                  b.el_phi()->at(iel1), 0.000511);
+                lep2.SetPtEtaPhiM(b_el_pt.at(iel2), b.el_eta()->at(iel2), 
+                                  b.el_phi()->at(iel2), 0.000511);
+                z = lep1 + lep2;
+                float dm = fabs(z.M()-91.1876);
+                if (dm < min_dm) {
+                  min_dm = dm;
+                  pt = z.Pt();
+                  eta = z.Eta();
+                  phi = z.Phi();
+                  m = z.M();
+                  lepid = 11;
+                  i1 = static_cast<int>(iel1);
+                  i2 = static_cast<int>(iel2);
+                  idx = -1;
+                }
+              }
+            }
+          } //is electron variation
+          else {
+            std::vector<double> b_mu_sig = mu_sig.GetVector(b);
+            std::vector<double> b_mu_pt = mu_pt.GetVector(b);
+            for (unsigned imu1 = 0; imu1<b.mu_pt()->size(); imu1++) {
+              if (!b_mu_sig.at(imu1)) continue;
+              for (unsigned imu2 = imu1+1; imu2<b.mu_pt()->size(); imu2++) {
+                if (!b_mu_sig.at(imu2)) continue;
+                if (b.mu_charge()->at(imu1) == b.mu_charge()->at(imu2)) 
+                  continue;
+                lep1.SetPtEtaPhiM(b_mu_pt.at(imu1), b.mu_eta()->at(imu1), 
+                                  b.mu_phi()->at(imu1), 0.106);
+                lep2.SetPtEtaPhiM(b_mu_pt.at(imu2), b.mu_eta()->at(imu2), 
+                                  b.mu_phi()->at(imu2), 0.106);
+                z = lep1 + lep2;
+                float dm = fabs(z.M()-91.1876);
+                if (dm < min_dm) {
+                  min_dm = dm;
+                  pt = z.Pt();
+                  eta = z.Eta();
+                  phi = z.Phi();
+                  m = z.M();
+                  lepid = 13;
+                  i1 = static_cast<int>(imu1);
+                  i2 = static_cast<int>(imu2);
+                  idx = -1;
+                }
+              }
+            }
+          } //is muon variation
+          return {static_cast<double>(pt), static_cast<double>(eta), 
+                  static_cast<double>(phi), static_cast<double>(m), 
+                  static_cast<double>(lepid), static_cast<double>(i1),
+                  static_cast<double>(i2), static_cast<double>(idx)};
+        }).EnableCaching(true);
+  }
+
+  //default dilepton properties
+  NamedFunc sys_ll_default = NamedFunc("sys_ll_default",[](const Baby &b) 
+      -> NamedFunc::VectorType{
+    return {static_cast<double>(b.ll_pt()->at(0)), 
+            static_cast<double>(b.ll_eta()->at(0)), 
+            static_cast<double>(b.ll_phi()->at(0)), 
+            static_cast<double>(b.ll_m()->at(0)), 
+            static_cast<double>(b.ll_lepid()->at(0)),
+            static_cast<double>(b.ll_i1()->at(0)),
+            static_cast<double>(b.ll_i2()->at(0)),
+            0.0};
+  }).EnableCaching(true);
+
+  //dilepton properties with electron scale variation up
+  NamedFunc sys_ll_elscaleup = assign_variation_ll("sys_el_pt_scaleup", 
+      sys_el_sig_scaleup, "mu_pt", "mu_sig", true, "elscaleup");
+
+  //dilepton properties with electron scale variation down
+  NamedFunc sys_ll_elscaledn = assign_variation_ll("sys_el_pt_scaledn", 
+      sys_el_sig_scaledn, "mu_pt", "mu_sig", true, "elscaledn");
+
+  //dilepton properties with electron resolution variation up
+  NamedFunc sys_ll_elresup = assign_variation_ll("sys_el_pt_resup", 
+      sys_el_sig_resup, "mu_pt", "mu_sig", true, "elresup");
+
+  //dilepton properties with electron resolution variation down
+  NamedFunc sys_ll_elresdn = assign_variation_ll("sys_el_pt_resdn", 
+      sys_el_sig_resdn, "mu_pt", "mu_sig", true, "elresdn");
+
+  //dilepton properties with muon scale variation up
+  //TODO: fix in next production
+  NamedFunc sys_ll_muscaleup = assign_variation_ll("el_pt", "el_sig", 
+      "mu_pt+mu_ptErr", sys_mu_sig_up, false, "muscaleup");
+
+  //dilepton properties with muon scale variation down
+  //TODO: fix in next production
+  NamedFunc sys_ll_muscaledn = assign_variation_ll("el_pt", "el_sig", 
+      "mu_pt-mu_ptErr", sys_mu_sig_dn, false, "muscaledn");
+
+  //dilepton properties with muon resolution variation up
+  //TODO: fix in next production
+  NamedFunc sys_ll_muresup = assign_variation_ll("el_pt", "el_sig", 
+      "mu_pt+mu_ptErr", sys_mu_sig_up, false, "muresup");
+
+  //dilepton properties with muon resolution variation down
+  //TODO: fix in next production
+  NamedFunc sys_ll_muresdn = assign_variation_ll("el_pt", "el_sig", 
+      "mu_pt-mu_ptErr", sys_mu_sig_dn, false, "muresdn");
+
   //dilepton mass with electron scale variation up
-  const NamedFunc sys_ll_m_elscaleup("sys_ll_m_elscaleup",[](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignElectronVariationZ(b, "sys_el_pt_scaleup", sys_el_sig_scaleup).M();
-  });
+  NamedFunc sys_ll_m_elscaleup = NamedFunc(sys_ll_elscaleup[3]).Name(
+      "sys_ll_m_elscaleup");
 
   //dilepton mass with electron scale variation down
-  const NamedFunc sys_ll_m_elscaledn("sys_ll_m_elscaledn",[](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignElectronVariationZ(b, "sys_el_pt_scaledn", sys_el_sig_scaledn).M();
-  });
+  NamedFunc sys_ll_m_elscaledn = NamedFunc(sys_ll_elscaledn[3]).Name(
+      "sys_ll_m_elscaledn");
 
   //dilepton mass with electron resolution variation up
-  const NamedFunc sys_ll_m_elresup("sys_ll_m_elresup",[](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignElectronVariationZ(b, "sys_el_pt_resup", sys_el_sig_resup).M();
-  });
+  NamedFunc sys_ll_m_elresup = NamedFunc(sys_ll_elresup[3]).Name(
+      "sys_ll_m_elresup");
 
   //dilepton mass with electron resolution variation down
-  const NamedFunc sys_ll_m_elresdn("sys_ll_m_elresdn",[](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignElectronVariationZ(b, "sys_el_pt_resdn", sys_el_sig_resdn).M();
-  });
+  NamedFunc sys_ll_m_elresdn = NamedFunc(sys_ll_elresdn[3]).Name(
+      "sys_ll_m_elresdn");
 
-  //dilepton mass with muon variation up
-  const NamedFunc sys_ll_m_muup("sys_ll_m_muup",[](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignMuonVariationZ(b, "mu_corrected_pt+mu_corrected_ptErr", sys_mu_sig_up).M();
-  });
+  //dilepton mass with muon scale variation up
+  NamedFunc sys_ll_m_muscaleup = NamedFunc(sys_ll_muscaleup[3]).Name(
+      "sys_ll_m_muscaleup");
 
-  //dilepton mass with muon variation dn
-  const NamedFunc sys_ll_m_mudn("sys_ll_m_mudn",[](const Baby &b) -> NamedFunc::ScalarType{
-    return AssignMuonVariationZ(b, "mu_corrected_pt-mu_corrected_ptErr", sys_mu_sig_dn).M();
-  });
+  //dilepton mass with muon scale variation down
+  NamedFunc sys_ll_m_muscaledn = NamedFunc(sys_ll_muscaledn[3]).Name(
+      "sys_ll_m_muscaledn");
+  
+  //dilepton mass with muon resolution variation up
+  NamedFunc sys_ll_m_muresup = NamedFunc(sys_ll_muresup[3]).Name(
+      "sys_ll_m_muresup");
 
-  //Z candidate 4 momentum with electron scale variation up
-  NamedFunc sys_lep_refit_pt_elscaleup = assign_elvariation_lep_refit_pt(
-      "sys_el_pt_scaleup", syst_kin_z_fitter, "elscaleup");
+  //dilepton mass with muon resolution variation down
+  NamedFunc sys_ll_m_muresdn = NamedFunc(sys_ll_muresdn[3]).Name(
+      "sys_ll_m_muresdn");
 
-  //Z candidate 4 momentum with electron scale variation up
-  NamedFunc sys_ll_refit_4p_elscaleup = assign_elvariation_ll_refit_4p(
-      sys_lep_refit_pt_elscaleup, "elscaleup");
+  //get H candidate properties with variation
+  //returns (pt, eta, phi, m)
+  NamedFunc assign_variation_llphoton_p4(const NamedFunc &ll_p4, 
+                                         const NamedFunc &lead_photon_pt,
+                                         const NamedFunc &lead_photon_eta,
+                                         const NamedFunc &lead_photon_phi,
+                                         const int var_pdgid,
+                                         const string &name) {
+    return NamedFunc(("sys_lphoton_p4_"+name).c_str(),[ll_p4, lead_photon_pt, 
+        lead_photon_eta, lead_photon_phi, var_pdgid] (const Baby &b) 
+        -> NamedFunc::VectorType{
+          vector<double> ll_prop = ll_p4.GetVector(b);
+          if (var_pdgid != 22 && ll_prop[7]==0) {
+            return {static_cast<double>(b.llphoton_pt()->at(0)),
+                    static_cast<double>(b.llphoton_eta()->at(0)),
+                    static_cast<double>(b.llphoton_phi()->at(0)),
+                    static_cast<double>(b.llphoton_m()->at(0))};
+          }
+          TLorentzVector photon, ll, llphoton;
+          ll.SetPtEtaPhiM(ll_prop[0], ll_prop[1], ll_prop[2], ll_prop[3]);
+          photon.SetPtEtaPhiM(lead_photon_pt.GetScalar(b), 
+              lead_photon_eta.GetScalar(b), lead_photon_phi.GetScalar(b), 0.0);
+          llphoton = ll + photon;
+          return {llphoton.Pt(), llphoton.Eta(), llphoton.Phi(), llphoton.M()};
+        }).EnableCaching(true);
+  }
 
-  //Higgs candidate 4 momentum with electron scale variation up
-  NamedFunc sys_llphoton_4p_elscaleup = assign_variation_llphoton_4p(
-      sys_ll_refit_4p_elscaleup, "photon_pt", "elscaleup");
+  //H four momentum with electron scale variation up 
+  NamedFunc sys_llphoton_p4_elscaleup = assign_variation_llphoton_p4(
+      sys_ll_elscaleup, "photon_pt[0]", "photon_eta[0]", "photon_phi[0]", 11, 
+      "elscaleup");
+
+  //H four momentum with electron scale variation down
+  NamedFunc sys_llphoton_p4_elscaledn = assign_variation_llphoton_p4(
+      sys_ll_elscaledn, "photon_pt[0]", "photon_eta[0]", "photon_phi[0]", 11, 
+      "elscaledn");
+
+  //H four momentum with electron resolution variation up 
+  NamedFunc sys_llphoton_p4_elresup = assign_variation_llphoton_p4(
+      sys_ll_elresup, "photon_pt[0]", "photon_eta[0]", "photon_phi[0]", 11, 
+      "elresup");
+
+  //H four momentum with electron resolution variation down
+  NamedFunc sys_llphoton_p4_elresdn = assign_variation_llphoton_p4(
+      sys_ll_elresdn, "photon_pt[0]", "photon_eta[0]", "photon_phi[0]", 11, 
+      "elresdn");
+
+  //H four momentum with muon scale variation up 
+  NamedFunc sys_llphoton_p4_muscaleup = assign_variation_llphoton_p4(
+      sys_ll_muscaleup, "photon_pt[0]", "photon_eta[0]", "photon_phi[0]", 13, 
+      "muscaleup");
+
+  //H four momentum with muon scale variation down
+  NamedFunc sys_llphoton_p4_muscaledn = assign_variation_llphoton_p4(
+      sys_ll_muscaledn, "photon_pt[0]", "photon_eta[0]", "photon_phi[0]", 13, 
+      "muscaledn");
+
+  //H four momentum with muon resolution variation up 
+  NamedFunc sys_llphoton_p4_muresup = assign_variation_llphoton_p4(
+      sys_ll_muresup, "photon_pt[0]", "photon_eta[0]", "photon_phi[0]", 13, 
+      "muresup");
+
+  //H four momentum with muon resolution variation down
+  NamedFunc sys_llphoton_p4_muresdn = assign_variation_llphoton_p4(
+      sys_ll_muresdn, "photon_pt[0]", "photon_eta[0]", "photon_phi[0]", 13, 
+      "muresdn");
+
+  //H four momentum with photon scale variation up 
+  NamedFunc sys_llphoton_p4_phscaleup = assign_variation_llphoton_p4(
+      sys_ll_default, sys_lead_photon_pt_scaleup, sys_lead_photon_eta_scaleup, 
+      sys_lead_photon_phi_scaleup, 22, "phscaleup");
+
+  //H four momentum with photon scale variation down
+  NamedFunc sys_llphoton_p4_phscaledn = assign_variation_llphoton_p4(
+      sys_ll_default, sys_lead_photon_pt_scaledn, sys_lead_photon_eta_scaledn, 
+      sys_lead_photon_phi_scaledn, 22, "phscaledn");
+
+  //H four momentum with photon resolution variation up 
+  NamedFunc sys_llphoton_p4_phresup = assign_variation_llphoton_p4(
+      sys_ll_default, sys_lead_photon_pt_resup, sys_lead_photon_eta_resup, 
+      sys_lead_photon_phi_resup, 22, "phresup");
+
+  //H four momentum with photon resolution variation down
+  NamedFunc sys_llphoton_p4_phresdn = assign_variation_llphoton_p4(
+      sys_ll_default, sys_lead_photon_pt_resdn, sys_lead_photon_eta_resdn, 
+      sys_lead_photon_phi_resdn, 22, "phresdn");
 
   //Higgs candidate mass with electron scale variation up
-  NamedFunc sys_llphoton_m_elscaleup = assign_variation_llphoton_m(
-      sys_llphoton_4p_elscaleup, "elscaleup");
-
-  //Z candidate 4 momentum with electron scale variation down
-  NamedFunc sys_lep_refit_pt_elscaledn = assign_elvariation_lep_refit_pt(
-      "sys_el_pt_scaledn", syst_kin_z_fitter, "elscaledn");
-
-  //Z candidate 4 momentum with electron scale variation down
-  NamedFunc sys_ll_refit_4p_elscaledn = assign_elvariation_ll_refit_4p(
-      sys_lep_refit_pt_elscaledn, "elscaledn");
-
-  //Higgs candidate 4 momentum with electron scale variation down
-  NamedFunc sys_llphoton_4p_elscaledn = assign_variation_llphoton_4p(
-      sys_ll_refit_4p_elscaledn, "photon_pt", "elscaledn");
+  NamedFunc sys_llphoton_m_elscaleup = NamedFunc(sys_llphoton_p4_elscaleup[3])
+      .Name("sys_llphoton_m_elscaleup").EnableCaching(true);
 
   //Higgs candidate mass with electron scale variation down
-  NamedFunc sys_llphoton_m_elscaledn = assign_variation_llphoton_m(
-      sys_llphoton_4p_elscaledn, "elscaledn");
-
-  //Z candidate 4 momentum with electron resolution variation up
-  NamedFunc sys_lep_refit_pt_elresup = assign_elvariation_lep_refit_pt(
-      "sys_el_pt_resup", syst_kin_z_fitter, "elresup");
-
-  //Z candidate 4 momentum with electron resolution variation up
-  NamedFunc sys_ll_refit_4p_elresup = assign_elvariation_ll_refit_4p(
-      sys_lep_refit_pt_elresup, "elresup");
-
-  //Higgs candidate 4 momentum with electron resolution variation up
-  NamedFunc sys_llphoton_4p_elresup = assign_variation_llphoton_4p(
-      sys_ll_refit_4p_elresup, "photon_pt", "elresup");
+  NamedFunc sys_llphoton_m_elscaledn = NamedFunc(sys_llphoton_p4_elscaledn[3])
+      .Name("sys_llphoton_m_elscaledn").EnableCaching(true);
 
   //Higgs candidate mass with electron resolution variation up
-  NamedFunc sys_llphoton_m_elresup = assign_variation_llphoton_m(
-      sys_llphoton_4p_elresup, "elresup");
-
-  //Z candidate 4 momentum with electron resolution variation down
-  NamedFunc sys_lep_refit_pt_elresdn = assign_elvariation_lep_refit_pt(
-      "sys_el_pt_resdn", syst_kin_z_fitter, "elresdn");
-
-  //Z candidate 4 momentum with electron resolution variation down
-  NamedFunc sys_ll_refit_4p_elresdn = assign_elvariation_ll_refit_4p(
-      sys_lep_refit_pt_elresdn, "elresdn");
-
-  //Higgs candidate 4 momentum with electron resolution variation down
-  NamedFunc sys_llphoton_4p_elresdn = assign_variation_llphoton_4p(
-      sys_ll_refit_4p_elresdn, "photon_pt", "elresdn");
+  NamedFunc sys_llphoton_m_elresup = NamedFunc(sys_llphoton_p4_elresup[3])
+      .Name("sys_llphoton_m_elresup").EnableCaching(true);
 
   //Higgs candidate mass with electron resolution variation down
-  NamedFunc sys_llphoton_m_elresdn = assign_variation_llphoton_m(
-      sys_llphoton_4p_elresdn, "elresdn");
+  NamedFunc sys_llphoton_m_elresdn = NamedFunc(sys_llphoton_p4_elresdn[3])
+      .Name("sys_llphoton_m_elresdn").EnableCaching(true);
 
-  //Higgs candidate mass with muon variation up
-  //current incorrect placeholder, need new production
-  const NamedFunc sys_llphoton_m_muup = SimpleAssignVariationH("el_pt", 
-      "mu_pt", "photon_pt", "muup");
+  //Higgs candidate mass with muon scale variation up
+  NamedFunc sys_llphoton_m_muscaleup = NamedFunc(sys_llphoton_p4_muscaleup[3])
+      .Name("sys_llphoton_m_muscaleup").EnableCaching(true);
 
-  //Higgs candidate mass with muon variation dn
-  //current incorrect placeholder, need new production
-  const NamedFunc sys_llphoton_m_mudn = SimpleAssignVariationH("el_pt", 
-      "mu_pt-mu_ptErr", "photon_pt", "mudn");
+  //Higgs candidate mass with muon scale variation down
+  NamedFunc sys_llphoton_m_muscaledn = NamedFunc(sys_llphoton_p4_muscaledn[3])
+      .Name("sys_llphoton_m_muscaledn").EnableCaching(true);
 
-  //Higgs candidate 4 momentum with photon scale variation up
-  NamedFunc sys_llphoton_4p_phscaleup = assign_variation_llphoton_4p(
-      ll_refit_4p, "sys_photon_pt_scaleup", "phscaleup");
+  //Higgs candidate mass with muon resolution variation up
+  NamedFunc sys_llphoton_m_muresup = NamedFunc(sys_llphoton_p4_muresup[3])
+      .Name("sys_llphoton_m_muresup").EnableCaching(true);
+
+  //Higgs candidate mass with muon resolution variation down
+  NamedFunc sys_llphoton_m_muresdn = NamedFunc(sys_llphoton_p4_muresdn[3])
+      .Name("sys_llphoton_m_muresdn").EnableCaching(true);
 
   //Higgs candidate mass with photon scale variation up
-  NamedFunc sys_llphoton_m_phscaleup = assign_variation_llphoton_m(
-      sys_llphoton_4p_phscaleup, "phscaleup");
-
-  //Higgs candidate 4 momentum with photon scale variation down
-  NamedFunc sys_llphoton_4p_phscaledn = assign_variation_llphoton_4p(
-      ll_refit_4p, "sys_photon_pt_scaledn", "phscaledn");
+  NamedFunc sys_llphoton_m_phscaleup = NamedFunc(sys_llphoton_p4_phscaleup[3])
+      .Name("sys_llphoton_m_phscaleup").EnableCaching(true);
 
   //Higgs candidate mass with photon scale variation down
-  NamedFunc sys_llphoton_m_phscaledn = assign_variation_llphoton_m(
-      sys_llphoton_4p_phscaledn, "phscaledn");
-
-  //Higgs candidate 4 momentum with photon resolution variation up
-  NamedFunc sys_llphoton_4p_phresup = assign_variation_llphoton_4p(
-      ll_refit_4p, "sys_photon_pt_resup", "phresup");
+  NamedFunc sys_llphoton_m_phscaledn = NamedFunc(sys_llphoton_p4_phscaledn[3])
+      .Name("sys_llphoton_m_phscaledn").EnableCaching(true);
 
   //Higgs candidate mass with photon resolution variation up
-  NamedFunc sys_llphoton_m_phresup = assign_variation_llphoton_m(
-      sys_llphoton_4p_phresup, "phresup");
-
-  //Higgs candidate 4 momentum with photon resolution variation down
-  NamedFunc sys_llphoton_4p_phresdn = assign_variation_llphoton_4p(
-      ll_refit_4p, "sys_photon_pt_resdn", "phresdn");
+  NamedFunc sys_llphoton_m_phresup = NamedFunc(sys_llphoton_p4_phresup[3])
+      .Name("sys_llphoton_m_phresup").EnableCaching(true);
 
   //Higgs candidate mass with photon resolution variation down
-  NamedFunc sys_llphoton_m_phresdn = assign_variation_llphoton_m(
-      sys_llphoton_4p_phresdn, "phresdn");
+  NamedFunc sys_llphoton_m_phresdn = NamedFunc(sys_llphoton_p4_phresdn[3])
+      .Name("sys_llphoton_m_phresdn").EnableCaching(true);
 
-  //helper function to get Z candidate four vector after varying electron energy
-  TLorentzVector AssignElectronVariationZ(const Baby &b, 
-                                          const NamedFunc &el_pt, 
-                                          const NamedFunc &el_sig) {
-    TLorentzVector el1, el2, zel, z;
-    float min_dm = 999;
-    z.SetPtEtaPhiM(0.0,0.0,0.0,-999.0);
-    for (unsigned ill = 0; ill<b.ll_pt()->size(); ill++) {
-      if (b.ll_lepid()->at(ill) == 13) {
-        float dm = fabs(b.ll_m()->at(ill)-91.1876);
-        if (dm < min_dm) {
-          min_dm = dm;
-          z.SetPtEtaPhiM(b.ll_pt()->at(ill), b.ll_eta()->at(ill), 
-                         b.ll_phi()->at(ill), b.ll_m()->at(ill));
-        }
-      }
-    }
-    std::vector<double> b_el_sig = el_sig.GetVector(b);
-    for (unsigned iel1 = 0; iel1<b.el_pt()->size(); iel1++) {
-      if (!b_el_sig.at(iel1)) continue;
-      for (unsigned iel2 = iel1+1; iel2<b.el_pt()->size(); iel2++) {
-        if (!b_el_sig.at(iel2)) continue;
-        std::vector<double> b_el_pt = el_pt.GetVector(b);
-        el1.SetPtEtaPhiM(b_el_pt.at(iel1), b.el_eta()->at(iel1), 
-                         b.el_phi()->at(iel1), 0.000511);
-        el2.SetPtEtaPhiM(b_el_pt.at(iel2), b.el_eta()->at(iel2), 
-                         b.el_phi()->at(iel2), 0.000511);
-        zel = el1 + el2;
-        float dm = fabs(zel.M()-91.1876);
-        if (dm < min_dm) {
-          z = zel;
-          min_dm = dm;
-        }
-      }
-    }
-    return z;
+  //Gets NamedFunc that is (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) of lepton
+  //refit pT with variation
+  NamedFunc assign_variation_lep_refit(
+      const NamedFunc &el_pt, 
+      const NamedFunc &mu_pt, 
+      const NamedFunc &ll_lepid, 
+      const NamedFunc &ll_i1, 
+      const NamedFunc &ll_i2, 
+      shared_ptr<KinZfitter> kin_z_fitter, 
+      const string &name) {
+    //require nll>=1 
+    return NamedFunc(("sys_lep_refit_"+name).c_str(),[el_pt, mu_pt, ll_lepid,
+        ll_i1, ll_i2, kin_z_fitter] (const Baby &b) -> NamedFunc::VectorType{
+          vector<double> lep_refit = get_lep_custom_refit(b, kin_z_fitter, 
+              el_pt, mu_pt, ll_lepid, ll_i1, ll_i2);
+          return lep_refit;
+        }).EnableCaching(true);
   }
 
-  //helper function to get Z candidate four vector after varying muon energy
-  TLorentzVector AssignMuonVariationZ(const Baby &b, const NamedFunc &mu_pt, 
-                                      const NamedFunc &mu_sig) {
-    TLorentzVector mu1, mu2, zmu, z;
-    float min_dm = 999;
-    z.SetPtEtaPhiM(0.0,0.0,0.0,-999.0);
-    for (unsigned ill = 0; ill<b.ll_pt()->size(); ill++) {
-      if (b.ll_lepid()->at(ill) == 11) {
-        float dm = fabs(b.ll_m()->at(ill)-91.1876);
-        if (dm < min_dm) {
-          min_dm = dm;
-          z.SetPtEtaPhiM(b.ll_pt()->at(ill), b.ll_eta()->at(ill), b.ll_phi()->at(ill), b.ll_m()->at(ill));
-        }
-      }
-    }
-    std::vector<double> b_mu_sig = mu_sig.GetVector(b);
-    for (unsigned imu1 = 0; imu1<b.mu_pt()->size(); imu1++) {
-      if (!b_mu_sig.at(imu1)) continue;
-      for (unsigned imu2 = imu1+1; imu2<b.mu_pt()->size(); imu2++) {
-        if (!b_mu_sig.at(imu2)) continue;
-        std::vector<double> b_mu_pt = mu_pt.GetVector(b);
-        mu1.SetPtEtaPhiM(b_mu_pt.at(imu1), b.mu_eta()->at(imu1), 
-                         b.mu_phi()->at(imu1), 0.10566);
-        mu2.SetPtEtaPhiM(b_mu_pt.at(imu2), b.mu_eta()->at(imu2), 
-                         b.mu_phi()->at(imu2), 0.10566);
-        zmu = mu1 + mu2;
-        float dm = fabs(zmu.M()-91.1876);
-        if (dm < min_dm) {
-          z = zmu;
-          min_dm = dm;
-        }
-      }
-    }
-    return z;
+  //lepton 4 momentum with electron scale variation up
+  NamedFunc sys_lep_refit_elscaleup = assign_variation_lep_refit(
+      "sys_el_pt_scaleup", "mu_pt", sys_ll_elscaleup[4], sys_ll_elscaleup[5],
+      sys_ll_elscaleup[6], syst_kin_z_fitter, "elscaleup");
+
+  //lepton 4 momentum with electron scale variation down
+  NamedFunc sys_lep_refit_elscaledn = assign_variation_lep_refit(
+      "sys_el_pt_scaledn", "mu_pt", sys_ll_elscaledn[4], sys_ll_elscaledn[5],
+      sys_ll_elscaledn[6], syst_kin_z_fitter, "elscaledn");
+
+  //lepton 4 momentum with electron resolution variation up
+  NamedFunc sys_lep_refit_elresup = assign_variation_lep_refit(
+      "sys_el_pt_resup", "mu_pt", sys_ll_elresup[4], sys_ll_elresup[5],
+      sys_ll_elresup[6], syst_kin_z_fitter, "elresup");
+
+  //lepton 4 momentum with electron resolution variation down
+  NamedFunc sys_lep_refit_elresdn = assign_variation_lep_refit(
+      "sys_el_pt_resdn", "mu_pt", sys_ll_elresdn[4], sys_ll_elresdn[5],
+      sys_ll_elresdn[6], syst_kin_z_fitter, "elresdn");
+
+  //lepton 4 momentum with muon scale variation up
+  //TODO fix with next production
+  NamedFunc sys_lep_refit_muscaleup = assign_variation_lep_refit(
+      "el_pt", "mu_pt+mu_ptErr", sys_ll_muscaleup[4], sys_ll_muscaleup[5],
+      sys_ll_muscaleup[6], syst_kin_z_fitter, "muscaleup");
+
+  //lepton 4 momentum with muon scale variation down
+  //TODO fix with next production
+  NamedFunc sys_lep_refit_muscaledn = assign_variation_lep_refit(
+      "el_pt", "mu_pt-mu_ptErr", sys_ll_muscaledn[4], sys_ll_muscaledn[5],
+      sys_ll_muscaledn[6], syst_kin_z_fitter, "muscaledn");
+
+  //lepton 4 momentum with muon resolution variation up
+  //TODO fix with next production
+  NamedFunc sys_lep_refit_muresup = assign_variation_lep_refit(
+      "el_pt", "mu_pt+mu_ptErr", sys_ll_muresup[4], sys_ll_muresup[5],
+      sys_ll_muresup[6], syst_kin_z_fitter, "muresup");
+
+  //lepton 4 momentum with muon resolution variation down
+  //TODO fix with next production
+  NamedFunc sys_lep_refit_muresdn = assign_variation_lep_refit(
+      "el_pt", "mu_pt-mu_ptErr", sys_ll_muresdn[4], sys_ll_muresdn[5],
+      sys_ll_muresdn[6], syst_kin_z_fitter, "muresdn");
+
+  //Gets NamedFunc that is assigns Z candidate four momentum with variation
+  NamedFunc assign_variation_ll_refit_p4(const NamedFunc &ll_idx, 
+      const NamedFunc &lep_refit, const string &name) {
+    return NamedFunc(("sys_ll_refit_p4_"+name).c_str(),[ll_idx, lep_refit]
+        (const Baby &b) -> NamedFunc::VectorType{
+          if (ll_idx.GetScalar(b)==0)
+            return {b.ll_refit_pt(), b.ll_refit_eta(), 
+                    b.ll_refit_phi(), b.ll_refit_m()};
+          vector<double> lep_refit0 = lep_refit.GetVector(b);
+          TLorentzVector l1, l2, ll;
+          l1.SetPtEtaPhiM(lep_refit0[0], lep_refit0[1], lep_refit0[2], 
+                          lep_refit0[3]);
+          l2.SetPtEtaPhiM(lep_refit0[4], lep_refit0[5], lep_refit0[6], 
+                          lep_refit0[7]);
+          ll = l1+l2;
+          return {ll.Pt(), ll.Eta(), ll.Phi(), 
+                  ll.M()};
+        }).EnableCaching(true);
   }
 
-  //helper function to get H candidate four vector after varying electron energy
-  TLorentzVector AssignElectronVariationH(const Baby &b, const NamedFunc &el_pt, 
-                                          const NamedFunc &el_sig) {
-    TLorentzVector ph, z;
-    z = AssignElectronVariationZ(b,el_pt,el_sig);
-    ph.SetPtEtaPhiM(b.photon_pt()->at(0),b.photon_eta()->at(0),b.photon_phi()->at(0),0);
-    return (ph+z);
+  //Z candidate refit 4 momentum without any variations
+  NamedFunc sys_ll_refit_p4_default = assign_variation_ll_refit_p4("0", 
+      sys_lep_refit_elscaleup, "default");
+
+  //Z candidate refit 4 momentum with electron scale variation up
+  NamedFunc sys_ll_refit_p4_elscaleup = 
+      assign_variation_ll_refit_p4(sys_ll_elscaleup[7], 
+      sys_lep_refit_elscaleup, "elscaleup");
+
+  //Z candidate refit 4 momentum with electron scale variation down
+  NamedFunc sys_ll_refit_p4_elscaledn = 
+      assign_variation_ll_refit_p4(sys_ll_elscaledn[7], 
+      sys_lep_refit_elscaledn, "elscaledn");
+
+  //Z candidate refit 4 momentum with electron resolution variation up
+  NamedFunc sys_ll_refit_p4_elresup = 
+      assign_variation_ll_refit_p4(sys_ll_elresup[7], 
+      sys_lep_refit_elresup, "elresup");
+
+  //Z candidate refit 4 momentum with electron resolution variation down
+  NamedFunc sys_ll_refit_p4_elresdn = 
+      assign_variation_ll_refit_p4(sys_ll_elresdn[7], 
+      sys_lep_refit_elresdn, "elresdn");
+
+  //Z candidate refit 4 momentum with muon scale variation up
+  NamedFunc sys_ll_refit_p4_muscaleup = 
+      assign_variation_ll_refit_p4(sys_ll_muscaleup[7], 
+      sys_lep_refit_muscaleup, "muscaleup");
+
+  //Z candidate refit 4 momentum with muon scale variation down
+  NamedFunc sys_ll_refit_p4_muscaledn = 
+      assign_variation_ll_refit_p4(sys_ll_muscaledn[7], 
+      sys_lep_refit_muscaledn, "muscaledn");
+
+  //Z candidate refit 4 momentum with muon resolution variation up
+  NamedFunc sys_ll_refit_p4_muresup = 
+      assign_variation_ll_refit_p4(sys_ll_muresup[7], 
+      sys_lep_refit_muresup, "muresup");
+
+  //Z candidate refit 4 momentum with muon resolution variation down
+  NamedFunc sys_ll_refit_p4_muresdn = 
+      assign_variation_ll_refit_p4(sys_ll_muresdn[7], 
+      sys_lep_refit_muresdn, "muresdn");
+
+  //Gets NamedFunc that is assigns Higgs four momentum with variation
+  NamedFunc assign_variation_llphoton_refit_p4(
+      const NamedFunc &ll_idx, const NamedFunc &ll_refit_p4, 
+      const NamedFunc &lead_photon_pt, const NamedFunc &lead_photon_eta, 
+      const NamedFunc &lead_photon_phi, bool is_phvar, const string &name) {
+    return NamedFunc(("sys_llphoton_refit_p4_"+name).c_str(),[ll_idx, 
+        ll_refit_p4, lead_photon_pt, lead_photon_eta, lead_photon_phi, 
+        is_phvar] (const Baby &b) -> NamedFunc::VectorType{
+          if (!is_phvar && ll_idx.GetScalar(b)==0) {
+            return {b.llphoton_refit_pt(), b.llphoton_refit_eta(), 
+                    b.llphoton_refit_phi(), b.llphoton_refit_m()};
+          }
+          TLorentzVector ll, photon, llphoton;
+          vector<double> ll_refit_p = ll_refit_p4.GetVector(b);
+          ll.SetPtEtaPhiM(ll_refit_p[0], ll_refit_p[1], ll_refit_p[2], 
+                          ll_refit_p[3]);
+          photon.SetPtEtaPhiM(lead_photon_pt.GetScalar(b), 
+                              lead_photon_eta.GetScalar(b), 
+                              lead_photon_phi.GetScalar(b), 0.0);
+          llphoton = ll+photon;
+          return {llphoton.Pt(), llphoton.Eta(), llphoton.Phi(), 
+                  llphoton.M()};
+        }).EnableCaching(true);
   }
 
-  //helper function to get H candidate four vector after varying electron energy
-  TLorentzVector AssignMuonVariationH(const Baby &b, const NamedFunc &mu_pt, 
-                                      const NamedFunc &mu_sig) {
-    TLorentzVector ph, z;
-    z = AssignMuonVariationZ(b,mu_pt,mu_sig);
-    ph.SetPtEtaPhiM(b.photon_pt()->at(0),b.photon_eta()->at(0),b.photon_phi()->at(0),0);
-    return (ph+z);
-  }
+  //H candidate refit 4 momentum with electron scale variation up
+  NamedFunc sys_llphoton_refit_p4_elscaleup = 
+      assign_variation_llphoton_refit_p4(sys_ll_elscaleup[7], 
+      sys_ll_refit_p4_elscaleup, "photon_pt[0]", "photon_eta[0]", 
+      "photon_phi[0]", false, "elscaleup");
+  
+  //H candidate refit 4 momentum with electron scale variation down
+  NamedFunc sys_llphoton_refit_p4_elscaledn = 
+      assign_variation_llphoton_refit_p4(sys_ll_elscaledn[7], 
+      sys_ll_refit_p4_elscaledn, "photon_pt[0]", "photon_eta[0]", 
+      "photon_phi[0]", false, "elscaledn");
 
-  //helper function to get H candidate four vector after varying photon energy
-  TLorentzVector AssignPhotonVariationH(const Baby &b, 
-                                        const NamedFunc &photon_pt, 
-                                        const NamedFunc &photon_sig) {
-    TLorentzVector ph, z;
-    float max_ph_pt = -999;
-    std::vector<double> b_photon_pt = photon_pt.GetVector(b);
-    std::vector<double> b_photon_sig = photon_sig.GetVector(b);
-    z.SetPtEtaPhiM(b.ll_pt()->at(0),b.ll_eta()->at(0),b.ll_phi()->at(0),b.ll_m()->at(0));
-    for (unsigned iph = 0; iph < b.photon_pt()->size(); iph++) {
-      if (!b_photon_sig.at(iph)) continue;
-      if (b_photon_pt.at(iph) > max_ph_pt) {
-        ph.SetPtEtaPhiM(b_photon_pt.at(iph),b.photon_eta()->at(iph),b.photon_phi()->at(iph),0);
-        max_ph_pt = b_photon_pt.at(iph);
-      }
-    }
-    return (ph+z);
-  }
+  //H candidate refit 4 momentum with electron resolution variation up
+  NamedFunc sys_llphoton_refit_p4_elresup = 
+      assign_variation_llphoton_refit_p4(sys_ll_elresup[7], 
+      sys_ll_refit_p4_elresup, "photon_pt[0]", "photon_eta[0]", 
+      "photon_phi[0]", false, "elresup");
+  
+  //H candidate refit 4 momentum with electron resolution variation down
+  NamedFunc sys_llphoton_refit_p4_elresdn = 
+      assign_variation_llphoton_refit_p4(sys_ll_elresdn[7], 
+      sys_ll_refit_p4_elresdn, "photon_pt[0]", "photon_eta[0]", 
+      "photon_phi[0]", false, "elresdn");
+
+  //H candidate refit 4 momentum with muon scale variation up
+  NamedFunc sys_llphoton_refit_p4_muscaleup = 
+      assign_variation_llphoton_refit_p4(sys_ll_muscaleup[7], 
+      sys_ll_refit_p4_muscaleup, "photon_pt[0]", "photon_eta[0]", 
+      "photon_phi[0]", false, "muscaleup");
+  
+  //H candidate refit 4 momentum with muon scale variation down
+  NamedFunc sys_llphoton_refit_p4_muscaledn = 
+      assign_variation_llphoton_refit_p4(sys_ll_muscaledn[7], 
+      sys_ll_refit_p4_muscaledn, "photon_pt[0]", "photon_eta[0]", 
+      "photon_phi[0]", false, "muscaledn");
+
+  //H candidate refit 4 momentum with muon resolution variation up
+  NamedFunc sys_llphoton_refit_p4_muresup = 
+      assign_variation_llphoton_refit_p4(sys_ll_muresup[7], 
+      sys_ll_refit_p4_muresup, "photon_pt[0]", "photon_eta[0]", 
+      "photon_phi[0]", false, "muresup");
+  
+  //H candidate refit 4 momentum with muon resolution variation down
+  NamedFunc sys_llphoton_refit_p4_muresdn = 
+      assign_variation_llphoton_refit_p4(sys_ll_muresdn[7], 
+      sys_ll_refit_p4_muresdn, "photon_pt[0]", "photon_eta[0]", 
+      "photon_phi[0]", false, "muresdn");
+
+  //H candidate refit 4 momentum with photon scale variation up
+  NamedFunc sys_llphoton_refit_p4_phscaleup = 
+      assign_variation_llphoton_refit_p4("0", sys_ll_refit_p4_default, 
+      sys_lead_photon_pt_scaleup, sys_lead_photon_eta_scaleup, 
+      sys_lead_photon_phi_scaleup, true, "phscaleup");
+
+  //H candidate refit 4 momentum with photon scale variation dn
+  NamedFunc sys_llphoton_refit_p4_phscaledn = 
+      assign_variation_llphoton_refit_p4("0", sys_ll_refit_p4_default, 
+      sys_lead_photon_pt_scaledn, sys_lead_photon_eta_scaledn, 
+      sys_lead_photon_phi_scaledn, true, "phscaledn");
+
+  //H candidate refit 4 momentum with photon resolution variation up
+  NamedFunc sys_llphoton_refit_p4_phresup = 
+      assign_variation_llphoton_refit_p4("0", sys_ll_refit_p4_default, 
+      sys_lead_photon_pt_resup, sys_lead_photon_eta_resup, 
+      sys_lead_photon_phi_resup, true, "phresup");
+
+  //H candidate refit 4 momentum with photon resolution variation dn
+  NamedFunc sys_llphoton_refit_p4_phresdn = 
+      assign_variation_llphoton_refit_p4("0", sys_ll_refit_p4_default, 
+      sys_lead_photon_pt_resdn, sys_lead_photon_eta_resdn, 
+      sys_lead_photon_phi_resdn, true, "phresdn");
+  
+  //H candidate refit mass with electron scale variation up
+  NamedFunc sys_llphoton_refit_m_elscaleup = NamedFunc(
+      sys_llphoton_refit_p4_elscaleup[3]).Name("sys_llphoton_refit_m_elscaleup")
+      .EnableCaching(true);
+
+  //H candidate refit mass with electron scale variation down
+  NamedFunc sys_llphoton_refit_m_elscaledn = NamedFunc(
+      sys_llphoton_refit_p4_elscaledn[3]).Name("sys_llphoton_refit_m_elscaledn")
+      .EnableCaching(true);
+
+  //H candidate refit mass with electron resolution variation up
+  NamedFunc sys_llphoton_refit_m_elresup = NamedFunc(
+      sys_llphoton_refit_p4_elresup[3]).Name("sys_llphoton_refit_m_elresup")
+      .EnableCaching(true);
+
+  //H candidate refit mass with electron resolution variation down
+  NamedFunc sys_llphoton_refit_m_elresdn = NamedFunc(
+      sys_llphoton_refit_p4_elresdn[3]).Name("sys_llphoton_refit_m_elresdn")
+      .EnableCaching(true);
+
+  //H candidate refit mass with muon scale variation up
+  NamedFunc sys_llphoton_refit_m_muscaleup = NamedFunc(
+      sys_llphoton_refit_p4_muscaleup[3]).Name("sys_llphoton_refit_m_muscaleup")
+      .EnableCaching(true);
+
+  //H candidate refit mass with muon scale variation down
+  NamedFunc sys_llphoton_refit_m_muscaledn = NamedFunc(
+      sys_llphoton_refit_p4_muscaledn[3]).Name("sys_llphoton_refit_m_muscaledn")
+      .EnableCaching(true);
+
+  //H candidate refit mass with muon resolution variation up
+  NamedFunc sys_llphoton_refit_m_muresup = NamedFunc(
+      sys_llphoton_refit_p4_muresup[3]).Name("sys_llphoton_refit_m_muresup")
+      .EnableCaching(true);
+
+  //H candidate refit mass with muon resolution variation down
+  NamedFunc sys_llphoton_refit_m_muresdn = NamedFunc(
+      sys_llphoton_refit_p4_muresdn[3]).Name("sys_llphoton_refit_m_muresdn")
+      .EnableCaching(true);
+
+  //H candidate refit mass with photon scale variation up
+  NamedFunc sys_llphoton_refit_m_phscaleup = NamedFunc(
+      sys_llphoton_refit_p4_phscaleup[3]).Name("sys_llphoton_refit_m_phscaleup")
+      .EnableCaching(true);
+
+  //H candidate refit mass with photon scale variation down
+  NamedFunc sys_llphoton_refit_m_phscaledn = NamedFunc(
+      sys_llphoton_refit_p4_phscaledn[3]).Name("sys_llphoton_refit_m_phscaledn")
+      .EnableCaching(true);
+
+  //H candidate refit mass with photon resolution variation up
+  NamedFunc sys_llphoton_refit_m_phresup = NamedFunc(
+      sys_llphoton_refit_p4_phresup[3]).Name("sys_llphoton_refit_m_phresup")
+      .EnableCaching(true);
+
+  //H candidate refit mass with photon resolution variation down
+  NamedFunc sys_llphoton_refit_m_phresdn = NamedFunc(
+      sys_llphoton_refit_p4_phresdn[3]).Name("sys_llphoton_refit_m_phresdn")
+      .EnableCaching(true);
 
   //helper function to get H candidate four vector after variation
   //doesn't consider edge cases ex. if selected Z candidate changes after
@@ -808,126 +1429,6 @@ namespace ZgFunctions {
           }
           return (l1+l2+ph).M();
         });
-  }
-
-  //Gets NamedFunc that is double (l1, l2) of muon refit pt with variation
-  NamedFunc assign_muvariation_lep_refit_pt(
-      const NamedFunc &variation_mu_pt, shared_ptr<KinZfitter> kin_z_fitter, 
-      const string &name) {
-    //require nll>=1 
-    return NamedFunc(("sys_lep_refit_pt_"+name).c_str(),[variation_mu_pt, 
-        kin_z_fitter] (const Baby &b) -> NamedFunc::VectorType{
-          if (b.ll_lepid()->at(0)!=13) {
-            vector<double> lep_refit_pt = {b.ll_refit_l1_pt(), 
-                                           b.ll_refit_l2_pt()};
-            return lep_refit_pt;
-          }
-          //electrons
-          vector<double> lep_refit_pt = get_lep_pt_custom_refit(b, 
-              kin_z_fitter, "el_pt", variation_mu_pt);
-          return lep_refit_pt;
-        }).EnableCaching(true);
-  }
-
-  //Gets NamedFunc that is double (l1, l2) of electron refit pt with variation
-  NamedFunc assign_elvariation_lep_refit_pt(
-      const NamedFunc &variation_el_pt, shared_ptr<KinZfitter> kin_z_fitter, 
-      const string &name) {
-    //require nll>=1 
-    return NamedFunc(("sys_lep_refit_pt_"+name).c_str(),[variation_el_pt, 
-        kin_z_fitter] (const Baby &b) -> NamedFunc::VectorType{
-          if (b.ll_lepid()->at(0)!=11) {
-            vector<double> lep_refit_pt = {b.ll_refit_l1_pt(), 
-                                           b.ll_refit_l2_pt()};
-            return lep_refit_pt;
-          }
-          //electrons
-          vector<double> lep_refit_pt = get_lep_pt_custom_refit(b, 
-              kin_z_fitter, variation_el_pt, "mu_pt");
-          return lep_refit_pt;
-        }).EnableCaching(true);
-  }
-
-  //Gets NamedFunc that is Z 4-momentum with muon variation
-  NamedFunc assign_muvariation_ll_refit_4p(
-      const NamedFunc &variation_mu_refit_pt, const string &name) {
-    //require nll>=1 
-    return NamedFunc(("sys_ll_refit_4p_"+name).c_str(),[variation_mu_refit_pt] 
-        (const Baby &b) -> NamedFunc::VectorType{
-          if (b.ll_lepid()->at(0)!=13) {
-            vector<double> ll_4p = {b.ll_refit_pt(), b.ll_refit_eta(),
-                                    b.ll_refit_phi(), b.ll_refit_m()};
-            return ll_4p;
-          }
-          //muons
-          int l1_idx = b.ll_i1()->at(0);
-          int l2_idx = b.ll_i2()->at(0);
-          vector<double> mu_refit_pt = variation_mu_refit_pt.GetVector(b);
-          TLorentzVector l1, l2, ll;
-          l1.SetPtEtaPhiM(mu_refit_pt[0], b.mu_eta()->at(l1_idx), 
-              b.mu_phi()->at(l1_idx), 0.105);
-          l2.SetPtEtaPhiM(mu_refit_pt[1], b.mu_eta()->at(l2_idx), 
-              b.mu_phi()->at(l2_idx), 0.105);
-          ll = l1+l2;
-          vector<double> ll_4p = {ll.Pt(), ll.Eta(), ll.Phi(), ll.M()};
-          return ll_4p;
-        }).EnableCaching(true);
-  }
-
-  //Gets NamedFunc that is Z 4-momentum with electron variation
-  NamedFunc assign_elvariation_ll_refit_4p(
-      const NamedFunc &variation_el_refit_pt, const string &name) {
-    //require nll>=1 
-    return NamedFunc(("sys_ll_refit_4p_"+name).c_str(),[variation_el_refit_pt] 
-        (const Baby &b) -> NamedFunc::VectorType{
-          if (b.ll_lepid()->at(0)!=11) {
-            vector<double> ll_4p = {b.ll_refit_pt(), b.ll_refit_eta(),
-                                    b.ll_refit_phi(), b.ll_refit_m()};
-            return ll_4p;
-          }
-          //electrons
-          int l1_idx = b.ll_i1()->at(0);
-          int l2_idx = b.ll_i2()->at(0);
-          vector<double> el_refit_pt = variation_el_refit_pt.GetVector(b);
-          TLorentzVector l1, l2, ll;
-          l1.SetPtEtaPhiM(el_refit_pt[0], b.el_eta()->at(l1_idx), 
-              b.el_phi()->at(l1_idx), 0.000511);
-          l2.SetPtEtaPhiM(el_refit_pt[1], b.el_eta()->at(l2_idx), 
-              b.el_phi()->at(l2_idx), 0.000511);
-          ll = l1+l2;
-          vector<double> ll_4p = {ll.Pt(), ll.Eta(), ll.Phi(), ll.M()};
-          return ll_4p;
-        }).EnableCaching(true);
-  }
-
-  //Gets NamedFunc that is Higgs 4-momentum with variation
-  NamedFunc assign_variation_llphoton_4p(const NamedFunc &variation_ll_4p, 
-                                         const NamedFunc &variation_photon_pt, 
-                                         const string &name) {
-    //require nll>=1 and nphoton>=0 ahead of this function to avoid issues
-    return NamedFunc(("sys_llphoton_4p_"+name).c_str(),[variation_ll_4p, 
-        variation_photon_pt]
-        (const Baby &b) -> NamedFunc::VectorType{
-          TLorentzVector ll, ph, h;
-          vector<double> ll_4p = variation_ll_4p.GetVector(b);
-          ll.SetPtEtaPhiM(ll_4p[0], ll_4p[1], ll_4p[2], ll_4p[3]);
-          ph.SetPtEtaPhiM(variation_photon_pt.GetVector(b)[0],
-                          b.photon_eta()->at(0),
-                          b.photon_phi()->at(0), 0);
-          h = ll+ph;
-          vector<double> h_4p = {h.Pt(), h.Eta(), h.Phi(), h.M()};
-          return h_4p;
-        }).EnableCaching(true);
-  }
-
-  //Gets NamedFunc that is Higgs candidate mass with variation
-  NamedFunc assign_variation_llphoton_m(const NamedFunc &variation_llphoton_4p, 
-                                        const string &name) {
-    //require nll>=1 and nphoton>=0 ahead of this function to avoid issues
-    return NamedFunc(("sys_llphoton_m_"+name).c_str(),[variation_llphoton_4p] 
-        (const Baby &b) -> NamedFunc::ScalarType{
-          return variation_llphoton_4p.GetVector(b)[3];
-        }).EnableCaching(true);
   }
 
 }

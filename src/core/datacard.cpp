@@ -375,6 +375,10 @@ void Datacard::DatacardProcessNonparametric::WriteWorkspace(
   if (is_data_) n_variations = 1;
   for (unsigned int ivar = 0; ivar < n_variations; ivar++) {
     if (datacard->save_shape_[ivar]) {
+      std::cout << "Shape for " << name_ << " in " 
+                << datacard->channel_name_[channel] << "mean: " 
+                << dataset_[channel][ivar].mean(var_[channel]) << ", sigma: "
+                << dataset_[channel][ivar].sigma(var_[channel]) << std::endl;
       if (datacard->save_data_as_hist_) {
         RooDataHist binned_data(DataName(channel,ivar).c_str(),"",
                                 RooArgSet(var_[channel]),

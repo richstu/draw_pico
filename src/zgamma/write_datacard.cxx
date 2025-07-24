@@ -30,38 +30,6 @@ using std::shared_ptr;
 using std::string;
 using std::vector;
 using fastforest::FastForest;
-using ZgFunctions::max_lep_miniso;
-using ZgFunctions::trig_plateau_cuts;
-using ZgFunctions::w_years;
-using ZgFunctions::sys_w_alphas;
-using ZgFunctions::sys_w_pdf_ggf;
-using ZgFunctions::sys_w_pdf_qq;
-using ZgFunctions::sys_w_pdf_tth;
-using ZgFunctions::sys_w_ggf_xs;
-using ZgFunctions::sys_w_vbf_xs_up;
-using ZgFunctions::sys_w_vbf_xs_dn;
-using ZgFunctions::sys_w_wh_xs_up;
-using ZgFunctions::sys_w_wh_xs_dn;
-using ZgFunctions::sys_w_zh_xs_up;
-using ZgFunctions::sys_w_zh_xs_dn;
-using ZgFunctions::sys_w_tth_xs_up;
-using ZgFunctions::sys_w_tth_xs_dn;
-using ZgFunctions::sys_w_htozg_br;
-using ZgFunctions::sys_w_htomumu_br;
-using ZgFunctions::sys_w_lumi_run2;
-using ZgFunctions::sys_w_lumi_2022;
-using ZgFunctions::sys_w_lumi_2023;
-using ZgFunctions::sys_w_mq;
-using ZgFunctions::sys_llphoton_m_elscaleup;
-using ZgFunctions::sys_llphoton_m_elscaledn;
-using ZgFunctions::sys_llphoton_m_elresup;
-using ZgFunctions::sys_llphoton_m_elresdn;
-using ZgFunctions::sys_llphoton_m_phscaleup;
-using ZgFunctions::sys_llphoton_m_phscaledn;
-using ZgFunctions::sys_llphoton_m_phresup;
-using ZgFunctions::sys_llphoton_m_phresdn;
-using ZgFunctions::sys_llphoton_m_muup;
-using ZgFunctions::sys_llphoton_m_mudn;
 using ZgUtilities::ZgSampleLoader;
 using ZgUtilities::XGBoostBDTs;
 using ZgUtilities::category_ggf4;
@@ -75,6 +43,7 @@ using ZgUtilities::category_vbf2;
 using ZgUtilities::category_vbf1;
 using SelectionList = Datacard::SelectionList;
 using Systematic = Datacard::Systematic;
+using namespace ZgFunctions;
 //const Process::Type data = Process::Type::data;
 const Process::Type signal = Process::Type::signal;
 const Process::Type background = Process::Type::background;
@@ -290,21 +259,68 @@ int main() {
   systematics.push_back(Systematic("CMS_btag_light",{"weight"},
                                    {weight*"sys_udsghig[0]/w_bhig_df"},
                                    {weight*"sys_udsghig[1]/w_bhig_df"}));
-  systematics.push_back(Systematic("CMS_scale_e",{"fitvar"},
-                                   {sys_llphoton_m_elscaleup},
-                                   {sys_llphoton_m_elscaledn},true));
-  systematics.push_back(Systematic("CMS_res_e",{"fitvar"},
-                                   {sys_llphoton_m_elresup},
-                                   {sys_llphoton_m_elresdn},true));
-  systematics.push_back(Systematic("CMS_scale_g",{"fitvar"},
-                                   {sys_llphoton_m_phscaleup},
-                                   {sys_llphoton_m_phscaledn},true));
-  systematics.push_back(Systematic("CMS_res_g",{"fitvar"},
-                                   {sys_llphoton_m_phresup},
-                                   {sys_llphoton_m_phresdn},true));
-  //systematics.push_back(Systematic("CMS_scale_m",{"fitvar"},
-  //                                 {sys_llphoton_m_muup},
-  //                                 {sys_llphoton_m_mudn},true));
+  systematics.push_back(Systematic("CMS_scale_e",
+      {"objectreq","lepptcuts","zmassreq","photonptreq","mllmllgreq","fitvar"},
+      {"nphoton>=1"&&sys_nll_elscaleup>=1, 
+       sys_trig_pt_elscaleup, 
+       sys_ll_m_elscaleup>80&&sys_ll_m_elscaleup<100, 
+       "photon_pt[0]"/sys_llphoton_m_elscaleup>(15.0/110.0),
+       (sys_ll_m_elscaleup+sys_llphoton_m_elscaleup)>185.0,
+       sys_llphoton_refit_m_elscaleup},
+      {"nphoton>=1"&&sys_nll_elscaledn>=1, 
+       sys_trig_pt_elscaledn, 
+       sys_ll_m_elscaledn>80&&sys_ll_m_elscaledn<100, 
+       "photon_pt[0]"/sys_llphoton_m_elscaledn>(15.0/110.0),
+       (sys_ll_m_elscaledn+sys_llphoton_m_elscaledn)>185.0,
+       sys_llphoton_refit_m_elscaledn},true));
+  systematics.push_back(Systematic("CMS_res_e",
+      {"objectreq","lepptcuts","zmassreq","photonptreq","mllmllgreq","fitvar"},
+      {"nphoton>=1"&&sys_nll_elresup>=1, 
+       sys_trig_pt_elresup, 
+       sys_ll_m_elresup>80&&sys_ll_m_elresup<100, 
+       "photon_pt[0]"/sys_llphoton_m_elresup>(15.0/110.0),
+       (sys_ll_m_elresup+sys_llphoton_m_elresup)>185.0,
+       sys_llphoton_refit_m_elresup},
+      {"nphoton>=1"&&sys_nll_elresdn>=1, 
+       sys_trig_pt_elresdn, 
+       sys_ll_m_elresdn>80&&sys_ll_m_elresdn<100, 
+       "photon_pt[0]"/sys_llphoton_m_elresdn>(15.0/110.0),
+       (sys_ll_m_elresdn+sys_llphoton_m_elresdn)>185.0,
+       sys_llphoton_refit_m_elresdn},true));
+  systematics.push_back(Systematic("CMS_res_m",
+      {"objectreq","lepptcuts","zmassreq","photonptreq","mllmllgreq","fitvar"},
+      {"nphoton>=1"&&sys_nll_muresup>=1, 
+       sys_trig_pt_muresup, 
+       sys_ll_m_muresup>80&&sys_ll_m_muresup<100, 
+       "photon_pt[0]"/sys_llphoton_m_muresup>(15.0/110.0),
+       (sys_ll_m_muresup+sys_llphoton_m_muresup)>185.0,
+       sys_llphoton_refit_m_muresup},
+      {"nphoton>=1"&&sys_nll_muresdn>=1, 
+       sys_trig_pt_muresdn, 
+       sys_ll_m_muresdn>80&&sys_ll_m_muresdn<100, 
+       "photon_pt[0]"/sys_llphoton_m_muresdn>(15.0/110.0),
+       (sys_ll_m_muresdn+sys_llphoton_m_muresdn)>185.0,
+       sys_llphoton_refit_m_muresdn},true));
+  systematics.push_back(Systematic("CMS_scale_g",
+      {"objectreq","photonptreq","mllmllgreq","fitvar"},
+      {sys_nphoton_scaleup>=1&&"nll>=1",
+       sys_lead_photon_pt_scaleup/sys_llphoton_m_phscaleup>(15.0/110.0),
+       ("ll_m[0]"+sys_llphoton_m_phscaleup)>185.0,
+       sys_llphoton_refit_m_phscaleup},
+      {sys_nphoton_scaledn>=1&&"nll>=1",
+       sys_lead_photon_pt_scaledn/sys_llphoton_m_phscaledn>(15.0/110.0),
+       ("ll_m[0]"+sys_llphoton_m_phscaledn)>185.0,
+       sys_llphoton_refit_m_phscaledn},true));
+  systematics.push_back(Systematic("CMS_res_g",
+      {"objectreq","photonptreq","mllmllgreq","fitvar"},
+      {sys_nphoton_resup>=1&&"nll>=1",
+       sys_lead_photon_pt_resup/sys_llphoton_m_phresup>(15.0/110.0),
+       ("ll_m[0]"+sys_llphoton_m_phresup)>185.0,
+       sys_llphoton_refit_m_phresup},
+      {sys_nphoton_resdn>=1&&"nll>=1",
+       sys_lead_photon_pt_resdn/sys_llphoton_m_phresdn>(15.0/110.0),
+       ("ll_m[0]"+sys_llphoton_m_phresdn)>185.0,
+       sys_llphoton_refit_m_phresdn},true));
 
   //Make datacard
   PlotMaker pm;
@@ -319,7 +335,7 @@ int main() {
       .AddParametricProcess("background")
       .IncludeStatUncertainties();
 
-  //pm.max_entries_ = 1000;
+  pm.max_entries_ = 1000;
   pm.MakePlots(1.0);
 
   return 0;

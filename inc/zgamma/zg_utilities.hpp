@@ -100,6 +100,8 @@ namespace ZgUtilities {
   //Kinematic Refit Functions
   bool isFSRphoton(const Baby &b);
   std::map<unsigned int, TLorentzVector> fsrphoton_ret(const Baby &b);
+  std::map<unsigned int, TLorentzVector> fsrphoton_ret_customll(const Baby &b,
+      int lepid, int i1, int i2);
   double KinRefit(const Baby &b);
   double KinRefit(const Baby &b,TString txtFile);
   std::vector<TLorentzVector> RefitP4(const Baby &b);
@@ -122,10 +124,9 @@ namespace ZgUtilities {
   void SetProcessesBackground(
       std::vector<std::shared_ptr<Process>> &processes);
 
-  //returns three-body invariant mass with custom refit
-  //TODO update this
-  std::vector<double> get_lep_pt_custom_refit(const Baby &b, 
-      std::shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt_var, 
-      NamedFunc mu_pt_var);
+  //returns lepton (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) with custom refit
+  std::vector<double> get_lep_custom_refit(const Baby &b, 
+      std::shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt, NamedFunc mu_pt, 
+      NamedFunc ll_lepid, NamedFunc ll_i1, NamedFunc ll_i2);
 }
 #endif

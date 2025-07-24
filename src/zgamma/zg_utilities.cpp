@@ -879,12 +879,49 @@ namespace ZgUtilities {
     for(int idx_fsr=0; idx_fsr < (b.nfsrphoton()); idx_fsr++){//was +999 for before lassen_v0
       if(dR(b.fsrphoton_eta() ->at(idx_fsr),b.photon_eta() -> at(0), b.fsrphoton_phi() ->at(idx_fsr),b.photon_phi() -> at(0)) < 0.2 ){continue;}
 
-      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(b.ll_i1()->at(0)), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(b.ll_i1()->at(0)) < 0.4 ) ){
+      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(b.ll_i1()->at(0)), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(b.ll_i1()->at(0))) < 0.4 ){
         if(fsridces[0]>-1 && b.fsrphoton_droveret2() -> at(idx_fsr) > b.fsrphoton_droveret2() -> at(fsridces[0])){continue;}
         fsridces[0] = (idx_fsr);
         continue;
       }
-      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(b.ll_i2()->at(0)), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(b.ll_i2()->at(0)) < 0.4 ) ){
+      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(b.ll_i2()->at(0)), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(b.ll_i2()->at(0))) < 0.4 ){
+        if(fsridces[1]>-1 && b.fsrphoton_droveret2() -> at(idx_fsr) > b.fsrphoton_droveret2() -> at(fsridces[1])){continue;}
+        fsridces[1] = (idx_fsr);
+        continue;
+      }
+
+    }
+
+    if(fsridces[0]>-1){
+      fsr.SetPtEtaPhiM( b.fsrphoton_pt() -> at(fsridces[0]),b.fsrphoton_eta() -> at(fsridces[0]),b.fsrphoton_phi() -> at(fsridces[0]),0 );
+    }
+    if(fsridces[1]>-1){
+      fsr2.SetPtEtaPhiM( b.fsrphoton_pt() -> at(fsridces[1]),b.fsrphoton_eta() -> at(fsridces[1]),b.fsrphoton_phi() -> at(fsridces[1]),0 );
+    }
+    return_map[0] = fsr; return_map[1] = fsr2;
+    return return_map;
+  }
+
+  std::map<unsigned int, TLorentzVector> fsrphoton_ret_customll(const Baby &b,
+      int lepid, int i1, int i2){
+    TLorentzVector fsr,fsr2, l1, l2;
+    std::map<unsigned int, TLorentzVector> return_map;
+    fsr2.SetPtEtaPhiM(0.0,0.0,0.0,0.0);
+    fsr.SetPtEtaPhiM(0.0,0.0,0.0,0.0);
+    if(lepid == 11){
+      //return_map[0] = fsr; return_map[1] = fsr2;
+      return return_map;
+    }
+    vector<int> fsridces= {-1,-1};
+    for(int idx_fsr=0; idx_fsr < (b.nfsrphoton()); idx_fsr++){//was +999 for before lassen_v0
+      if(dR(b.fsrphoton_eta() ->at(idx_fsr),b.photon_eta() -> at(0), b.fsrphoton_phi() ->at(idx_fsr),b.photon_phi() -> at(0)) < 0.2 ){continue;}
+
+      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(i1), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(i1)) < 0.4 ) {
+        if(fsridces[0]>-1 && b.fsrphoton_droveret2() -> at(idx_fsr) > b.fsrphoton_droveret2() -> at(fsridces[0])){continue;}
+        fsridces[0] = (idx_fsr);
+        continue;
+      }
+      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(i2), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(i2)) < 0.4 ){
         if(fsridces[1]>-1 && b.fsrphoton_droveret2() -> at(idx_fsr) > b.fsrphoton_droveret2() -> at(fsridces[1])){continue;}
         fsridces[1] = (idx_fsr);
         continue;
@@ -1135,40 +1172,48 @@ namespace ZgUtilities {
     }
   }
 
-  //returns lepton pt invariant mass with custom refit
-  vector<double> get_lep_pt_custom_refit(const Baby &b, 
-      shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt_var, 
-      NamedFunc mu_pt_var) {
+  //returns lepton (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) with custom refit
+  vector<double> get_lep_custom_refit(const Baby &b, 
+      shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt, NamedFunc mu_pt, 
+      NamedFunc ll_lepid, NamedFunc ll_i1, NamedFunc ll_i2) {
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = TLorentzVector();
     selectedLeptons[1] = TLorentzVector();
-    int l1_idx = b.ll_i1()->at(0);
-    int l2_idx = b.ll_i2()->at(0);
-    if (b.ll_lepid()->at(0) == 11) {
-      vector<double> el_pt = el_pt_var.GetVector(b);
-      selectedLeptons[0].SetPtEtaPhiM(el_pt[l1_idx], b.el_eta()->at(l1_idx),
+    int l1_idx = static_cast<int>(ll_i1.GetScalar(b));
+    int l2_idx = static_cast<int>(ll_i2.GetScalar(b));
+    int lepid = static_cast<int>(ll_lepid.GetScalar(b));
+    map<unsigned int, double> errorLeptons;
+    if (lepid == 11) {
+      vector<double> el_pt0 = el_pt.GetVector(b);
+      selectedLeptons[0].SetPtEtaPhiM(el_pt0[l1_idx], b.el_eta()->at(l1_idx),
                                       b.el_phi()->at(l1_idx), 0.000511);
-      selectedLeptons[1].SetPtEtaPhiM(el_pt[l2_idx], b.el_eta()->at(l2_idx),
+      selectedLeptons[1].SetPtEtaPhiM(el_pt0[l2_idx], b.el_eta()->at(l2_idx),
                                       b.el_phi()->at(l2_idx), 0.000511);
+      errorLeptons[0] = b.el_energyErr()->at(l1_idx) * selectedLeptons[0].Pt() 
+                        / selectedLeptons[0].P();
+      errorLeptons[1] = b.el_energyErr()->at(l2_idx) * selectedLeptons[1].Pt() 
+                        / selectedLeptons[1].P();
     }
     else {
-      vector<double> mu_pt = mu_pt_var.GetVector(b);
-      selectedLeptons[0].SetPtEtaPhiM(mu_pt[l1_idx], b.mu_eta()->at(l1_idx),
+      vector<double> mu_pt0 = mu_pt.GetVector(b);
+      selectedLeptons[0].SetPtEtaPhiM(mu_pt0[l1_idx], b.mu_eta()->at(l1_idx),
                                       b.mu_phi()->at(l1_idx), 0.105);
-      selectedLeptons[1].SetPtEtaPhiM(mu_pt[l2_idx], b.mu_eta()->at(l2_idx),
+      selectedLeptons[1].SetPtEtaPhiM(mu_pt0[l2_idx], b.mu_eta()->at(l2_idx),
                                       b.mu_phi()->at(l2_idx), 0.105);
+      errorLeptons[0] = b.mu_ptErr()->at(l1_idx);
+      errorLeptons[1] = b.mu_ptErr()->at(l2_idx);
     }
-    map<unsigned int, double> errorLeptons;
-    errorLeptons[0] = AssignL1Error(b);
-    errorLeptons[1] = AssignL2Error(b);
-    map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
+    map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret_customll(
+        b, lepid, l1_idx, l2_idx);
 
     kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
-    vector<double> refit_pt = {reFit[0].Pt(), reFit[1].Pt()};
-    return refit_pt;
+    vector<double> refit_prop = {reFit[0].Pt(), reFit[0].Eta(), reFit[0].Phi(),
+                                 reFit[0].M(), reFit[1].Pt(), reFit[1].Eta(),
+                                 reFit[1].Phi(), reFit[1].M()};
+    return refit_prop;
   }
 
 }

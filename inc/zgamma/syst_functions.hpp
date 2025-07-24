@@ -166,6 +166,35 @@ namespace ZgFunctions {
   //nlep with muon systematics down
   extern const NamedFunc sys_nlep_mudn;
 
+  //Gets NamedFunc that is number of ll candidates with variation
+  NamedFunc assign_variation_nll(const NamedFunc &variation_el_sig, 
+                                 const NamedFunc &variation_mu_sig,
+                                 const std::string &name);
+
+  //nll with electron scale variation up
+  extern NamedFunc sys_nll_elscaleup;
+
+  //nll with electron scale variation down
+  extern NamedFunc sys_nll_elscaledn;
+
+  //nll with electron resolution variation up
+  extern NamedFunc sys_nll_elresup;
+
+  //nll with electron resolution variation down
+  extern NamedFunc sys_nll_elresdn;
+
+  //nll with muon scale variation up
+  extern NamedFunc sys_nll_muscaleup;
+
+  //nll with muon scale variation down
+  extern NamedFunc sys_nll_muscaledn;
+
+  //nll with muon resolution variation up
+  extern NamedFunc sys_nll_muresup;
+
+  //nll with muon resolution variation down
+  extern NamedFunc sys_nll_muresdn;
+
   //leading electron pt with electron scale variation up
   extern const NamedFunc sys_lead_el_pt_scaleup;
 
@@ -202,53 +231,132 @@ namespace ZgFunctions {
   //subleading muon pt with muon variation down
   extern const NamedFunc sys_sublead_mu_pt_dn;
 
-  //photon_sig with photon scale variation down
-  extern const NamedFunc sys_photon_sig_scaleup;
+  //Gets NamedFunc that is trigger+pT cut flag with variation
+  NamedFunc assign_variation_trig_pt(const NamedFunc &variation_el_pt, 
+                                     const NamedFunc &variation_el_sig,
+                                     const NamedFunc &variation_mu_pt,
+                                     const NamedFunc &variation_mu_sig,
+                                     const std::string &name);
+
+  //trigger and pT cuts with electron scale variation up
+  extern NamedFunc sys_trig_pt_elscaleup;
+
+  //trigger and pT cuts with electron scale variation down
+  extern NamedFunc sys_trig_pt_elscaledn;
+
+  //trigger and pT cuts with electron resolution variation up
+  extern NamedFunc sys_trig_pt_elresup;
+
+  //trigger and pT cuts with electron resolution variation down
+  extern NamedFunc sys_trig_pt_elresdn;
+
+  //trigger and pT cuts with muon scale variation up
+  extern NamedFunc sys_trig_pt_muscaleup;
+
+  //trigger and pT cuts with muon scale variation down
+  extern NamedFunc sys_trig_pt_muscaledn;
+
+  //trigger and pT cuts with muon resolution variation up
+  extern NamedFunc sys_trig_pt_muresup;
+
+  //trigger and pT cuts with muon resolution variation down
+  extern NamedFunc sys_trig_pt_muresdn;
 
   //photon_sig with photon scale variation down
-  extern const NamedFunc sys_photon_sig_scaledn;
+  extern NamedFunc sys_photon_sig_scaleup;
+
+  //photon_sig with photon scale variation down
+  extern NamedFunc sys_photon_sig_scaledn;
 
   //photon_sig with photon resolution variation down
-  extern const NamedFunc sys_photon_sig_resup;
+  extern NamedFunc sys_photon_sig_resup;
 
   //photon_sig with photon resolution variation down
-  extern const NamedFunc sys_photon_sig_resdn;
+  extern NamedFunc sys_photon_sig_resdn;
 
   //nphoton with photon scale variation up
-  extern const NamedFunc sys_nphoton_scaleup;
+  extern NamedFunc sys_nphoton_scaleup;
 
   //nphoton with photon scale variation down
-  extern const NamedFunc sys_nphoton_scaledn;
+  extern NamedFunc sys_nphoton_scaledn;
 
   //nphoton with photon resolution variation up
-  extern const NamedFunc sys_nphoton_resup;
+  extern NamedFunc sys_nphoton_resup;
 
   //nphoton with photon resolution variation down
-  extern const NamedFunc sys_nphoton_resdn;
+  extern NamedFunc sys_nphoton_resdn;
 
   //signal photon pt with photon scale variation up
-  extern const NamedFunc sys_sig_photon_pt_scaleup;
+  extern NamedFunc sys_sig_photon_pt_scaleup;
 
   //signal photon pt with photon scale variation downn
-  extern const NamedFunc sys_sig_photon_pt_scaledn;
+  extern NamedFunc sys_sig_photon_pt_scaledn;
 
   //signal photon pt with photon resolution variation up
-  extern const NamedFunc sys_sig_photon_pt_resup;
+  extern NamedFunc sys_sig_photon_pt_resup;
 
   //signal photon pt with photon resolution variation down
-  extern const NamedFunc sys_sig_photon_pt_resdn;
+  extern NamedFunc sys_sig_photon_pt_resdn;
+
+  //signal photon eta with photon scale variation up
+  extern NamedFunc sys_sig_photon_eta_scaleup;
+
+  //signal photon eta with photon scale variation downn
+  extern NamedFunc sys_sig_photon_eta_scaledn;
+
+  //signal photon eta with photon resolution variation up
+  extern NamedFunc sys_sig_photon_eta_resup;
+
+  //signal photon eta with photon resolution variation down
+  extern NamedFunc sys_sig_photon_eta_resdn;
+
+  //signal photon phi with photon scale variation up
+  extern NamedFunc sys_sig_photon_phi_scaleup;
+
+  //signal photon phi with photon scale variation downn
+  extern NamedFunc sys_sig_photon_phi_scaledn;
+
+  //signal photon phi with photon resolution variation up
+  extern NamedFunc sys_sig_photon_phi_resup;
+
+  //signal photon phi with photon resolution variation down
+  extern NamedFunc sys_sig_photon_phi_resdn;
 
   //leading photon pt with photon scale variation up
-  extern const NamedFunc sys_lead_photon_pt_scaleup;
+  extern NamedFunc sys_lead_photon_pt_scaleup;
 
   //leading photon pt with photon scale variation downn
-  extern const NamedFunc sys_lead_photon_pt_scaledn;
+  extern NamedFunc sys_lead_photon_pt_scaledn;
 
   //leading photon pt with photon resolution variation up
-  extern const NamedFunc sys_lead_photon_pt_resup;
+  extern NamedFunc sys_lead_photon_pt_resup;
 
   //leading photon pt with photon resolution variation down
-  extern const NamedFunc sys_lead_photon_pt_resdn;
+  extern NamedFunc sys_lead_photon_pt_resdn;
+
+  //leading photon eta with photon scale variation up
+  extern NamedFunc sys_lead_photon_eta_scaleup;
+
+  //leading photon eta with photon scale variation downn
+  extern NamedFunc sys_lead_photon_eta_scaledn;
+
+  //leading photon eta with photon resolution variation up
+  extern NamedFunc sys_lead_photon_eta_resup;
+
+  //leading photon eta with photon resolution variation down
+  extern NamedFunc sys_lead_photon_eta_resdn;
+
+  //leading photon phi with photon scale variation up
+  extern NamedFunc sys_lead_photon_phi_scaleup;
+
+  //leading photon phi with photon scale variation downn
+  extern NamedFunc sys_lead_photon_phi_scaledn;
+
+  //leading photon phi with photon resolution variation up
+  extern NamedFunc sys_lead_photon_phi_resup;
+
+  //leading photon phi with photon resolution variation down
+  extern NamedFunc sys_lead_photon_phi_resdn;
 
   //signal photon ID80 flag with photon scale variation up
   extern const NamedFunc sys_sig_photon_id80_scaleup;
@@ -274,23 +382,110 @@ namespace ZgFunctions {
   //leading photon ID80 flag with photon resolution variation down
   extern const NamedFunc sys_lead_photon_id80_resdn;
 
+  //get Z candidate properties with variation
+  //returns (pt, eta, phi, m, lepid, i1, i2, idx)
+  NamedFunc assign_variation_ll(const NamedFunc &el_pt, 
+                                const NamedFunc &el_sig,
+                                const NamedFunc &mu_pt, 
+                                const NamedFunc &mu_sig,
+                                bool is_el,
+                                const std::string &name);
+
+  //default dilepton properties
+  extern NamedFunc sys_ll_default;
+
+  //dilepton properties with electron scale variation up
+  extern NamedFunc sys_ll_elscaleup;
+
+  //dilepton properties with electron scale variation down
+  extern NamedFunc sys_ll_elscaledn;
+
+  //dilepton properties with electron resolution variation up
+  extern NamedFunc sys_ll_elresup;
+
+  //dilepton properties with electron resolution variation down
+  extern NamedFunc sys_ll_elresdn;
+
+  //dilepton properties with muon scale variation up
+  extern NamedFunc sys_ll_muscaleup;
+
+  //dilepton properties with muon scale variation dn
+  extern NamedFunc sys_ll_muscaledn;
+
+  //dilepton properties with muon resolution variation up
+  extern NamedFunc sys_ll_muresup;
+
+  //dilepton properties with muon resolution variation dn
+  extern NamedFunc sys_ll_muresdn;
+
   //dilepton mass with electron scale variation up
-  extern const NamedFunc sys_ll_m_elscaleup;
+  extern NamedFunc sys_ll_m_elscaleup;
 
   //dilepton mass with electron scale variation down
-  extern const NamedFunc sys_ll_m_elscaledn;
+  extern NamedFunc sys_ll_m_elscaledn;
 
   //dilepton mass with electron resolution variation up
-  extern const NamedFunc sys_ll_m_elresup;
+  extern NamedFunc sys_ll_m_elresup;
 
   //dilepton mass with electron resolution variation down
-  extern const NamedFunc sys_ll_m_elresdn;
+  extern NamedFunc sys_ll_m_elresdn;
 
-  //dilepton mass with muon variation up
-  extern const NamedFunc sys_ll_m_muup;
+  //dilepton mass with muon scale variation up
+  extern NamedFunc sys_ll_m_muscaleup;
 
-  //dilepton mass with muon variation dn
-  extern const NamedFunc sys_ll_m_mudn;
+  //dilepton mass with muon scale variation dn
+  extern NamedFunc sys_ll_m_muscaledn;
+
+  //dilepton mass with muon resolution variation up
+  extern NamedFunc sys_ll_m_muresup;
+
+  //dilepton mass with muon resolution variation dn
+  extern NamedFunc sys_ll_m_muresdn;
+
+  //get H candidate properties with variation
+  //returns (pt, eta, phi, m)
+  NamedFunc assign_variation_llphoton_p4(const NamedFunc &ll_p4, 
+                                         const NamedFunc &lead_photon_pt,
+                                         const NamedFunc &lead_photon_eta,
+                                         const NamedFunc &lead_photon_phi,
+                                         const int var_pdgid,
+                                         const std::string &name);
+
+  //H four momentum with electron scale variation up 
+  extern NamedFunc sys_llphoton_p4_elscaleup;
+
+  //H four momentum with electron scale variation down
+  extern NamedFunc sys_llphoton_p4_elscaledn;
+
+  //H four momentum with electron resolution variation up 
+  extern NamedFunc sys_llphoton_p4_elresup;
+
+  //H four momentum with electron resolution variation down
+  extern NamedFunc sys_llphoton_p4_elresdn;
+
+  //H four momentum with muon scale variation up 
+  extern NamedFunc sys_llphoton_p4_muscaleup;
+
+  //H four momentum with muon scale variation down
+  extern NamedFunc sys_llphoton_p4_muscaledn;
+
+  //H four momentum with muon resolution variation up 
+  extern NamedFunc sys_llphoton_p4_muresup;
+
+  //H four momentum with muon resolution variation down
+  extern NamedFunc sys_llphoton_p4_muresdn;
+
+  //H four momentum with photon scale variation up 
+  extern NamedFunc sys_llphoton_p4_phscaleup;
+
+  //H four momentum with photon scale variation down
+  extern NamedFunc sys_llphoton_p4_phscaledn;
+
+  //H four momentum with photon resolution variation up 
+  extern NamedFunc sys_llphoton_p4_phresup;
+
+  //H four momentum with photon resolution variation down
+  extern NamedFunc sys_llphoton_p4_phresdn;
 
   //Higgs candidate mass with electron scale variation up
   extern NamedFunc sys_llphoton_m_elscaleup;
@@ -304,11 +499,17 @@ namespace ZgFunctions {
   //Higgs candidate mass with electron resolution variation down
   extern NamedFunc sys_llphoton_m_elresdn;
 
-  //Higgs candidate mass with muon variation up
-  extern const NamedFunc sys_llphoton_m_muup;
+  //Higgs candidate mass with muon scale variation up
+  extern NamedFunc sys_llphoton_m_muscaleup;
 
-  //Higgs candidate mass with muon variation dn
-  extern const NamedFunc sys_llphoton_m_mudn;
+  //Higgs candidate mass with muon scale variation dn
+  extern NamedFunc sys_llphoton_m_muscaledn;
+
+  //Higgs candidate mass with muon resolution variation up
+  extern NamedFunc sys_llphoton_m_muresup;
+
+  //Higgs candidate mass with muon resolution variation dn
+  extern NamedFunc sys_llphoton_m_muresdn;
 
   //Higgs candidate mass with photon scale variation up
   extern NamedFunc sys_llphoton_m_phscaleup;
@@ -322,25 +523,146 @@ namespace ZgFunctions {
   //Higgs candidate mass with photon resolution variation down
   extern NamedFunc sys_llphoton_m_phresdn;
 
-  //helper function to get Z candidate four vector after varying electron energy
-  TLorentzVector AssignElectronVariationZ(const Baby &b, const NamedFunc &el_pt, 
-                                          const NamedFunc &el_sig);
+  //Gets NamedFunc that is (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) of lepton
+  //refit pT with variation
+  NamedFunc assign_variation_lep_refit(const NamedFunc &el_pt, 
+      const NamedFunc &mu_pt, const NamedFunc &ll_lepid, 
+      const NamedFunc &ll_i1, const NamedFunc &ll_i2, 
+      std::shared_ptr<KinZfitter> kin_z_fitter, const std::string &name);
 
-  //helper function to get Z candidate four vector after varying muon energy
-  TLorentzVector AssignMuonVariationZ(const Baby &b, const NamedFunc &mu_pt, 
-                                      const NamedFunc &mu_sig);
+  //lepton 4 momentum with electron scale variation up
+  extern NamedFunc sys_lep_refit_elscaleup;
 
-  //helper function to get H candidate four vector after varying electron energy
-  TLorentzVector AssignElectronVariationH(const Baby &b, const NamedFunc &el_pt, 
-                                          const NamedFunc &el_sig);
+  //lepton 4 momentum with electron scale variation down
+  extern NamedFunc sys_lep_refit_elscaledn;
 
-  //helper function to get H candidate four vector after varying electron energy
-  TLorentzVector AssignMuonVariationH(const Baby &b, const NamedFunc &mu_pt, 
-                                      const NamedFunc &mu_sig);
+  //lepton 4 momentum with electron resolution variation up
+  extern NamedFunc sys_lep_refit_elresup;
 
-  //helper function to get H candidate four vector after varying photon energy
-  TLorentzVector AssignPhotonVariationH(const Baby &b, const NamedFunc &photon_pt, 
-                                        const NamedFunc &photon_sig);
+  //lepton 4 momentum with electron resolution variation down
+  extern NamedFunc sys_lep_refit_elresdn;
+
+  //lepton 4 momentum with muon scale variation up
+  extern NamedFunc sys_lep_refit_muscaleup;
+
+  //lepton 4 momentum with muon scale variation down
+  extern NamedFunc sys_lep_refit_muscaledn;
+
+  //lepton 4 momentum with muon resolution variation up
+  extern NamedFunc sys_lep_refit_muresup;
+
+  //lepton 4 momentum with muon resolution variation down
+  extern NamedFunc sys_lep_refit_muresdn;
+
+  //Gets NamedFunc that is assigns Z candidate four momentum with variation
+  NamedFunc assign_variation_ll_refit_p4(const NamedFunc &ll_idx, 
+      const NamedFunc &lep_refit, const std::string &name);
+
+  //Z candidate refit 4 momentum without any variations
+  extern NamedFunc sys_ll_refit_p4_default;
+
+  //Z candidate refit 4 momentum with electron scale variation up
+  extern NamedFunc sys_ll_refit_p4_elscaleup; 
+
+  //Z candidate refit 4 momentum with electron scale variation down
+  extern NamedFunc sys_ll_refit_p4_elscaledn; 
+
+  //Z candidate refit 4 momentum with electron resolution variation up
+  extern NamedFunc sys_ll_refit_p4_elresup; 
+
+  //Z candidate refit 4 momentum with electron resolution variation down
+  extern NamedFunc sys_ll_refit_p4_elresdn; 
+
+  //Z candidate refit 4 momentum with muon scale variation up
+  extern NamedFunc sys_ll_refit_p4_muscaleup; 
+
+  //Z candidate refit 4 momentum with muon scale variation down
+  extern NamedFunc sys_ll_refit_p4_muscaledn; 
+
+  //Z candidate refit 4 momentum with muon resolution variation up
+  extern NamedFunc sys_ll_refit_p4_muresup; 
+
+  //Z candidate refit 4 momentum with muon resolution variation down
+  extern NamedFunc sys_ll_refit_p4_muresdn; 
+
+  //Gets NamedFunc that is assigns Higgs four momentum with variation
+  NamedFunc assign_variation_llphoton_refit_p4(
+      const NamedFunc &ll_idx, const NamedFunc &ll_refit_p4, 
+      const NamedFunc &lead_photon_pt, const NamedFunc &lead_photon_eta, 
+      const NamedFunc &lead_photon_phi, bool is_phvar, 
+      const std::string &name);
+
+  //H candidate refit 4 momentum with electron scale variation up
+  extern NamedFunc sys_llphoton_refit_p4_elscaleup;
+  
+  //H candidate refit 4 momentum with electron scale variation down
+  extern NamedFunc sys_llphoton_refit_p4_elscaledn;
+
+  //H candidate refit 4 momentum with electron resolution variation up
+  extern NamedFunc sys_llphoton_refit_p4_elresup;
+  
+  //H candidate refit 4 momentum with electron resolution variation down
+  extern NamedFunc sys_llphoton_refit_p4_elresdn;
+
+  //H candidate refit 4 momentum with muon scale variation up
+  extern NamedFunc sys_llphoton_refit_p4_muscaleup;
+  
+  //H candidate refit 4 momentum with muon scale variation down
+  extern NamedFunc sys_llphoton_refit_p4_muscaledn;
+
+  //H candidate refit 4 momentum with muon resolution variation up
+  extern NamedFunc sys_llphoton_refit_p4_muresup;
+  
+  //H candidate refit 4 momentum with muon resolution variation down
+  extern NamedFunc sys_llphoton_refit_p4_muresdn;
+
+  //H candidate refit 4 momentum with photon scale variation up
+  extern NamedFunc sys_llphoton_refit_p4_phscaleup;
+
+  //H candidate refit 4 momentum with photon scale variation dn
+  extern NamedFunc sys_llphoton_refit_p4_phscaledn;
+
+  //H candidate refit 4 momentum with photon resolution variation up
+  extern NamedFunc sys_llphoton_refit_p4_phresup;
+
+  //H candidate refit 4 momentum with photon resolution variation dn
+  extern NamedFunc sys_llphoton_refit_p4_phresdn;
+
+  //H candidate refit mass with electron scale variation up
+  extern NamedFunc sys_llphoton_refit_m_elscaleup;
+
+  //H candidate refit mass with electron scale variation down
+  extern NamedFunc sys_llphoton_refit_m_elscaledn;
+
+  //H candidate refit mass with electron resolution variation up
+  extern NamedFunc sys_llphoton_refit_m_elresup;
+
+  //H candidate refit mass with electron resolution variation down
+  extern NamedFunc sys_llphoton_refit_m_elresdn;
+
+  //H candidate refit mass with muon scale variation up
+  extern NamedFunc sys_llphoton_refit_m_muscaleup;
+
+  //H candidate refit mass with muon scale variation down
+  extern NamedFunc sys_llphoton_refit_m_muscaledn;
+
+  //H candidate refit mass with muon resolution variation up
+  extern NamedFunc sys_llphoton_refit_m_muresup;
+
+  //H candidate refit mass with muon resolution variation down
+  extern NamedFunc sys_llphoton_refit_m_muresdn;
+
+  //H candidate refit mass with photon scale variation up
+  extern NamedFunc sys_llphoton_refit_m_phscaleup;
+
+  //H candidate refit mass with photon scale variation down
+  extern NamedFunc sys_llphoton_refit_m_phscaledn;
+
+  //H candidate refit mass with photon resolution variation up
+  extern NamedFunc sys_llphoton_refit_m_phresup;
+
+  //H candidate refit mass with photon resolution variation down
+  extern NamedFunc sys_llphoton_refit_m_phresdn;
 
   //helper function to get H candidate four vector after variation
   //doesn't consider edge cases ex. if selected Z candidate changes after
@@ -349,35 +671,6 @@ namespace ZgFunctions {
                                    const NamedFunc &mu_pt,
                                    const NamedFunc &photon_pt,
                                    const std::string &name);
-
-  //Gets NamedFunc that is double (l1, l2) of muon refit pt with variation
-  NamedFunc assign_muvariation_lep_refit_pt(
-      const NamedFunc &variation_mu_pt, 
-      std::shared_ptr<KinZfitter> kin_z_fitter, 
-      const std::string &name);
-
-  //Gets NamedFunc that is double (l1, l2) of electron refit pt with variation
-  NamedFunc assign_elvariation_lep_refit_pt(
-      const NamedFunc &variation_el_pt, 
-      std::shared_ptr<KinZfitter> kin_z_fitter, 
-      const std::string &name);
-
-  //Gets NamedFugc that is Z 4-momentum with muon variation
-  NamedFunc assign_muvariation_ll_refit_4p(
-      const NamedFunc &variation_mu_refit_pt, const std::string &name);
-
-  //Gets NamedFunc that is Z 4-momentum with electron variation
-  NamedFunc assign_elvariation_ll_refit_4p(
-      const NamedFunc &variation_el_refit_pt, const std::string &name);
-
-  //Gets NamedFunc that is Higgs 4-momentum with variation
-  NamedFunc assign_variation_llphoton_4p(const NamedFunc &variation_ll_4p, 
-                                         const NamedFunc &variation_photon_pt, 
-                                         const std::string &name);
-
-  //Gets NamedFunc that is Higgs candidate mass with variation
-  NamedFunc assign_variation_llphoton_m(const NamedFunc &variation_llphoton_4p, 
-                                        const std::string &name);
 
 }
 
