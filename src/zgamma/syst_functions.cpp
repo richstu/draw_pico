@@ -25,6 +25,7 @@ using NamedFuncUtilities::reduce_maxfirst;
 using NamedFuncUtilities::reduce_sublead;
 using NamedFuncUtilities::reduce_subleadfirst;
 using ZgUtilities::get_lep_custom_refit;
+using ZgUtilities::get_btag_wp_deepjet;
 
 namespace ZgFunctions {
 
@@ -326,58 +327,108 @@ namespace ZgFunctions {
   //for reference, electrons and muons failing eta, dxy, or dz cuts are dropped from pico lists
 
   //el_sig with electron scale variation up
-  const NamedFunc sys_el_sig_scaleup = NamedFunc("(sys_el_pt_scaleup>7)&&el_idLoose").Name("sys_el_sig_scaleup").EnableCaching(true);
+  const NamedFunc sys_el_sig_scaleup = NamedFunc("(sys_el_pt_scaleup>7)"
+      "&&el_idLoose").Name("sys_el_sig_scaleup").EnableCaching(true);
 
   //el_sig with electron scale variation down
-  const NamedFunc sys_el_sig_scaledn = NamedFunc("(sys_el_pt_scaledn>7)&&el_idLoose").Name("sys_el_sig_scaledn").EnableCaching(true);
+  const NamedFunc sys_el_sig_scaledn = NamedFunc("(sys_el_pt_scaledn>7)"
+      "&&el_idLoose").Name("sys_el_sig_scaledn").EnableCaching(true);
 
   //el_sig with electron resolution variation up
-  const NamedFunc sys_el_sig_resup = NamedFunc("(sys_el_pt_resup>7)&&el_idLoose").Name("sys_el_sig_resup").EnableCaching(true);
+  const NamedFunc sys_el_sig_resup = NamedFunc("(sys_el_pt_resup>7)"
+      "&&el_idLoose").Name("sys_el_sig_resup").EnableCaching(true);
 
   //el_sig with electron resolution variation down
-  const NamedFunc sys_el_sig_resdn = NamedFunc("(sys_el_pt_resdn>7)&&el_idLoose").Name("sys_el_sig_resdn").EnableCaching(true);
+  const NamedFunc sys_el_sig_resdn = NamedFunc("(sys_el_pt_resdn>7)"
+      "&&el_idLoose").Name("sys_el_sig_resdn").EnableCaching(true);
 
-  //mu_sig with muon systematics up
-  const NamedFunc sys_mu_sig_up = NamedFunc("mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)&&((mu_pt+mu_ptErr)>5)").Name("sys_mu_sig_up");
+  //mu_sig with muon scale variation up
+  //TODO fix in next production
+  const NamedFunc sys_mu_sig_scaleup = NamedFunc("mu_id&&(mu_reliso<0.35)"
+      "&&(mu_sip3d<4)&&((mu_pt+mu_ptErr)>5)").Name("sys_mu_sig_scaleup")
+      .EnableCaching(true);
 
-  //mu_sig with muon systematics down
-  const NamedFunc sys_mu_sig_dn = NamedFunc("mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)&&((mu_pt-mu_ptErr)>5)").Name("sys_mu_sig_dn");
+  //mu_sig with muon scale variation down
+  //TODO fix in next production
+  const NamedFunc sys_mu_sig_scaledn = NamedFunc("mu_id&&(mu_reliso<0.35)"
+      "&&(mu_sip3d<4)&&((mu_pt-mu_ptErr)>5)").Name("sys_mu_sig_scaledn")
+      .EnableCaching(true);
+
+  //mu_sig with muon resolution variation up
+  //TODO fix in next production
+  const NamedFunc sys_mu_sig_resup = NamedFunc("mu_id&&(mu_reliso<0.35)"
+      "&&(mu_sip3d<4)&&((mu_pt+mu_ptErr)>5)").Name("sys_mu_sig_resup")
+      .EnableCaching(true);
+
+  //mu_sig with muon resolution variation down
+  //TODO fix in next production
+  const NamedFunc sys_mu_sig_resdn = NamedFunc("mu_id&&(mu_reliso<0.35)"
+      "&&(mu_sip3d<4)&&((mu_pt-mu_ptErr)>5)").Name("sys_mu_sig_resdn")
+      .EnableCaching(true);
 
   //nel with electron scale variation up
-  const NamedFunc sys_nel_scaleup = ReduceNamedFunc(sys_el_sig_scaleup,reduce_sum).Name("sys_nel_scaleup");
+  const NamedFunc sys_nel_scaleup = ReduceNamedFunc(sys_el_sig_scaleup,
+      reduce_sum).Name("sys_nel_scaleup").EnableCaching(true);
 
   //nel with electron scale variation down
-  const NamedFunc sys_nel_scaledn = ReduceNamedFunc(sys_el_sig_scaledn,reduce_sum).Name("sys_nel_scaledn");
+  const NamedFunc sys_nel_scaledn = ReduceNamedFunc(sys_el_sig_scaledn,
+      reduce_sum).Name("sys_nel_scaledn").EnableCaching(true);
 
   //nel with electron resolution variation up
-  const NamedFunc sys_nel_resup = ReduceNamedFunc(sys_el_sig_resup,reduce_sum).Name("sys_nel_resup");
+  const NamedFunc sys_nel_resup = ReduceNamedFunc(sys_el_sig_resup,reduce_sum)
+      .Name("sys_nel_resup").EnableCaching(true);
 
   //nel with electron resolution variation down
-  const NamedFunc sys_nel_resdn = ReduceNamedFunc(sys_el_sig_resdn,reduce_sum).Name("sys_nel_resdn");
+  const NamedFunc sys_nel_resdn = ReduceNamedFunc(sys_el_sig_resdn,reduce_sum)
+      .Name("sys_nel_resdn").EnableCaching(true);
 
-  //nmu with muon systematics up
-  const NamedFunc sys_nmu_up = ReduceNamedFunc(sys_mu_sig_up,reduce_sum).Name("sys_nmu_up");
+  //nmu with muon scale variation up
+  const NamedFunc sys_nmu_scaleup = ReduceNamedFunc(sys_mu_sig_scaleup,
+      reduce_sum).Name("sys_nmu_scaleup").EnableCaching(true);
 
-  //nmu with muon systematics down
-  const NamedFunc sys_nmu_dn = ReduceNamedFunc(sys_mu_sig_dn,reduce_sum).Name("sys_nmu_dn");
+  //nmu with muon scale variation down
+  const NamedFunc sys_nmu_scaledn = ReduceNamedFunc(sys_mu_sig_scaledn,
+      reduce_sum).Name("sys_nmu_scaledn").EnableCaching(true);
+
+  //nmu with muon resolution variation up
+  const NamedFunc sys_nmu_resup = ReduceNamedFunc(sys_mu_sig_resup,reduce_sum)
+      .Name("sys_nmu_resup").EnableCaching(true);
+
+  //nmu with muon resolution variation down
+  const NamedFunc sys_nmu_resdn = ReduceNamedFunc(sys_mu_sig_resdn,reduce_sum)
+      .Name("sys_nmu_resdn").EnableCaching(true);
 
   //nlep with electron scale variation up
-  const NamedFunc sys_nlep_elscaleup = NamedFunc(sys_nel_scaleup+"nmu").Name("sys_nlep_elscaleup");
+  const NamedFunc sys_nlep_elscaleup = NamedFunc(sys_nel_scaleup+"nmu").Name(
+      "sys_nlep_elscaleup").EnableCaching(true);
 
   //nlep with electron scale variation up
-  const NamedFunc sys_nlep_elscaledn = NamedFunc(sys_nel_scaledn+"nmu").Name("sys_nlep_elscaledn");
+  const NamedFunc sys_nlep_elscaledn = NamedFunc(sys_nel_scaledn+"nmu").Name(
+      "sys_nlep_elscaledn").EnableCaching(true);
 
   //nlep with electron resolution variation up
-  const NamedFunc sys_nlep_elresup = NamedFunc(sys_nel_resup+"nmu").Name("sys_nlep_elresup");
+  const NamedFunc sys_nlep_elresup = NamedFunc(sys_nel_resup+"nmu").Name(
+      "sys_nlep_elresup").EnableCaching(true);
 
   //nlep with electron resolution variation up
-  const NamedFunc sys_nlep_elresdn = NamedFunc(sys_nel_resdn+"nmu").Name("sys_nlep_elresdn");
+  const NamedFunc sys_nlep_elresdn = NamedFunc(sys_nel_resdn+"nmu").Name(
+      "sys_nlep_elresdn").EnableCaching(true);
 
-  //nlep with muon systematics up
-  const NamedFunc sys_nlep_muup = NamedFunc("nel"+sys_nmu_up).Name("sys_nlep_muup");
+  //nlep with muon scale variation up
+  const NamedFunc sys_nlep_muscaleup = NamedFunc("nel"+sys_nmu_scaleup).Name(
+      "sys_nlep_muscaleup").EnableCaching(true);
 
-  //nlep with muon systematics down
-  const NamedFunc sys_nlep_mudn = NamedFunc("nel"+sys_nmu_dn).Name("sys_nlep_mudn");
+  //nlep with muon scale variation down
+  const NamedFunc sys_nlep_muscaledn = NamedFunc("nel"+sys_nmu_scaledn).Name(
+      "sys_nlep_muscaledn").EnableCaching(true);
+
+  //nlep with muon resolution variation up
+  const NamedFunc sys_nlep_muresup = NamedFunc("nel"+sys_nmu_resup).Name(
+      "sys_nlep_muresup").EnableCaching(true);
+
+  //nlep with muon resolution variation down
+  const NamedFunc sys_nlep_muresdn = NamedFunc("nel"+sys_nmu_resdn).Name(
+      "sys_nlep_muresdn").EnableCaching(true);
 
   //Gets NamedFunc that is number of ll candidates with variation
   NamedFunc assign_variation_nll(const NamedFunc &variation_el_sig, 
@@ -431,76 +482,108 @@ namespace ZgFunctions {
       "mu_sig", "elresdn");
 
   //nll with muon scale variation up
-  //TODO fix with appropriate sys in next production
   NamedFunc sys_nll_muscaleup = assign_variation_nll("el_sig", 
-      sys_mu_sig_up, "muscaleup");
+      sys_mu_sig_scaleup, "muscaleup");
 
   //nll with muon scale variation down
-  //TODO fix with appropriate sys in next production
   NamedFunc sys_nll_muscaledn = assign_variation_nll("el_sig", 
-      sys_mu_sig_dn, "muscaledn");
+      sys_mu_sig_scaledn, "muscaledn");
 
   //nll with muon resolution variation up
-  //TODO fix with appropriate sys in next production
   NamedFunc sys_nll_muresup = assign_variation_nll("el_sig", 
-      sys_mu_sig_up, "muresup");
+      sys_mu_sig_resup, "muresup");
 
   //nll with muon resolution variation down
-  //TODO fix with appropriate sys in next production
   NamedFunc sys_nll_muresdn = assign_variation_nll("el_sig", 
-      sys_mu_sig_dn, "muresdn");
+      sys_mu_sig_resdn, "muresdn");
 
   //leading electron pt with electron scale variation up
-  const NamedFunc sys_lead_el_pt_scaleup = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_scaleup",
-      sys_el_sig_scaleup),reduce_max).Name("sys_lead_el_pt_scaleup");
+  const NamedFunc sys_lead_el_pt_scaleup = ReduceNamedFunc(FilterNamedFunc(
+      "sys_el_pt_scaleup",sys_el_sig_scaleup),reduce_max)
+      .Name("sys_lead_el_pt_scaleup").EnableCaching(true);
 
   //subleading electron pt with electron scale variation up
-  const NamedFunc sys_sublead_el_pt_scaleup = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_scaleup",
-      sys_el_sig_scaleup),reduce_sublead).Name("sys_sublead_el_pt_scaleup");
+  const NamedFunc sys_sublead_el_pt_scaleup = ReduceNamedFunc(FilterNamedFunc(
+      "sys_el_pt_scaleup",sys_el_sig_scaleup),reduce_sublead)
+      .Name("sys_sublead_el_pt_scaleup").EnableCaching(true);
 
   //leading electron pt with electron scale variation downn
-  const NamedFunc sys_lead_el_pt_scaledn = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_scaledn",
-      sys_el_sig_scaledn),reduce_max).Name("sys_lead_el_pt_scaledn");
+  const NamedFunc sys_lead_el_pt_scaledn = ReduceNamedFunc(FilterNamedFunc(
+      "sys_el_pt_scaledn",sys_el_sig_scaledn),reduce_max)
+      .Name("sys_lead_el_pt_scaledn").EnableCaching(true);
 
   //subleading electron pt with electron scale variation down
-  const NamedFunc sys_sublead_el_pt_scaledn = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_scaledn",
-      sys_el_sig_scaledn),reduce_sublead).Name("sys_sublead_el_pt_scaledn");
+  const NamedFunc sys_sublead_el_pt_scaledn = ReduceNamedFunc(FilterNamedFunc(
+      "sys_el_pt_scaledn",sys_el_sig_scaledn),reduce_sublead)
+      .Name("sys_sublead_el_pt_scaledn").EnableCaching(true);
 
   //leading electron pt with electron resolution variation up
-  const NamedFunc sys_lead_el_pt_resup = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_resup",
-      sys_el_sig_resup),reduce_max).Name("sys_lead_el_pt_resup");
+  const NamedFunc sys_lead_el_pt_resup = ReduceNamedFunc(FilterNamedFunc(
+      "sys_el_pt_resup",sys_el_sig_resup),reduce_max)
+      .Name("sys_lead_el_pt_resup").EnableCaching(true);
 
   //subleading electron pt with electron resolution variation up
-  const NamedFunc sys_sublead_el_pt_resup = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_resup",
-      sys_el_sig_resup),reduce_sublead).Name("sys_sublead_el_pt_resup");
+  const NamedFunc sys_sublead_el_pt_resup = ReduceNamedFunc(FilterNamedFunc(
+      "sys_el_pt_resup",sys_el_sig_resup),reduce_sublead)
+      .Name("sys_sublead_el_pt_resup").EnableCaching(true);
 
   //leading electron pt with electron resolution variation down
-  const NamedFunc sys_lead_el_pt_resdn = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_resdn",
-      sys_el_sig_resdn),reduce_max).Name("sys_lead_el_pt_resdn");
+  const NamedFunc sys_lead_el_pt_resdn = ReduceNamedFunc(FilterNamedFunc(
+      "sys_el_pt_resdn",sys_el_sig_resdn),reduce_max)
+      .Name("sys_lead_el_pt_resdn").EnableCaching(true);
 
   //subleading electron pt with electron resolution variation down
-  const NamedFunc sys_sublead_el_pt_resdn = ReduceNamedFunc(FilterNamedFunc("sys_el_pt_resdn",
-      sys_el_sig_resdn),reduce_sublead).Name("sys_sublead_el_pt_resdn");
+  const NamedFunc sys_sublead_el_pt_resdn = ReduceNamedFunc(FilterNamedFunc(
+      "sys_el_pt_resdn",sys_el_sig_resdn),reduce_sublead)
+      .Name("sys_sublead_el_pt_resdn").EnableCaching(true);
 
-  //leading muon pt with muon variation up
-  const NamedFunc sys_lead_mu_pt_up = ReduceNamedFunc(FilterNamedFunc(
-      "mu_pt+mu_ptErr",sys_mu_sig_up),
-      reduce_max).Name("sys_lead_mu_pt_up");
+  //leading muon pt with muon scale variation up
+  //TODO fix in next production
+  const NamedFunc sys_lead_mu_pt_scaleup = ReduceNamedFunc(FilterNamedFunc(
+      "mu_pt+mu_ptErr",sys_mu_sig_scaleup),
+      reduce_max).Name("sys_lead_mu_pt_scaleup").EnableCaching(true);
 
-  //subleading muon pt with muon variation up
-  const NamedFunc sys_sublead_mu_pt_up = ReduceNamedFunc(FilterNamedFunc(
-      "mu_pt+mu_ptErr",sys_mu_sig_up),
-      reduce_sublead).Name("sys_sublead_mu_pt_up");
+  //subleading muon pt with muon scale variation up
+  //TODO fix in next production
+  const NamedFunc sys_sublead_mu_pt_scaleup = ReduceNamedFunc(FilterNamedFunc(
+      "mu_pt+mu_ptErr",sys_mu_sig_scaleup),
+      reduce_sublead).Name("sys_sublead_mu_pt_scaleup").EnableCaching(true);
 
-  //leading muon pt with muon variation down
-  const NamedFunc sys_lead_mu_pt_dn = ReduceNamedFunc(FilterNamedFunc(
-      "mu_pt-mu_ptErr",sys_mu_sig_dn),
-      reduce_max).Name("sys_lead_mu_pt_dn");
+  //leading muon pt with muon scale variation down
+  //TODO fix in next production
+  const NamedFunc sys_lead_mu_pt_scaledn = ReduceNamedFunc(FilterNamedFunc(
+      "mu_pt-mu_ptErr",sys_mu_sig_scaledn),
+      reduce_max).Name("sys_lead_mu_pt_scaledn").EnableCaching(true);
 
-  //subleading muon pt with muon variation down
-  const NamedFunc sys_sublead_mu_pt_dn = ReduceNamedFunc(FilterNamedFunc(
-      "mu_pt-mu_ptErr",sys_mu_sig_dn),
-      reduce_sublead).Name("sys_sublead_mu_pt_dn");
+  //subleading muon pt with muon scale variation down
+  //TODO fix in next production
+  const NamedFunc sys_sublead_mu_pt_scaledn = ReduceNamedFunc(FilterNamedFunc(
+      "mu_pt-mu_ptErr",sys_mu_sig_scaledn),
+      reduce_sublead).Name("sys_sublead_mu_pt_scaledn").EnableCaching(true);
+
+  //leading muon pt with muon resolution variation up
+  //TODO fix in next production
+  const NamedFunc sys_lead_mu_pt_resup = ReduceNamedFunc(FilterNamedFunc(
+      "mu_pt+mu_ptErr",sys_mu_sig_resup),
+      reduce_max).Name("sys_lead_mu_pt_resup").EnableCaching(true);
+
+  //subleading muon pt with muon resolution variation up
+  //TODO fix in next production
+  const NamedFunc sys_sublead_mu_pt_resup = ReduceNamedFunc(FilterNamedFunc(
+      "mu_pt+mu_ptErr",sys_mu_sig_resup),
+      reduce_sublead).Name("sys_sublead_mu_pt_resup").EnableCaching(true);
+
+  //leading muon pt with muon resolution variation down
+  //TODO fix in next production
+  const NamedFunc sys_lead_mu_pt_resdn = ReduceNamedFunc(FilterNamedFunc(
+      "mu_pt-mu_ptErr",sys_mu_sig_resdn),
+      reduce_max).Name("sys_lead_mu_pt_resdn").EnableCaching(true);
+
+  //subleading muon pt with muon resolution variation down
+  //TODO fix in next production
+  const NamedFunc sys_sublead_mu_pt_resdn = ReduceNamedFunc(FilterNamedFunc(
+      "mu_pt-mu_ptErr",sys_mu_sig_resdn),
+      reduce_sublead).Name("sys_sublead_mu_pt_resdn").EnableCaching(true);
 
   //Gets NamedFunc that is trigger+pT cut flag with variation
   NamedFunc assign_variation_trig_pt(const NamedFunc &variation_el_pt, 
@@ -585,22 +668,80 @@ namespace ZgFunctions {
   //trigger and pT cuts with muon scale variation up
   //TODO fix with next production
   NamedFunc sys_trig_pt_muscaleup = assign_variation_trig_pt("el_pt",
-      "el_sig", "mu_pt+mu_ptErr", sys_mu_sig_up, "muscaleup");
+      "el_sig", "mu_pt+mu_ptErr", sys_mu_sig_scaleup, "muscaleup");
 
   //trigger and pT cuts with muon scale variation down
   //TODO fix with next production
   NamedFunc sys_trig_pt_muscaledn = assign_variation_trig_pt("el_pt",
-      "el_sig", "mu_pt-mu_ptErr", sys_mu_sig_dn, "muscaledn");
+      "el_sig", "mu_pt-mu_ptErr", sys_mu_sig_scaledn, "muscaledn");
 
   //trigger and pT cuts with muon resolution variation up
   //TODO fix with next production
   NamedFunc sys_trig_pt_muresup = assign_variation_trig_pt("el_pt",
-      "el_sig", "mu_pt+mu_ptErr", sys_mu_sig_up, "muresup");
+      "el_sig", "mu_pt+mu_ptErr", sys_mu_sig_resup, "muresup");
 
   //trigger and pT cuts with muon resolution variation down
   //TODO fix with next production
   NamedFunc sys_trig_pt_muresdn = assign_variation_trig_pt("el_pt",
-      "el_sig", "mu_pt-mu_ptErr", sys_mu_sig_dn, "muresdn");
+      "el_sig", "mu_pt-mu_ptErr", sys_mu_sig_resdn, "muresdn");
+
+  //Gets NamedFunc that is max lep miniso with variation
+  NamedFunc assign_variation_max_lep_miniso(const NamedFunc &variation_el_sig,
+                                            const NamedFunc &variation_mu_sig,
+                                            const string &name) {
+    return NamedFunc(("sys_max_lep_miniso_"+name).c_str(),[variation_el_sig, 
+        variation_mu_sig] (const Baby &b) -> NamedFunc::ScalarType{
+
+          vector<double> el_sig = variation_el_sig.GetVector(b);
+          vector<double> mu_sig = variation_mu_sig.GetVector(b);
+          float var_max_lep_miniso = -999.0;
+          for (unsigned iel = 0; iel < el_sig.size(); iel++) {
+            if (el_sig[iel]) {
+              if (b.el_miniso()->at(iel) > var_max_lep_miniso)
+                var_max_lep_miniso = b.el_miniso()->at(iel);
+            }
+          }
+          for (unsigned imu = 0; imu < mu_sig.size(); imu++) {
+            if (mu_sig[imu]) {
+              if (b.mu_miniso()->at(imu) > var_max_lep_miniso)
+                var_max_lep_miniso = b.mu_miniso()->at(imu); 
+            }
+          }
+          return var_max_lep_miniso;
+        }).EnableCaching(true);
+  }
+
+  //max lep miniso with electron scale variation up
+  NamedFunc sys_max_lep_miniso_elscaleup = assign_variation_max_lep_miniso(
+      sys_el_sig_scaleup, "mu_sig", "elscaleup");
+
+  //max lep miniso with electron scale variation down
+  NamedFunc sys_max_lep_miniso_elscaledn = assign_variation_max_lep_miniso(
+      sys_el_sig_scaledn, "mu_sig", "elscaledn");
+
+  //max lep miniso with electron resolution variation up
+  NamedFunc sys_max_lep_miniso_elresup = assign_variation_max_lep_miniso(
+      sys_el_sig_resup, "mu_sig", "elresup");
+
+  //max lep miniso with electron resolution variation down
+  NamedFunc sys_max_lep_miniso_elresdn = assign_variation_max_lep_miniso(
+      sys_el_sig_resdn, "mu_sig", "elresdn");
+
+  //max lep miniso with muon scale variation up
+  NamedFunc sys_max_lep_miniso_muscaleup = assign_variation_max_lep_miniso(
+      "el_sig", sys_mu_sig_scaleup, "muscaleup");
+
+  //max lep miniso with muon scale variation down
+  NamedFunc sys_max_lep_miniso_muscaledn = assign_variation_max_lep_miniso(
+      "el_sig", sys_mu_sig_scaledn, "muscaledn");
+
+  //max lep miniso with muon resolution variation up
+  NamedFunc sys_max_lep_miniso_muresup = assign_variation_max_lep_miniso(
+      "el_sig", sys_mu_sig_resup, "muresup");
+
+  //max lep miniso with muon resolution variation down
+  NamedFunc sys_max_lep_miniso_muresdn = assign_variation_max_lep_miniso(
+      "el_sig", sys_mu_sig_resdn, "muresdn");
 
   //for reference, photons failing origin eta cuts are dropped from pico list
 
@@ -929,54 +1070,54 @@ namespace ZgFunctions {
   //dilepton properties with muon scale variation up
   //TODO: fix in next production
   NamedFunc sys_ll_muscaleup = assign_variation_ll("el_pt", "el_sig", 
-      "mu_pt+mu_ptErr", sys_mu_sig_up, false, "muscaleup");
+      "mu_pt+mu_ptErr", sys_mu_sig_scaleup, false, "muscaleup");
 
   //dilepton properties with muon scale variation down
   //TODO: fix in next production
   NamedFunc sys_ll_muscaledn = assign_variation_ll("el_pt", "el_sig", 
-      "mu_pt-mu_ptErr", sys_mu_sig_dn, false, "muscaledn");
+      "mu_pt-mu_ptErr", sys_mu_sig_scaledn, false, "muscaledn");
 
   //dilepton properties with muon resolution variation up
   //TODO: fix in next production
   NamedFunc sys_ll_muresup = assign_variation_ll("el_pt", "el_sig", 
-      "mu_pt+mu_ptErr", sys_mu_sig_up, false, "muresup");
+      "mu_pt+mu_ptErr", sys_mu_sig_resup, false, "muresup");
 
   //dilepton properties with muon resolution variation down
   //TODO: fix in next production
   NamedFunc sys_ll_muresdn = assign_variation_ll("el_pt", "el_sig", 
-      "mu_pt-mu_ptErr", sys_mu_sig_dn, false, "muresdn");
+      "mu_pt-mu_ptErr", sys_mu_sig_resdn, false, "muresdn");
 
   //dilepton mass with electron scale variation up
   NamedFunc sys_ll_m_elscaleup = NamedFunc(sys_ll_elscaleup[3]).Name(
-      "sys_ll_m_elscaleup");
+      "sys_ll_m_elscaleup").EnableCaching(true);
 
   //dilepton mass with electron scale variation down
   NamedFunc sys_ll_m_elscaledn = NamedFunc(sys_ll_elscaledn[3]).Name(
-      "sys_ll_m_elscaledn");
+      "sys_ll_m_elscaledn").EnableCaching(true);
 
   //dilepton mass with electron resolution variation up
   NamedFunc sys_ll_m_elresup = NamedFunc(sys_ll_elresup[3]).Name(
-      "sys_ll_m_elresup");
+      "sys_ll_m_elresup").EnableCaching(true);
 
   //dilepton mass with electron resolution variation down
   NamedFunc sys_ll_m_elresdn = NamedFunc(sys_ll_elresdn[3]).Name(
-      "sys_ll_m_elresdn");
+      "sys_ll_m_elresdn").EnableCaching(true);
 
   //dilepton mass with muon scale variation up
   NamedFunc sys_ll_m_muscaleup = NamedFunc(sys_ll_muscaleup[3]).Name(
-      "sys_ll_m_muscaleup");
+      "sys_ll_m_muscaleup").EnableCaching(true);
 
   //dilepton mass with muon scale variation down
   NamedFunc sys_ll_m_muscaledn = NamedFunc(sys_ll_muscaledn[3]).Name(
-      "sys_ll_m_muscaledn");
+      "sys_ll_m_muscaledn").EnableCaching(true);
   
   //dilepton mass with muon resolution variation up
   NamedFunc sys_ll_m_muresup = NamedFunc(sys_ll_muresup[3]).Name(
-      "sys_ll_m_muresup");
+      "sys_ll_m_muresup").EnableCaching(true);
 
   //dilepton mass with muon resolution variation down
   NamedFunc sys_ll_m_muresdn = NamedFunc(sys_ll_muresdn[3]).Name(
-      "sys_ll_m_muresdn");
+      "sys_ll_m_muresdn").EnableCaching(true);
 
   //get H candidate properties with variation
   //returns (pt, eta, phi, m)
@@ -1113,6 +1254,60 @@ namespace ZgFunctions {
   NamedFunc sys_llphoton_m_phresdn = NamedFunc(sys_llphoton_p4_phresdn[3])
       .Name("sys_llphoton_m_phresdn").EnableCaching(true);
 
+  //Higgs candidate pt with electron scale variation up
+  NamedFunc sys_llphoton_pt_elscaleup = NamedFunc(
+      sys_llphoton_p4_elscaleup[0.0]).Name("sys_llphoton_pt_elscaleup")
+      .EnableCaching(true);
+
+  //Higgs candidate pt with electron scale variation down
+  NamedFunc sys_llphoton_pt_elscaledn = NamedFunc(
+      sys_llphoton_p4_elscaledn[0.0]).Name("sys_llphoton_pt_elscaledn")
+      .EnableCaching(true);
+
+  //Higgs candidate pt with electron resolution variation up
+  NamedFunc sys_llphoton_pt_elresup = NamedFunc(sys_llphoton_p4_elresup[0.0])
+      .Name("sys_llphoton_pt_elresup").EnableCaching(true);
+
+  //Higgs candidate pt with electron resolution variation down
+  NamedFunc sys_llphoton_pt_elresdn = NamedFunc(sys_llphoton_p4_elresdn[0.0])
+      .Name("sys_llphoton_pt_elresdn").EnableCaching(true);
+
+  //Higgs candidate pt with muon scale variation up
+  NamedFunc sys_llphoton_pt_muscaleup = NamedFunc(
+      sys_llphoton_p4_muscaleup[0.0]).Name("sys_llphoton_pt_muscaleup")
+      .EnableCaching(true);
+
+  //Higgs candidate pt with muon scale variation down
+  NamedFunc sys_llphoton_pt_muscaledn = NamedFunc(
+      sys_llphoton_p4_muscaledn[0.0]).Name("sys_llphoton_pt_muscaledn")
+      .EnableCaching(true);
+
+  //Higgs candidate pt with muon resolution variation up
+  NamedFunc sys_llphoton_pt_muresup = NamedFunc(sys_llphoton_p4_muresup[0.0])
+      .Name("sys_llphoton_pt_muresup").EnableCaching(true);
+
+  //Higgs candidate pt with muon resolution variation down
+  NamedFunc sys_llphoton_pt_muresdn = NamedFunc(sys_llphoton_p4_muresdn[0.0])
+      .Name("sys_llphoton_pt_muresdn").EnableCaching(true);
+
+  //Higgs candidate pt with photon scale variation up
+  NamedFunc sys_llphoton_pt_phscaleup = NamedFunc(
+      sys_llphoton_p4_phscaleup[0.0]).Name("sys_llphoton_pt_phscaleup")
+      .EnableCaching(true);
+
+  //Higgs candidate pt with photon scale variation down
+  NamedFunc sys_llphoton_pt_phscaledn = NamedFunc(
+      sys_llphoton_p4_phscaledn[0.0]).Name("sys_llphoton_pt_phscaledn")
+      .EnableCaching(true);
+
+  //Higgs candidate pt with photon resolution variation up
+  NamedFunc sys_llphoton_pt_phresup = NamedFunc(sys_llphoton_p4_phresup[0.0])
+      .Name("sys_llphoton_pt_phresup").EnableCaching(true);
+
+  //Higgs candidate pt with photon resolution variation down
+  NamedFunc sys_llphoton_pt_phresdn = NamedFunc(sys_llphoton_p4_phresdn[0.0])
+      .Name("sys_llphoton_pt_phresdn").EnableCaching(true);
+
   //Gets NamedFunc that is (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) of lepton
   //refit pT with variation
   NamedFunc assign_variation_lep_refit(
@@ -1240,7 +1435,7 @@ namespace ZgFunctions {
       assign_variation_ll_refit_p4(sys_ll_muresdn[7], 
       sys_lep_refit_muresdn, "muresdn");
 
-  //Gets NamedFunc that is assigns Higgs four momentum with variation
+  //Gets NamedFunc that assigns Higgs four momentum with variation
   NamedFunc assign_variation_llphoton_refit_p4(
       const NamedFunc &ll_idx, const NamedFunc &ll_refit_p4, 
       const NamedFunc &lead_photon_pt, const NamedFunc &lead_photon_eta, 
@@ -1429,6 +1624,445 @@ namespace ZgFunctions {
           }
           return (l1+l2+ph).M();
         });
+  }
+  
+  //Gets NamedFunc that is jet_pt with year_specific_variation
+  NamedFunc assign_variation_jet_pt_year(const NamedFunc &var_jet_pt,
+      const string year, const string &name) {
+    return NamedFunc(("sys_jet_pt_"+name+year).c_str(),[var_jet_pt, year]
+        (const Baby &b) -> NamedFunc::VectorType{
+          if (b.SampleTypeString()==year
+              || b.SampleTypeString()==("-"+year))
+            return var_jet_pt.GetVector(b);
+          vector<double> def_jet_pt;
+          for (unsigned ijet = 0; ijet < b.jet_pt()->size(); ijet++) {
+            def_jet_pt.push_back(b.jet_pt()->at(ijet));
+          }
+          return def_jet_pt;
+        }).EnableCaching(true);
+  }
+
+  //Gets vector NamedFunc that has variation for one year
+  NamedFunc assign_vec_variation_year_select(const NamedFunc &var_namedfunc,
+      const NamedFunc &def_namedfunc, const string year, const string &name) {
+    return NamedFunc((name+year).c_str(),[var_namedfunc, def_namedfunc, year]
+        (const Baby &b) -> NamedFunc::VectorType{
+          if (b.SampleTypeString()==year
+              || b.SampleTypeString()==("-"+year))
+            return var_namedfunc.GetVector(b);
+          return def_namedfunc.GetVector(b); 
+        }).EnableCaching(true);
+  }
+  
+  //Gets scalar NamedFunc that has variation for one year
+  NamedFunc assign_sca_variation_year_select(const NamedFunc &var_namedfunc,
+      const NamedFunc &def_namedfunc, const string year, const string &name) {
+    return NamedFunc((name+year).c_str(),[var_namedfunc, def_namedfunc, year]
+        (const Baby &b) -> NamedFunc::ScalarType{
+          if (b.SampleTypeString()==year
+              || b.SampleTypeString()==("-"+year))
+            return var_namedfunc.GetScalar(b);
+          return def_namedfunc.GetScalar(b); 
+        }).EnableCaching(true);
+  }
+
+  //Gets nbdfm with alternate sig
+  NamedFunc assign_variation_nbdfm(const NamedFunc &var_jet_isgood, 
+      const string &name) {
+    return NamedFunc(("sys_nbdfm_"+name).c_str(),[var_jet_isgood]
+        (const Baby &b) -> NamedFunc::ScalarType{
+        float nbdfm = 0;
+        float wp = get_btag_wp_deepjet(b.SampleTypeString().Data(), 2);
+        vector<double> jet_isgood = var_jet_isgood.GetVector(b);
+        for (unsigned ijet = 0; ijet < b.jet_pt()->size(); ijet++) {
+          if (jet_isgood[ijet] && b.jet_deepflav()->at(ijet) > wp)
+            nbdfm += 1;
+        }
+        return nbdfm;
+        }).EnableCaching(true);
+  }
+
+  //jet variations separated by era
+  vector<NamedFunc> sys_jet_pt_scaleup;
+  vector<NamedFunc> sys_jet_pt_scaledn;
+  vector<NamedFunc> sys_jet_pt_resup;
+  vector<NamedFunc> sys_jet_pt_resdn;
+  vector<NamedFunc> sys_jet_isgood_scaleup;
+  vector<NamedFunc> sys_jet_isgood_scaledn;
+  vector<NamedFunc> sys_jet_isgood_resup;
+  vector<NamedFunc> sys_jet_isgood_resdn;
+  vector<NamedFunc> sys_sig_jet_pt_scaleup;
+  vector<NamedFunc> sys_sig_jet_pt_scaledn;
+  vector<NamedFunc> sys_sig_jet_pt_resup;
+  vector<NamedFunc> sys_sig_jet_pt_resdn;
+  vector<NamedFunc> sys_sublead_jet_pt_scaleup;
+  vector<NamedFunc> sys_sublead_jet_pt_scaledn;
+  vector<NamedFunc> sys_sublead_jet_pt_resup;
+  vector<NamedFunc> sys_sublead_jet_pt_resdn;
+  vector<NamedFunc> sys_sig_jet_eta_scaleup;
+  vector<NamedFunc> sys_sig_jet_eta_scaledn;
+  vector<NamedFunc> sys_sig_jet_eta_resup;
+  vector<NamedFunc> sys_sig_jet_eta_resdn;
+  vector<NamedFunc> sys_sig_jet_m_scaleup;
+  vector<NamedFunc> sys_sig_jet_m_scaledn;
+  vector<NamedFunc> sys_sig_jet_m_resup;
+  vector<NamedFunc> sys_sig_jet_m_resdn;
+  vector<NamedFunc> sys_sig_jet_deepflav_scaleup;
+  vector<NamedFunc> sys_sig_jet_deepflav_scaledn;
+  vector<NamedFunc> sys_sig_jet_deepflav_resup;
+  vector<NamedFunc> sys_sig_jet_deepflav_resdn;
+  vector<NamedFunc> sys_lead_jet_pt_scaleup;
+  vector<NamedFunc> sys_lead_jet_pt_scaledn;
+  vector<NamedFunc> sys_lead_jet_pt_resup;
+  vector<NamedFunc> sys_lead_jet_pt_resdn;
+  vector<NamedFunc> sys_lead_jet_eta_scaleup;
+  vector<NamedFunc> sys_lead_jet_eta_scaledn;
+  vector<NamedFunc> sys_lead_jet_eta_resup;
+  vector<NamedFunc> sys_lead_jet_eta_resdn;
+  vector<NamedFunc> sys_lead_jet_m_scaleup;
+  vector<NamedFunc> sys_lead_jet_m_scaledn;
+  vector<NamedFunc> sys_lead_jet_m_resup;
+  vector<NamedFunc> sys_lead_jet_m_resdn;
+  vector<NamedFunc> sys_njet_scaleup;
+  vector<NamedFunc> sys_njet_scaledn;
+  vector<NamedFunc> sys_njet_resup;
+  vector<NamedFunc> sys_njet_resdn;
+  vector<NamedFunc> sys_nbdfm_scaleup;
+  vector<NamedFunc> sys_nbdfm_scaledn;
+  vector<NamedFunc> sys_nbdfm_resup;
+  vector<NamedFunc> sys_nbdfm_resdn;
+  vector<NamedFunc> sys_met_scaleup;
+  vector<NamedFunc> sys_met_scaledn;
+  vector<NamedFunc> sys_met_resup;
+  vector<NamedFunc> sys_met_resdn;
+
+  //NamedFunc for 2017-2018 (i.e. horn veto, no jet veto) pinnacles production
+  NamedFunc pinnacles_run2_jet_isgood_nopt = NamedFunc("!jet_islep"
+      "&&!jet_isphoton&&-4.7<jet_eta&&jet_eta<4.7&&jet_id&&!(((jet_eta>-3.0"
+      "&&jet_eta<-2.5)||(jet_eta>2.5&&jet_eta<3.0))&&jet_pt<40)")
+      .Name("jet_isgood_nopt").EnableCaching(true);
+
+  //Gets NamedFunc that is untagged category selections with variation
+  NamedFunc assign_variation_untagged_category(
+      const NamedFunc &var_nlep, const NamedFunc &var_njet, 
+      const NamedFunc &var_nbdfm, const NamedFunc &var_met,
+      const NamedFunc &var_llphoton_pt, const NamedFunc &var_llphoton_m,
+      const NamedFunc &var_max_lep_miniso, const NamedFunc &var_ll_m,
+      const string &name) {
+
+    return NamedFunc(
+        //2l+b but not enough jets for tth
+        (var_nlep==2&&var_nbdfm>=1&&var_njet<5)
+        //3l0b, but not enough met for vh3l
+        ||(var_nlep>=3&&var_nbdfm==0.0&&var_met<=30)
+        //3l+b, but not enough jets for tth
+        ||(var_nlep==3&&var_nbdfm>=1&&var_njet<3)
+        //fail additional llphoton pt/m selections in vhmet
+        ||(var_nlep==2&&var_njet<=1&&var_met>90
+           &&(var_llphoton_pt/var_llphoton_m)<=0.4)
+        //fail additional llphoton pt/m selections in vh3l
+        ||(var_nlep==3&&var_nbdfm==0.0&&var_met>30
+           &&(var_llphoton_pt/var_llphoton_m)<=0.3)
+        //fail additional miniso selection in vh3l
+        ||(var_nlep>=3&&var_nbdfm==0.0&&var_met>30&&var_max_lep_miniso>0.15)
+        //fail additional mll selection in tthhad
+        ||(var_nlep==2&&var_nbdfm>=1&&var_njet>=5&&(var_ll_m<85||var_ll_m>95))
+        //fail additional miniso seleciton in tthlep
+        ||(((var_nlep==3&&var_nbdfm>=1&&var_njet>=3)
+            ||(var_nlep>=4&&var_nbdfm>=1))
+           &&var_max_lep_miniso>=0.1)).Name("sys_untagged_category_"+name)
+        .EnableCaching(true);
+  }
+
+  //untagged category selection with electron scale variation up
+  const NamedFunc untagged_category_elscaleup = 
+      assign_variation_untagged_category(
+      sys_nlep_elscaleup, "njet", "nbdfm", "met", sys_llphoton_pt_elscaleup, 
+      sys_llphoton_m_elscaleup, sys_max_lep_miniso_elscaleup, 
+      sys_ll_m_elscaleup, "elscaleup");
+
+  //untagged category selection with electron scale variation up
+  const NamedFunc untagged_category_elscaledn = 
+      assign_variation_untagged_category(
+      sys_nlep_elscaledn, "njet", "nbdfm", "met", sys_llphoton_pt_elscaledn, 
+      sys_llphoton_m_elscaledn, sys_max_lep_miniso_elscaledn, 
+      sys_ll_m_elscaledn, "elscaledn");
+
+  //untagged category selection with electron resolution variation up
+  const NamedFunc untagged_category_elresup = 
+      assign_variation_untagged_category(
+      sys_nlep_elresup, "njet", "nbdfm", "met", sys_llphoton_pt_elresup, 
+      sys_llphoton_m_elresup, sys_max_lep_miniso_elresup, 
+      sys_ll_m_elresup, "elresup");
+
+  //untagged category selection with electron resolution variation up
+  const NamedFunc untagged_category_elresdn = 
+      assign_variation_untagged_category(
+      sys_nlep_elresdn, "njet", "nbdfm", "met", sys_llphoton_pt_elresdn, 
+      sys_llphoton_m_elresdn, sys_max_lep_miniso_elresdn, 
+      sys_ll_m_elresdn, "elresdn");
+
+  //untagged category selection with muon scale variation up
+  const NamedFunc untagged_category_muscaleup = 
+      assign_variation_untagged_category(
+      sys_nlep_muscaleup, "njet", "nbdfm", "met", sys_llphoton_pt_muscaleup, 
+      sys_llphoton_m_muscaleup, sys_max_lep_miniso_muscaleup, 
+      sys_ll_m_muscaleup, "muscaleup");
+
+  //untagged category selection with muon scale variation up
+  const NamedFunc untagged_category_muscaledn = 
+      assign_variation_untagged_category(
+      sys_nlep_muscaledn, "njet", "nbdfm", "met", sys_llphoton_pt_muscaledn, 
+      sys_llphoton_m_muscaledn, sys_max_lep_miniso_muscaledn, 
+      sys_ll_m_muscaledn, "muscaledn");
+
+  //untagged category selection with muon resolution variation up
+  const NamedFunc untagged_category_muresup = 
+      assign_variation_untagged_category(
+      sys_nlep_muresup, "njet", "nbdfm", "met", sys_llphoton_pt_muresup, 
+      sys_llphoton_m_muresup, sys_max_lep_miniso_muresup, 
+      sys_ll_m_muresup, "muresup");
+
+  //untagged category selection with muon resolution variation up
+  const NamedFunc untagged_category_muresdn = 
+      assign_variation_untagged_category(
+      sys_nlep_muresdn, "njet", "nbdfm", "met", sys_llphoton_pt_muresdn, 
+      sys_llphoton_m_muresdn, sys_max_lep_miniso_muresdn, 
+      sys_ll_m_muresdn, "muresdn");
+
+  //untagged category selection with photon scale variation up
+  const NamedFunc untagged_category_phscaleup = 
+      assign_variation_untagged_category(
+      "nlep", "njet", "nbdfm", "met", sys_llphoton_pt_phscaleup, 
+      sys_llphoton_m_phscaleup, max_lep_miniso, "ll_m[0]", "phscaleup");
+
+  //untagged category selection with photon scale variation down
+  const NamedFunc untagged_category_phscaledn = 
+      assign_variation_untagged_category(
+      "nlep", "njet", "nbdfm", "met", sys_llphoton_pt_phscaledn, 
+      sys_llphoton_m_phscaledn, max_lep_miniso, "ll_m[0]", "phscaledn");
+
+  //untagged category selection with photon resolution variation up
+  const NamedFunc untagged_category_phresup = 
+      assign_variation_untagged_category(
+      "nlep", "njet", "nbdfm", "met", sys_llphoton_pt_phresup, 
+      sys_llphoton_m_phresup, max_lep_miniso, "ll_m[0]", "phresup");
+
+  //untagged category selection with photon resolution variation down
+  const NamedFunc untagged_category_phresdn = 
+      assign_variation_untagged_category(
+      "nlep", "njet", "nbdfm", "met", sys_llphoton_pt_phresdn, 
+      sys_llphoton_m_phresdn, max_lep_miniso, "ll_m[0]", "phresdn");
+  
+  //untagged category selection with various jet variations
+  vector<NamedFunc> untagged_category_jetscaleup;
+  vector<NamedFunc> untagged_category_jetscaledn;
+  vector<NamedFunc> untagged_category_jetresup;
+  vector<NamedFunc> untagged_category_jetresdn;
+
+  //isgood requires !invetomap !inhemveto !inetahornveto !islep !isphoton eta 
+  //fixedjetid pt
+  //isgood_min includes !islep !isphoton eta fixedjetid !inethornveto
+  //but not pt, !invetomap, or !inhemveto
+
+  //horrible hack to get around the fact that I can't put a for loop outside
+  //of a function to initialize what should be constant vectors...
+  void initialize_jetvariations() {
+    const vector<string> years = {"2016APV", "2016", "2017", "2018", 
+                                  "2022", "2022EE", "2023", "2023BPix"};
+    for (unsigned iyear = 0; iyear < years.size(); iyear++) {
+      string year = years[iyear];
+      sys_jet_pt_scaleup.push_back(assign_variation_jet_pt_year(
+          "sys_jet_pt_jesup", year, "scaleup"));
+      sys_jet_pt_scaledn.push_back(assign_variation_jet_pt_year(
+          "sys_jet_pt_jesdn", year, "scaledn"));
+      sys_jet_pt_resup.push_back(assign_variation_jet_pt_year(
+          "sys_jet_pt_jerup", year, "resup"));
+      sys_jet_pt_resdn.push_back(assign_variation_jet_pt_year(
+          "sys_jet_pt_jerdn", year, "resdn"));
+      //TODO uncomment real ones for next production
+      sys_jet_isgood_scaleup.push_back(NamedFunc(
+          pinnacles_run2_jet_isgood_nopt
+          &&sys_jet_pt_scaleup[iyear]>30.0).Name("sys_jet_isgood_scaleup"+year)
+          .EnableCaching(true));
+      sys_jet_isgood_scaledn.push_back(NamedFunc(
+          pinnacles_run2_jet_isgood_nopt
+          &&sys_jet_pt_scaledn[iyear]>30.0).Name("sys_jet_isgood_scaledn"+year)
+          .EnableCaching(true));
+      sys_jet_isgood_resup.push_back(NamedFunc(
+          pinnacles_run2_jet_isgood_nopt
+          &&sys_jet_pt_resup[iyear]>30.0).Name("sys_jet_isgood_resup"+year)
+          .EnableCaching(true));
+      sys_jet_isgood_resdn.push_back(NamedFunc(
+          pinnacles_run2_jet_isgood_nopt
+          &&sys_jet_pt_resdn[iyear]>30.0).Name("sys_jet_isgood_resdn"+year)
+          .EnableCaching(true));
+      //sys_jet_isgood_scaleup.push_back(NamedFunc(
+      //    "jet_isgood_min&&!jet_isvetomap&&!jet_is_vetohem"
+      //    &&sys_jet_pt_scaleup[iyear]>30.0).Name("sys_jet_isgood_scaleup"+year)
+      //    .EnableCaching(true));
+      //sys_jet_isgood_scaledn.push_back(NamedFunc(
+      //    "jet_isgood_min&&!jet_isvetomap&&!jet_is_vetohem"
+      //    &&sys_jet_pt_scaledn[iyear]>30.0).Name("sys_jet_isgood_scaledn"+year)
+      //    .EnableCaching(true));
+      //sys_jet_isgood_resup.push_back(NamedFunc(
+      //    "jet_isgood_min&&!jet_isvetomap&&!jet_is_vetohem"
+      //    &&sys_jet_pt_resup[iyear]>30.0).Name("sys_jet_isgood_resup"+year)
+      //    .EnableCaching(true));
+      //sys_jet_isgood_resdn.push_back(NamedFunc(
+      //    "jet_isgood_min&&!jet_isvetomap&&!jet_is_vetohem"
+      //    &&sys_jet_pt_resdn[iyear]>30.0).Name("sys_jet_isgood_resdn"+year)
+      //    .EnableCaching(true));
+      sys_sig_jet_pt_scaleup.push_back(FilterNamedFunc(sys_jet_pt_scaleup[iyear],
+          sys_jet_isgood_scaleup[iyear]).Name("sys_sig_jet_pt_scaleup"+year)
+          .EnableCaching(true));
+      sys_sig_jet_pt_scaledn.push_back(FilterNamedFunc(sys_jet_pt_scaledn[iyear],
+          sys_jet_isgood_scaledn[iyear]).Name("sys_sig_jet_pt_scaledn"+year)
+          .EnableCaching(true));
+      sys_sig_jet_pt_resup.push_back(FilterNamedFunc(sys_jet_pt_resup[iyear],
+          sys_jet_isgood_resup[iyear]).Name("sys_sig_jet_pt_resup"+year)
+          .EnableCaching(true));
+      sys_sig_jet_pt_resdn.push_back(FilterNamedFunc(sys_jet_pt_resdn[iyear],
+          sys_jet_isgood_resdn[iyear]).Name("sys_sig_jet_pt_resdn"+year)
+          .EnableCaching(true));
+      sys_sig_jet_eta_scaleup.push_back(FilterNamedFunc("jet_eta",
+          sys_jet_isgood_scaleup[iyear]).Name("sys_sig_jet_eta_scaleup"+year)
+          .EnableCaching(true));
+      sys_sig_jet_eta_scaledn.push_back(FilterNamedFunc("jet_eta",
+          sys_jet_isgood_scaledn[iyear]).Name("sys_sig_jet_eta_scaledn"+year)
+          .EnableCaching(true));
+      sys_sig_jet_eta_resup.push_back(FilterNamedFunc("jet_eta",
+          sys_jet_isgood_resup[iyear]).Name("sys_sig_jet_eta_resup"+year)
+          .EnableCaching(true));
+      sys_sig_jet_eta_resdn.push_back(FilterNamedFunc("jet_eta",
+          sys_jet_isgood_resdn[iyear]).Name("sys_sig_jet_eta_resdn"+year)
+          .EnableCaching(true));
+      sys_sig_jet_m_scaleup.push_back(FilterNamedFunc("jet_m",
+          sys_jet_isgood_scaleup[iyear]).Name("sys_sig_jet_m_scaleup"+year)
+          .EnableCaching(true));
+      sys_sig_jet_m_scaledn.push_back(FilterNamedFunc("jet_m",
+          sys_jet_isgood_scaledn[iyear]).Name("sys_sig_jet_m_scaledn"+year)
+          .EnableCaching(true));
+      sys_sig_jet_m_resup.push_back(FilterNamedFunc("jet_m",
+          sys_jet_isgood_resup[iyear]).Name("sys_sig_jet_m_resup"+year)
+          .EnableCaching(true));
+      sys_sig_jet_m_resdn.push_back(FilterNamedFunc("jet_m",
+          sys_jet_isgood_resdn[iyear]).Name("sys_sig_jet_m_resdn"+year)
+          .EnableCaching(true));
+      sys_lead_jet_pt_scaleup.push_back(ReduceNamedFunc(
+          sys_sig_jet_pt_scaleup[iyear],reduce_max).Name(
+          "sys_lead_jet_pt_scaleup"+year).EnableCaching(true));
+      sys_lead_jet_pt_scaledn.push_back(ReduceNamedFunc(
+          sys_sig_jet_pt_scaledn[iyear],reduce_max).Name(
+          "sys_lead_jet_pt_scaledn"+year).EnableCaching(true));
+      sys_lead_jet_pt_resup.push_back(ReduceNamedFunc(
+          sys_sig_jet_pt_resup[iyear],reduce_max).Name(
+          "sys_lead_jet_pt_resup"+year).EnableCaching(true));
+      sys_lead_jet_pt_resdn.push_back(ReduceNamedFunc(
+          sys_sig_jet_pt_resdn[iyear],reduce_max).Name(
+          "sys_lead_jet_pt_resdn"+year).EnableCaching(true));
+      sys_sublead_jet_pt_scaleup.push_back(ReduceNamedFunc(
+          sys_sig_jet_pt_scaleup[iyear],reduce_sublead).Name(
+          "sys_sublead_jet_pt_scaleup"+year).EnableCaching(true));
+      sys_sublead_jet_pt_scaledn.push_back(ReduceNamedFunc(
+          sys_sig_jet_pt_scaledn[iyear],reduce_sublead).Name(
+          "sys_sublead_jet_pt_scaledn"+year).EnableCaching(true));
+      sys_sublead_jet_pt_resup.push_back(ReduceNamedFunc(
+          sys_sig_jet_pt_resup[iyear],reduce_sublead).Name(
+          "sys_sublead_jet_pt_resup"+year).EnableCaching(true));
+      sys_sublead_jet_pt_resdn.push_back(ReduceNamedFunc(
+          sys_sig_jet_pt_resdn[iyear],reduce_sublead).Name(
+          "sys_sublead_jet_pt_resdn"+year).EnableCaching(true));
+      sys_lead_jet_eta_scaleup.push_back(MultiReduceNamedFunc(
+          {sys_sig_jet_pt_scaleup[iyear],sys_sig_jet_eta_scaleup[iyear]}, 
+          reduce_maxfirst).Name("sys_lead_jet_eta_scaleup"+year)
+          .EnableCaching(true));
+      sys_lead_jet_eta_scaledn.push_back(MultiReduceNamedFunc(
+          {sys_sig_jet_pt_scaledn[iyear],sys_sig_jet_eta_scaledn[iyear]}, 
+          reduce_maxfirst).Name("sys_lead_jet_eta_scaledn"+year)
+          .EnableCaching(true));
+      sys_lead_jet_eta_resup.push_back(MultiReduceNamedFunc(
+          {sys_sig_jet_pt_resup[iyear],sys_sig_jet_eta_resup[iyear]}, 
+          reduce_maxfirst).Name("sys_lead_jet_eta_resup"+year)
+          .EnableCaching(true));
+      sys_lead_jet_eta_resdn.push_back(MultiReduceNamedFunc(
+          {sys_sig_jet_pt_resdn[iyear],sys_sig_jet_eta_resdn[iyear]}, 
+          reduce_maxfirst).Name("sys_lead_jet_eta_resdn"+year)
+          .EnableCaching(true));
+      sys_lead_jet_m_scaleup.push_back(MultiReduceNamedFunc(
+          {sys_sig_jet_pt_scaleup[iyear],sys_sig_jet_m_scaleup[iyear]}, 
+          reduce_maxfirst).Name("sys_lead_jet_m_scaleup"+year)
+          .EnableCaching(true));
+      sys_lead_jet_m_scaledn.push_back(MultiReduceNamedFunc(
+          {sys_sig_jet_pt_scaledn[iyear],sys_sig_jet_m_scaledn[iyear]}, 
+          reduce_maxfirst).Name("sys_lead_jet_m_scaledn"+year)
+          .EnableCaching(true));
+      sys_lead_jet_m_resup.push_back(MultiReduceNamedFunc(
+          {sys_sig_jet_pt_resup[iyear],sys_sig_jet_m_resup[iyear]}, 
+          reduce_maxfirst).Name("sys_lead_jet_m_resup"+year)
+          .EnableCaching(true));
+      sys_lead_jet_m_resdn.push_back(MultiReduceNamedFunc(
+          {sys_sig_jet_pt_resdn[iyear],sys_sig_jet_m_resdn[iyear]}, 
+          reduce_maxfirst).Name("sys_lead_jet_m_resdn"+year)
+          .EnableCaching(true));
+      //sys_njet_scaleup.push_back(assign_sca_variation_year_select("sys_njet[2]",
+      //    "njet", year, "sys_njet_scaleup"));
+      //sys_njet_scaledn.push_back(assign_sca_variation_year_select("sys_njet[3]",
+      //    "njet", year, "sys_njet_scaledn"));
+      //sys_njet_resup.push_back(assign_sca_variation_year_select("sys_njet[0]",
+      //    "njet", year, "sys_njet_resup"));
+      //sys_njet_resdn.push_back(assign_sca_variation_year_select("sys_njet[1]",
+      //    "njet", year, "sys_njet_resdn"));
+      //sys_nbdfm_scaleup.push_back(assign_sca_variation_year_select("sys_nbm[2]",
+      //    "nbdfm", year, "sys_nbdfm_scaleup"));
+      //sys_nbdfm_scaledn.push_back(assign_sca_variation_year_select("sys_nbm[3]",
+      //    "nbdfm", year, "sys_nbdfm_scaledn"));
+      //sys_nbdfm_resup.push_back(assign_sca_variation_year_select("sys_nbm[0]",
+      //    "nbdfm", year, "sys_nbdfm_resup"));
+      //sys_nbdfm_resdn.push_back(assign_sca_variation_year_select("sys_nbm[1]",
+      //    "nbdfm", year, "sys_nbdfm_resdn"));
+      //
+      sys_njet_scaleup.push_back(ReduceNamedFunc(sys_jet_isgood_scaleup[iyear],
+          reduce_sum).Name("sys_njet_scaleup"+year).EnableCaching(true));
+      sys_njet_scaledn.push_back(ReduceNamedFunc(sys_jet_isgood_scaledn[iyear],
+          reduce_sum).Name("sys_njet_scaledn"+year).EnableCaching(true));
+      sys_njet_resup.push_back(ReduceNamedFunc(sys_jet_isgood_resup[iyear],
+          reduce_sum).Name("sys_njet_resup"+year).EnableCaching(true));
+      sys_njet_resdn.push_back(ReduceNamedFunc(sys_jet_isgood_resdn[iyear],
+          reduce_sum).Name("sys_njet_resdn"+year).EnableCaching(true));
+      sys_nbdfm_scaleup.push_back(assign_variation_nbdfm(
+          sys_jet_isgood_scaleup[iyear], "scaleup"+year));
+      sys_nbdfm_scaledn.push_back(assign_variation_nbdfm(
+          sys_jet_isgood_scaledn[iyear], "scaledn"+year));
+      sys_nbdfm_resup.push_back(assign_variation_nbdfm(
+          sys_jet_isgood_resup[iyear], "resup"+year));
+      sys_nbdfm_resdn.push_back(assign_variation_nbdfm(
+          sys_jet_isgood_resdn[iyear], "resdn"+year));
+      sys_met_scaleup.push_back(assign_sca_variation_year_select("sys_met[2]",
+          "met", year, "sys_met_scaleup"));
+      sys_met_scaledn.push_back(assign_sca_variation_year_select("sys_met[3]",
+          "met", year, "sys_met_scaledn"));
+      sys_met_resup.push_back(assign_sca_variation_year_select("sys_met[0]",
+          "met", year, "sys_met_resup"));
+      sys_met_resdn.push_back(assign_sca_variation_year_select("sys_met[1]",
+          "met", year, "sys_met_resdn"));
+      untagged_category_jetscaleup.push_back(assign_variation_untagged_category(
+          "nlep", sys_njet_scaleup[iyear], sys_nbdfm_scaleup[iyear], 
+          sys_met_scaleup[iyear], "llphoton_pt[0]", "llphoton_m[0]", 
+          max_lep_miniso, "ll_m[0]", "jetscaleup"));
+      untagged_category_jetscaledn.push_back(assign_variation_untagged_category(
+          "nlep", sys_njet_scaledn[iyear], sys_nbdfm_scaledn[iyear], 
+          sys_met_scaledn[iyear], "llphoton_pt[0]", "llphoton_m[0]", 
+          max_lep_miniso, "ll_m[0]", "jetscaledn"));
+      untagged_category_jetresup.push_back(assign_variation_untagged_category(
+          "nlep", sys_njet_resup[iyear], sys_nbdfm_resup[iyear], 
+          sys_met_resup[iyear], "llphoton_pt[0]", "llphoton_m[0]", 
+          max_lep_miniso, "ll_m[0]", "jetresup"));
+      untagged_category_jetresdn.push_back(assign_variation_untagged_category(
+          "nlep", sys_njet_resdn[iyear], sys_nbdfm_resdn[iyear], 
+          sys_met_resdn[iyear], "llphoton_pt[0]", "llphoton_m[0]", 
+          max_lep_miniso, "ll_m[0]", "jetresdn"));
+    }
   }
 
 }

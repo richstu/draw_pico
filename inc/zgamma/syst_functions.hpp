@@ -124,11 +124,17 @@ namespace ZgFunctions {
   //el_sig with electron resolution variation down
   extern const NamedFunc sys_el_sig_resdn;
 
-  //mu_sig with muon systematics up
-  extern const NamedFunc sys_mu_sig_up;
+  //mu_sig with muon scale variation up
+  extern const NamedFunc sys_mu_sig_scaleup;
 
-  //mu_sig with muon systematics down
-  extern const NamedFunc sys_mu_sig_dn;
+  //mu_sig with muon scale variation down
+  extern const NamedFunc sys_mu_sig_scaledn;
+
+  //mu_sig with muon resolution variation up
+  extern const NamedFunc sys_mu_sig_resup;
+
+  //mu_sig with muon resolution variation down
+  extern const NamedFunc sys_mu_sig_resdn;
 
   //nel with electron scale variation up
   extern const NamedFunc sys_nel_scaleup;
@@ -142,11 +148,17 @@ namespace ZgFunctions {
   //nel with electron resolution variation down
   extern const NamedFunc sys_nel_resdn;
 
-  //nmu with muon systematics up
-  extern const NamedFunc sys_nmu_up;
+  //nmu with muon scale variation up
+  extern const NamedFunc sys_nmu_scaleup;
 
-  //nmu with muon systematics down
-  extern const NamedFunc sys_nmu_dn;
+  //nmu with muon scale variation down
+  extern const NamedFunc sys_nmu_scaledn;
+
+  //nmu with muon resolution variation up
+  extern const NamedFunc sys_nmu_resup;
+
+  //nmu with muon resolution variation down
+  extern const NamedFunc sys_nmu_resdn;
 
   //nlep with electron scale variation up
   extern const NamedFunc sys_nlep_elscaleup;
@@ -160,11 +172,17 @@ namespace ZgFunctions {
   //nlep with electron resolution variation up
   extern const NamedFunc sys_nlep_elresdn;
 
-  //nlep with muon systematics up
-  extern const NamedFunc sys_nlep_muup;
+  //nlep with muon scale variation up
+  extern const NamedFunc sys_nlep_muscaleup;
 
-  //nlep with muon systematics down
-  extern const NamedFunc sys_nlep_mudn;
+  //nlep with muon scale variation down
+  extern const NamedFunc sys_nlep_muscaledn;
+
+  //nlep with muon resolution variation up
+  extern const NamedFunc sys_nlep_muresup;
+
+  //nlep with muon resolution variation down
+  extern const NamedFunc sys_nlep_muresdn;
 
   //Gets NamedFunc that is number of ll candidates with variation
   NamedFunc assign_variation_nll(const NamedFunc &variation_el_sig, 
@@ -219,17 +237,29 @@ namespace ZgFunctions {
   //subleading electron pt with electron resolution variation down
   extern const NamedFunc sys_sublead_el_pt_resdn;
 
-  //leading muon pt with muon variation up
-  extern const NamedFunc sys_lead_mu_pt_up;
+  //leading muon pt with muon scale variation up
+  extern const NamedFunc sys_lead_mu_pt_scaleup;
 
-  //subleading muon pt with muon variation up
-  extern const NamedFunc sys_sublead_mu_pt_up;
+  //subleading muon pt with muon scale variation up
+  extern const NamedFunc sys_sublead_mu_pt_scaleup;
 
-  //leading muon pt with muon variation down
-  extern const NamedFunc sys_lead_mu_pt_dn;
+  //leading muon pt with muon scale variation down
+  extern const NamedFunc sys_lead_mu_pt_scaledn;
 
-  //subleading muon pt with muon variation down
-  extern const NamedFunc sys_sublead_mu_pt_dn;
+  //subleading muon pt with muon scale variation down
+  extern const NamedFunc sys_sublead_mu_pt_scaledn;
+
+  //leading muon pt with muon resolution variation up
+  extern const NamedFunc sys_lead_mu_pt_resup;
+
+  //subleading muon pt with muon resolution variation up
+  extern const NamedFunc sys_sublead_mu_pt_resup;
+
+  //leading muon pt with muon resolution variation down
+  extern const NamedFunc sys_lead_mu_pt_resdn;
+
+  //subleading muon pt with muon resolution variation down
+  extern const NamedFunc sys_sublead_mu_pt_resdn;
 
   //Gets NamedFunc that is trigger+pT cut flag with variation
   NamedFunc assign_variation_trig_pt(const NamedFunc &variation_el_pt, 
@@ -261,6 +291,35 @@ namespace ZgFunctions {
 
   //trigger and pT cuts with muon resolution variation down
   extern NamedFunc sys_trig_pt_muresdn;
+
+  //Gets NamedFunc that is max lep miniso with variation
+  NamedFunc assign_variation_max_lep_miniso(const NamedFunc &variation_el_sig,
+                                            const NamedFunc &variation_mu_sig,
+                                            const std::string &name);
+
+  //max lep miniso with electron scale variation up
+  extern NamedFunc sys_max_lep_miniso_elscaleup;
+
+  //max lep miniso with electron scale variation down
+  extern NamedFunc sys_max_lep_miniso_elscaledn;
+
+  //max lep miniso with electron resolution variation up
+  extern NamedFunc sys_max_lep_miniso_elresup;
+
+  //max lep miniso with electron resolution variation down
+  extern NamedFunc sys_max_lep_miniso_elresdn;
+
+  //max lep miniso with muon scale variation up
+  extern NamedFunc sys_max_lep_miniso_muscaleup;
+
+  //max lep miniso with muon scale variation down
+  extern NamedFunc sys_max_lep_miniso_muscaledn;
+
+  //max lep miniso with muon resolution variation up
+  extern NamedFunc sys_max_lep_miniso_muresup;
+
+  //max lep miniso with muon resolution variation down
+  extern NamedFunc sys_max_lep_miniso_muresdn;
 
   //photon_sig with photon scale variation down
   extern NamedFunc sys_photon_sig_scaleup;
@@ -523,6 +582,42 @@ namespace ZgFunctions {
   //Higgs candidate mass with photon resolution variation down
   extern NamedFunc sys_llphoton_m_phresdn;
 
+  //Higgs candidate pt with electron scale variation up
+  extern NamedFunc sys_llphoton_pt_elscaleup;
+
+  //Higgs candidate pt with electron scale variation down
+  extern NamedFunc sys_llphoton_pt_elscaledn;
+
+  //Higgs candidate pt with electron resolution variation up
+  extern NamedFunc sys_llphoton_pt_elresup;
+
+  //Higgs candidate pt with electron resolution variation down
+  extern NamedFunc sys_llphoton_pt_elresdn;
+
+  //Higgs candidate pt with muon scale variation up
+  extern NamedFunc sys_llphoton_pt_muscaleup;
+
+  //Higgs candidate pt with muon scale variation dn
+  extern NamedFunc sys_llphoton_pt_muscaledn;
+
+  //Higgs candidate pt with muon resolution variation up
+  extern NamedFunc sys_llphoton_pt_muresup;
+
+  //Higgs candidate pt with muon resolution variation dn
+  extern NamedFunc sys_llphoton_pt_muresdn;
+
+  //Higgs candidate pt with photon scale variation up
+  extern NamedFunc sys_llphoton_pt_phscaleup;
+
+  //Higgs candidate pt with photon scale variation down
+  extern NamedFunc sys_llphoton_pt_phscaledn;
+
+  //Higgs candidate pt with photon resolution variation up
+  extern NamedFunc sys_llphoton_pt_phresup;
+
+  //Higgs candidate pt with photon resolution variation down
+  extern NamedFunc sys_llphoton_pt_phresdn;
+
   //Gets NamedFunc that is (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) of lepton
   //refit pT with variation
   NamedFunc assign_variation_lep_refit(const NamedFunc &el_pt, 
@@ -672,6 +767,91 @@ namespace ZgFunctions {
                                    const NamedFunc &photon_pt,
                                    const std::string &name);
 
+  //Gets NamedFunc that is jet_pt with year_specific_variation
+  NamedFunc assign_variation_jet_pt_year(const NamedFunc &var_jet_pt,
+      const std::string year, const std::string &name);
+
+  //Gets vector NamedFunc that has variation for one year
+  NamedFunc assign_vec_variation_year_select(const NamedFunc &var_namedfunc,
+      const NamedFunc &def_namedfunc, const std::string year, 
+      const std::string &name);
+  
+  //Gets scalar NamedFunc that has variation for one year
+  NamedFunc assign_sca_variation_year_select(const NamedFunc &var_namedfunc,
+      const NamedFunc &def_namedfunc, const std::string year, 
+      const std::string &name);
+
+  //Gets nbdfm with alternate sig
+  NamedFunc assign_variation_nbdfm(const NamedFunc &var_jet_isgood,
+      const std::string &name);
+
+  //jet variations separated by era
+  extern std::vector<NamedFunc> sys_jet_pt_scaleup;
+  extern std::vector<NamedFunc> sys_jet_pt_scaledn;
+  extern std::vector<NamedFunc> sys_jet_pt_resup;
+  extern std::vector<NamedFunc> sys_jet_pt_resdn;
+  extern std::vector<NamedFunc> sys_jet_isgood_scaleup;
+  extern std::vector<NamedFunc> sys_jet_isgood_scaledn;
+  extern std::vector<NamedFunc> sys_jet_isgood_resup;
+  extern std::vector<NamedFunc> sys_jet_isgood_resdn;
+  extern std::vector<NamedFunc> sys_lead_jet_pt_scaleup;
+  extern std::vector<NamedFunc> sys_lead_jet_pt_scaledn;
+  extern std::vector<NamedFunc> sys_lead_jet_pt_resup;
+  extern std::vector<NamedFunc> sys_lead_jet_pt_resdn;
+  extern std::vector<NamedFunc> sys_sublead_jet_pt_scaleup;
+  extern std::vector<NamedFunc> sys_sublead_jet_pt_scaledn;
+  extern std::vector<NamedFunc> sys_sublead_jet_pt_resup;
+  extern std::vector<NamedFunc> sys_sublead_jet_pt_resdn;
+  extern std::vector<NamedFunc> sys_lead_jet_eta_scaleup;
+  extern std::vector<NamedFunc> sys_lead_jet_eta_scaledn;
+  extern std::vector<NamedFunc> sys_lead_jet_eta_resup;
+  extern std::vector<NamedFunc> sys_lead_jet_eta_resdn;
+  extern std::vector<NamedFunc> sys_lead_jet_m_scaleup;
+  extern std::vector<NamedFunc> sys_lead_jet_m_scaledn;
+  extern std::vector<NamedFunc> sys_lead_jet_m_resup;
+  extern std::vector<NamedFunc> sys_lead_jet_m_resdn;
+  extern std::vector<NamedFunc> sys_njet_scaleup;
+  extern std::vector<NamedFunc> sys_njet_scaledn;
+  extern std::vector<NamedFunc> sys_njet_resup;
+  extern std::vector<NamedFunc> sys_njet_resdn;
+  extern std::vector<NamedFunc> sys_nbdfm_scaleup;
+  extern std::vector<NamedFunc> sys_nbdfm_scaledn;
+  extern std::vector<NamedFunc> sys_nbdfm_resup;
+  extern std::vector<NamedFunc> sys_nbdfm_resdn;
+  extern std::vector<NamedFunc> sys_met_scaleup;
+  extern std::vector<NamedFunc> sys_met_scaledn;
+  extern std::vector<NamedFunc> sys_met_resup;
+  extern std::vector<NamedFunc> sys_met_resdn;
+  
+  //Gets NamedFunc that is untagged category selections with variation
+  NamedFunc assign_variation_untagged_category(
+      const NamedFunc &var_nlep, const NamedFunc &var_njet, 
+      const NamedFunc &var_nbdfm, const NamedFunc &var_met,
+      const NamedFunc &var_llphoton_pt, const NamedFunc &var_llphoton_m,
+      const NamedFunc &var_max_lep_miniso, const NamedFunc &var_ll_m,
+      const std::string &name);
+
+  //untagged category selection with variations
+  extern const NamedFunc untagged_category_elscaleup;
+  extern const NamedFunc untagged_category_elscaledn;
+  extern const NamedFunc untagged_category_elresup;
+  extern const NamedFunc untagged_category_elresdn;
+  extern const NamedFunc untagged_category_muscaleup;
+  extern const NamedFunc untagged_category_muscaledn;
+  extern const NamedFunc untagged_category_muresup;
+  extern const NamedFunc untagged_category_muresdn;
+  extern const NamedFunc untagged_category_phscaleup;
+  extern const NamedFunc untagged_category_phscaledn;
+  extern const NamedFunc untagged_category_phresup;
+  extern const NamedFunc untagged_category_phresdn;
+  extern std::vector<NamedFunc> untagged_category_jetscaleup;
+  extern std::vector<NamedFunc> untagged_category_jetscaledn;
+  extern std::vector<NamedFunc> untagged_category_jetresup;
+  extern std::vector<NamedFunc> untagged_category_jetresdn;
+
+  //horrible hack to get around the fact that I can't put a for loop outside
+  //of a function to initialize what should be constant vectors...
+  void initialize_jetvariations();
 }
 
 #endif

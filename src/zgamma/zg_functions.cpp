@@ -748,6 +748,29 @@ namespace ZgFunctions {
     ht0 += lead_jet_pt0;
     return sqrt(mht_x*mht_x+mht_y*mht_y)/ht0;
   });
+
+  //selector for untagged category consisting of events that pass baseline but
+  //do not fall into another category
+  const NamedFunc untagged_category = NamedFunc(
+      //2l+b but not enough jets for tth
+      NamedFunc("(nlep==2&&nbdfm>=1&&njet<5)") 
+      //3l0b, but not enough met for vh3l
+      ||NamedFunc("(nlep>=3&&nbdfm==0&&met<=30)") 
+      //3l+b, but not enough jets for tth
+      ||NamedFunc("(nlep==3&&nbdfm>=1&&njet<3)")
+      //fail additional llphoton pt/m selections in vhmet
+      ||NamedFunc("(nlep==2&&njet<=1&&met>90"
+                  "&&(llphoton_pt[0]/llphoton_m[0])<=0.4)")
+      //fail additional llphoton pt/m selections in vh3l
+      ||NamedFunc("(nlep>=3&&nbdfm==0&&met>30"
+                  "&&(llphoton_pt[0]/llphoton_m[0])<=0.3)")
+      //fail additional miniso selection in vh3l
+      ||("nlep>=3&&nbdfm==0&&met>30"&&max_lep_miniso>=0.15)
+      //fail additional mll selection in tthhad
+      ||NamedFunc("(nlep==2&&nbdfm>=1&&njet>=5&&(ll_m[0]<85||ll_m[0]>95))")
+      //fail additional miniso seleciton in tthlep
+      ||("((nlep==3&&nbdfm>=1&&njet>=3)||(nlep>=4&&nbdfm>=1))"
+         &&max_lep_miniso>=0.1)).Name("untagged_category"); 
 }
 
 

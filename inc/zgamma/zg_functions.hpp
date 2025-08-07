@@ -191,6 +191,10 @@ namespace ZgFunctions {
 
   //MHT(llgjj)/HT(llgjj)
   extern const NamedFunc llphoton_dijet_balance_hornveto;
+
+  //selector for untagged category consisting of events that pass baseline but
+  //do not fall into another category
+  extern const NamedFunc untagged_category;
 }
 
 #endif
