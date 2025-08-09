@@ -7,6 +7,8 @@
 #include "TLorentzVector.h"
 
 #include "core/baby.hpp"
+#include "core/fastforest.hpp"
+#include "core/mva_wrapper.hpp"
 #include "core/named_func.hpp"
 
 #include "zgamma/KinZfitter.hpp"
@@ -111,6 +113,18 @@ namespace ZgFunctions {
 
   //weight implementing downward variation in photon weights (efficiency)
   extern const NamedFunc sys_w_photon_dn;
+
+  //weight implementing upward variation in electron trigger weights
+  extern const NamedFunc sys_w_trig_el_up_pinnacles;
+
+  //weight implementing downward variation in electron trigger weights
+  extern const NamedFunc sys_w_trig_el_dn_pinnacles;
+
+  //weight implementing upward variation in muon trigger weights
+  extern const NamedFunc sys_w_trig_mu_up_pinnacles;
+
+  //weight implementing downward variation in muon trigger weights
+  extern const NamedFunc sys_w_trig_mu_dn_pinnacles;
 
   //el_sig with electron scale variation up
   extern const NamedFunc sys_el_sig_scaleup;
@@ -417,6 +431,20 @@ namespace ZgFunctions {
   //leading photon phi with photon resolution variation down
   extern NamedFunc sys_lead_photon_phi_resdn;
 
+  //more leading photon properties with variations
+  extern const NamedFunc sys_lead_photon_drmin_scaleup;
+  extern const NamedFunc sys_lead_photon_drmin_scaledn;
+  extern const NamedFunc sys_lead_photon_drmin_resup;
+  extern const NamedFunc sys_lead_photon_drmin_resdn;
+  extern const NamedFunc sys_lead_photon_drmax_scaleup;
+  extern const NamedFunc sys_lead_photon_drmax_scaledn;
+  extern const NamedFunc sys_lead_photon_drmax_resup;
+  extern const NamedFunc sys_lead_photon_drmax_resdn;
+  extern const NamedFunc sys_lead_photon_idmva_scaleup;
+  extern const NamedFunc sys_lead_photon_idmva_scaledn;
+  extern const NamedFunc sys_lead_photon_idmva_resup;
+  extern const NamedFunc sys_lead_photon_idmva_resdn;
+
   //signal photon ID80 flag with photon scale variation up
   extern const NamedFunc sys_sig_photon_id80_scaleup;
 
@@ -440,6 +468,16 @@ namespace ZgFunctions {
 
   //leading photon ID80 flag with photon resolution variation down
   extern const NamedFunc sys_lead_photon_id80_resdn;
+
+  //get photon rel pt error with variation
+  NamedFunc assign_variation_lead_photon_relpterr(const NamedFunc &ph_sig,
+      const NamedFunc &ph_pt, const std::string &name);
+
+  //photon relpterr variations
+  extern const NamedFunc sys_lead_photon_relpterr_scaleup;
+  extern const NamedFunc sys_lead_photon_relpterr_scaledn;
+  extern const NamedFunc sys_lead_photon_relpterr_resup;
+  extern const NamedFunc sys_lead_photon_relpterr_resdn;
 
   //get Z candidate properties with variation
   //returns (pt, eta, phi, m, lepid, i1, i2, idx)
@@ -500,6 +538,30 @@ namespace ZgFunctions {
 
   //dilepton mass with muon resolution variation dn
   extern NamedFunc sys_ll_m_muresdn;
+
+  //get lepton eta with variation
+  NamedFunc assign_variation_lep_eta(const NamedFunc &ll, const bool lead,
+      const std::string &name);
+
+  //lepton eta with variations
+  extern const NamedFunc sys_lead_lepton_eta_default;
+  extern const NamedFunc sys_lead_lepton_eta_elscaleup;
+  extern const NamedFunc sys_lead_lepton_eta_elscaledn;
+  extern const NamedFunc sys_lead_lepton_eta_elresup;
+  extern const NamedFunc sys_lead_lepton_eta_elresdn;
+  extern const NamedFunc sys_lead_lepton_eta_muscaleup;
+  extern const NamedFunc sys_lead_lepton_eta_muscaledn;
+  extern const NamedFunc sys_lead_lepton_eta_muresup;
+  extern const NamedFunc sys_lead_lepton_eta_muresdn;
+  extern const NamedFunc sys_sublead_lepton_eta_default;
+  extern const NamedFunc sys_sublead_lepton_eta_elscaleup;
+  extern const NamedFunc sys_sublead_lepton_eta_elscaledn;
+  extern const NamedFunc sys_sublead_lepton_eta_elresup;
+  extern const NamedFunc sys_sublead_lepton_eta_elresdn;
+  extern const NamedFunc sys_sublead_lepton_eta_muscaleup;
+  extern const NamedFunc sys_sublead_lepton_eta_muscaledn;
+  extern const NamedFunc sys_sublead_lepton_eta_muresup;
+  extern const NamedFunc sys_sublead_lepton_eta_muresdn;
 
   //get H candidate properties with variation
   //returns (pt, eta, phi, m)
@@ -625,6 +687,9 @@ namespace ZgFunctions {
       const NamedFunc &ll_i1, const NamedFunc &ll_i2, 
       std::shared_ptr<KinZfitter> kin_z_fitter, const std::string &name);
 
+  //lepton 4 momentum without variation
+  extern NamedFunc sys_lep_refit_default;
+
   //lepton 4 momentum with electron scale variation up
   extern NamedFunc sys_lep_refit_elscaleup;
 
@@ -723,6 +788,42 @@ namespace ZgFunctions {
   //H candidate refit 4 momentum with photon resolution variation dn
   extern NamedFunc sys_llphoton_refit_p4_phresdn;
 
+  //H candidate refit pt with electron scale variation up
+  extern NamedFunc sys_llphoton_refit_pt_elscaleup;
+
+  //H candidate refit pt with electron scale variation down
+  extern NamedFunc sys_llphoton_refit_pt_elscaledn;
+
+  //H candidate refit pt with electron resolution variation up
+  extern NamedFunc sys_llphoton_refit_pt_elresup;
+
+  //H candidate refit pt with electron resolution variation down
+  extern NamedFunc sys_llphoton_refit_pt_elresdn;
+
+  //H candidate refit pt with muon scale variation up
+  extern NamedFunc sys_llphoton_refit_pt_muscaleup;
+
+  //H candidate refit pt with muon scale variation down
+  extern NamedFunc sys_llphoton_refit_pt_muscaledn;
+
+  //H candidate refit pt with muon resolution variation up
+  extern NamedFunc sys_llphoton_refit_pt_muresup;
+
+  //H candidate refit pt with muon resolution variation down
+  extern NamedFunc sys_llphoton_refit_pt_muresdn;
+
+  //H candidate refit pt with photon scale variation up
+  extern NamedFunc sys_llphoton_refit_pt_phscaleup;
+
+  //H candidate refit pt with photon scale variation down
+  extern NamedFunc sys_llphoton_refit_pt_phscaledn;
+
+  //H candidate refit pt with photon resolution variation up
+  extern NamedFunc sys_llphoton_refit_pt_phresup;
+
+  //H candidate refit pt with photon resolution variation down
+  extern NamedFunc sys_llphoton_refit_pt_phresdn;
+
   //H candidate refit mass with electron scale variation up
   extern NamedFunc sys_llphoton_refit_m_elscaleup;
 
@@ -759,6 +860,66 @@ namespace ZgFunctions {
   //H candidate refit mass with photon resolution variation down
   extern NamedFunc sys_llphoton_refit_m_phresdn;
 
+  //Gets NamedFunc that assigns kinematic angles with variation
+  NamedFunc assign_variation_llphoton_refit_angles(const NamedFunc &var_ll,
+      const NamedFunc &lep_refit, const NamedFunc &var_photon_pt, 
+      const NamedFunc &var_photon_eta, const NamedFunc &var_photon_phi, 
+      const std::string name);
+
+  //kinematic angles with variations
+  extern const NamedFunc sys_llphoton_refit_angles_default;
+  extern const NamedFunc sys_llphoton_refit_angles_elscaleup;
+  extern const NamedFunc sys_llphoton_refit_angles_elscaledn;
+  extern const NamedFunc sys_llphoton_refit_angles_elresup;
+  extern const NamedFunc sys_llphoton_refit_angles_elresdn;
+  extern const NamedFunc sys_llphoton_refit_angles_muscaleup;
+  extern const NamedFunc sys_llphoton_refit_angles_muscaledn;
+  extern const NamedFunc sys_llphoton_refit_angles_muresup;
+  extern const NamedFunc sys_llphoton_refit_angles_muresdn;
+  extern const NamedFunc sys_llphoton_refit_angles_phscaleup;
+  extern const NamedFunc sys_llphoton_refit_angles_phscaledn;
+  extern const NamedFunc sys_llphoton_refit_angles_phresup;
+  extern const NamedFunc sys_llphoton_refit_angles_phresdn;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_default;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_elscaleup;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_elscaledn;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_elresup;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_elresdn;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_muscaleup;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_muscaledn;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_muresup;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_muresdn;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_phscaleup;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_phscaledn;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_phresup;
+  extern const NamedFunc sys_llphoton_refit_cosTheta_phresdn;
+  extern const NamedFunc sys_llphoton_refit_costheta_default;
+  extern const NamedFunc sys_llphoton_refit_costheta_elscaleup;
+  extern const NamedFunc sys_llphoton_refit_costheta_elscaledn;
+  extern const NamedFunc sys_llphoton_refit_costheta_elresup;
+  extern const NamedFunc sys_llphoton_refit_costheta_elresdn;
+  extern const NamedFunc sys_llphoton_refit_costheta_muscaleup;
+  extern const NamedFunc sys_llphoton_refit_costheta_muscaledn;
+  extern const NamedFunc sys_llphoton_refit_costheta_muresup;
+  extern const NamedFunc sys_llphoton_refit_costheta_muresdn;
+  extern const NamedFunc sys_llphoton_refit_costheta_phscaleup;
+  extern const NamedFunc sys_llphoton_refit_costheta_phscaledn;
+  extern const NamedFunc sys_llphoton_refit_costheta_phresup;
+  extern const NamedFunc sys_llphoton_refit_costheta_phresdn;
+  extern const NamedFunc sys_llphoton_refit_psi_default;
+  extern const NamedFunc sys_llphoton_refit_psi_elscaleup;
+  extern const NamedFunc sys_llphoton_refit_psi_elscaledn;
+  extern const NamedFunc sys_llphoton_refit_psi_elresup;
+  extern const NamedFunc sys_llphoton_refit_psi_elresdn;
+  extern const NamedFunc sys_llphoton_refit_psi_muscaleup;
+  extern const NamedFunc sys_llphoton_refit_psi_muscaledn;
+  extern const NamedFunc sys_llphoton_refit_psi_muresup;
+  extern const NamedFunc sys_llphoton_refit_psi_muresdn;
+  extern const NamedFunc sys_llphoton_refit_psi_phscaleup;
+  extern const NamedFunc sys_llphoton_refit_psi_phscaledn;
+  extern const NamedFunc sys_llphoton_refit_psi_phresup;
+  extern const NamedFunc sys_llphoton_refit_psi_phresdn;
+
   //helper function to get H candidate four vector after variation
   //doesn't consider edge cases ex. if selected Z candidate changes after
   //variation
@@ -766,6 +927,11 @@ namespace ZgFunctions {
                                    const NamedFunc &mu_pt,
                                    const NamedFunc &photon_pt,
                                    const std::string &name);
+
+  //Gets NamedFunc that assigns dijet properties (pt eta phi m deta dphi)
+  NamedFunc assign_variation_dijet(const NamedFunc &jet_sig, 
+      const NamedFunc &jet_pt, const NamedFunc &jet_m, 
+      const std::string &name);
 
   //Gets NamedFunc that is jet_pt with year_specific_variation
   NamedFunc assign_variation_jet_pt_year(const NamedFunc &var_jet_pt,
@@ -798,18 +964,30 @@ namespace ZgFunctions {
   extern std::vector<NamedFunc> sys_lead_jet_pt_scaledn;
   extern std::vector<NamedFunc> sys_lead_jet_pt_resup;
   extern std::vector<NamedFunc> sys_lead_jet_pt_resdn;
-  extern std::vector<NamedFunc> sys_sublead_jet_pt_scaleup;
-  extern std::vector<NamedFunc> sys_sublead_jet_pt_scaledn;
-  extern std::vector<NamedFunc> sys_sublead_jet_pt_resup;
-  extern std::vector<NamedFunc> sys_sublead_jet_pt_resdn;
   extern std::vector<NamedFunc> sys_lead_jet_eta_scaleup;
   extern std::vector<NamedFunc> sys_lead_jet_eta_scaledn;
   extern std::vector<NamedFunc> sys_lead_jet_eta_resup;
   extern std::vector<NamedFunc> sys_lead_jet_eta_resdn;
+  extern std::vector<NamedFunc> sys_lead_jet_phi_scaleup;
+  extern std::vector<NamedFunc> sys_lead_jet_phi_scaledn;
+  extern std::vector<NamedFunc> sys_lead_jet_phi_resup;
+  extern std::vector<NamedFunc> sys_lead_jet_phi_resdn;
   extern std::vector<NamedFunc> sys_lead_jet_m_scaleup;
   extern std::vector<NamedFunc> sys_lead_jet_m_scaledn;
   extern std::vector<NamedFunc> sys_lead_jet_m_resup;
   extern std::vector<NamedFunc> sys_lead_jet_m_resdn;
+  extern std::vector<NamedFunc> sys_sublead_jet_pt_scaleup;
+  extern std::vector<NamedFunc> sys_sublead_jet_pt_scaledn;
+  extern std::vector<NamedFunc> sys_sublead_jet_pt_resup;
+  extern std::vector<NamedFunc> sys_sublead_jet_pt_resdn;
+  extern std::vector<NamedFunc> sys_sublead_jet_eta_scaleup;
+  extern std::vector<NamedFunc> sys_sublead_jet_eta_scaledn;
+  extern std::vector<NamedFunc> sys_sublead_jet_eta_resup;
+  extern std::vector<NamedFunc> sys_sublead_jet_eta_resdn;
+  extern std::vector<NamedFunc> sys_sublead_jet_phi_scaleup;
+  extern std::vector<NamedFunc> sys_sublead_jet_phi_scaledn;
+  extern std::vector<NamedFunc> sys_sublead_jet_phi_resup;
+  extern std::vector<NamedFunc> sys_sublead_jet_phi_resdn;
   extern std::vector<NamedFunc> sys_njet_scaleup;
   extern std::vector<NamedFunc> sys_njet_scaledn;
   extern std::vector<NamedFunc> sys_njet_resup;
@@ -822,6 +1000,28 @@ namespace ZgFunctions {
   extern std::vector<NamedFunc> sys_met_scaledn;
   extern std::vector<NamedFunc> sys_met_resup;
   extern std::vector<NamedFunc> sys_met_resdn;
+
+  //dijet variations
+  extern const NamedFunc sys_dijet_default;
+  extern const NamedFunc sys_dijet_m_default;
+  extern const NamedFunc sys_dijet_deta_default;
+  extern const NamedFunc sys_dijet_dphi_default;
+  extern std::vector<NamedFunc> sys_dijet_scaleup;
+  extern std::vector<NamedFunc> sys_dijet_scaledn;
+  extern std::vector<NamedFunc> sys_dijet_resup;
+  extern std::vector<NamedFunc> sys_dijet_resdn;
+  extern std::vector<NamedFunc> sys_dijet_m_scaleup;
+  extern std::vector<NamedFunc> sys_dijet_m_scaledn;
+  extern std::vector<NamedFunc> sys_dijet_m_resup;
+  extern std::vector<NamedFunc> sys_dijet_m_resdn;
+  extern std::vector<NamedFunc> sys_dijet_deta_scaleup;
+  extern std::vector<NamedFunc> sys_dijet_deta_scaledn;
+  extern std::vector<NamedFunc> sys_dijet_deta_resup;
+  extern std::vector<NamedFunc> sys_dijet_deta_resdn;
+  extern std::vector<NamedFunc> sys_dijet_dphi_scaleup;
+  extern std::vector<NamedFunc> sys_dijet_dphi_scaledn;
+  extern std::vector<NamedFunc> sys_dijet_dphi_resup;
+  extern std::vector<NamedFunc> sys_dijet_dphi_resdn;
   
   //Gets NamedFunc that is untagged category selections with variation
   NamedFunc assign_variation_untagged_category(
@@ -849,9 +1049,182 @@ namespace ZgFunctions {
   extern std::vector<NamedFunc> untagged_category_jetresup;
   extern std::vector<NamedFunc> untagged_category_jetresdn;
 
+  //Gets NamedFunc that is untagged category selections with variation
+  NamedFunc assign_variation_llphoton_refit_jet_dphi(
+      const NamedFunc &llphoton_refit_phi, const NamedFunc &jet_sig, 
+      const NamedFunc &jet_pt, const std::string &name);
+
+  //Gets NamedFunc that is balance with variation
+  NamedFunc assign_variation_llphoton_refit_jet_balance(
+      const NamedFunc &ll_refit_p4, const NamedFunc &var_lead_photon_pt, 
+      const NamedFunc &var_lead_photon_phi, const NamedFunc &jet_sig, 
+      const NamedFunc &jet_pt, const std::string &name);
+
+  //Gets NamedFunc that is photon zeppenfeld with variation
+  NamedFunc assign_variation_photon_zeppenfeld(
+      const NamedFunc &var_lead_photon_eta, const NamedFunc &var_njet, 
+      const NamedFunc &var_lead_jet_eta, 
+      const NamedFunc &var_sublead_jet_eta, const std::string &name);
+
+  //jet+llphoton variations
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_default;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_elscaleup;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_elscaledn;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_elresup;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_elresdn;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_muscaleup;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_muscaledn;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_muresup;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_muresdn;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_phscaleup;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_phscaledn;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_phresup;
+  extern const NamedFunc sys_llphoton_refit_dijet_dphi_phresdn;
+  extern std::vector<NamedFunc> sys_llphoton_refit_dijet_dphi_jetscaleup;
+  extern std::vector<NamedFunc> sys_llphoton_refit_dijet_dphi_jetscaledn;
+  extern std::vector<NamedFunc> sys_llphoton_refit_dijet_dphi_jetresup;
+  extern std::vector<NamedFunc> sys_llphoton_refit_dijet_dphi_jetresdn;
+
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_elscaleup;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_elscaledn;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_elresup;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_elresdn;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_muscaleup;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_muscaledn;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_muresup;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_muresdn;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_phscaleup;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_phscaledn;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_phresup;
+  extern const NamedFunc sys_llphoton_refit_jet_dphi_default_phresdn;
+  extern std::vector<NamedFunc> sys_llphoton_refit_jet_dphi_jetscaleup;
+  extern std::vector<NamedFunc> sys_llphoton_refit_jet_dphi_jetscaledn;
+  extern std::vector<NamedFunc> sys_llphoton_refit_jet_dphi_jetresup;
+  extern std::vector<NamedFunc> sys_llphoton_refit_jet_dphi_jetresdn;
+
+  extern const NamedFunc sys_llphoton_refit_jet_balance_default;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_elscaleup;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_elscaledn;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_elresup;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_elresdn;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_muscaleup;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_muscaledn;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_muresup;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_muresdn;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_phscaleup;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_phscaledn;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_phresup;
+  extern const NamedFunc sys_llphoton_refit_jet_balance_phresdn;
+  extern std::vector<NamedFunc> sys_llphoton_refit_jet_balance_jetscaleup;
+  extern std::vector<NamedFunc> sys_llphoton_refit_jet_balance_jetscaledn;
+  extern std::vector<NamedFunc> sys_llphoton_refit_jet_balance_jetresup;
+  extern std::vector<NamedFunc> sys_llphoton_refit_jet_balance_jetresdn;
+
+  extern const NamedFunc sys_mht_default;
+  extern const NamedFunc sys_mht_elscaleup;
+  extern const NamedFunc sys_mht_elscaledn;
+  extern const NamedFunc sys_mht_elresup;
+  extern const NamedFunc sys_mht_elresdn;
+  extern const NamedFunc sys_mht_muscaleup;
+  extern const NamedFunc sys_mht_muscaledn;
+  extern const NamedFunc sys_mht_muresup;
+  extern const NamedFunc sys_mht_muresdn;
+  extern const NamedFunc sys_mht_phscaleup;
+  extern const NamedFunc sys_mht_phscaledn;
+  extern const NamedFunc sys_mht_phresup;
+  extern const NamedFunc sys_mht_phresdn;
+  extern std::vector<NamedFunc> sys_mht_jetscaleup;
+  extern std::vector<NamedFunc> sys_mht_jetscaledn;
+  extern std::vector<NamedFunc> sys_mht_jetresup;
+  extern std::vector<NamedFunc> sys_mht_jetresdn;
+
+  extern const NamedFunc sys_photon_mht_dphi_default;
+  extern const NamedFunc sys_photon_mht_dphi_elscaleup;
+  extern const NamedFunc sys_photon_mht_dphi_elscaledn;
+  extern const NamedFunc sys_photon_mht_dphi_elresup;
+  extern const NamedFunc sys_photon_mht_dphi_elresdn;
+  extern const NamedFunc sys_photon_mht_dphi_muscaleup;
+  extern const NamedFunc sys_photon_mht_dphi_muscaledn;
+  extern const NamedFunc sys_photon_mht_dphi_muresup;
+  extern const NamedFunc sys_photon_mht_dphi_muresdn;
+  extern const NamedFunc sys_photon_mht_dphi_phscaleup;
+  extern const NamedFunc sys_photon_mht_dphi_phscaledn;
+  extern const NamedFunc sys_photon_mht_dphi_phresup;
+  extern const NamedFunc sys_photon_mht_dphi_phresdn;
+  extern std::vector<NamedFunc> sys_photon_mht_dphi_jetscaleup;
+  extern std::vector<NamedFunc> sys_photon_mht_dphi_jetscaledn;
+  extern std::vector<NamedFunc> sys_photon_mht_dphi_jetresup;
+  extern std::vector<NamedFunc> sys_photon_mht_dphi_jetresdn;
+
+  extern const NamedFunc sys_photon_jet1_dr_default;
+  extern const NamedFunc sys_photon_jet1_dr_phscaleup;
+  extern const NamedFunc sys_photon_jet1_dr_phscaledn;
+  extern const NamedFunc sys_photon_jet1_dr_phresup;
+  extern const NamedFunc sys_photon_jet1_dr_phresdn;
+  extern std::vector<NamedFunc> sys_photon_jet1_dr_jetscaleup;
+  extern std::vector<NamedFunc> sys_photon_jet1_dr_jetscaledn;
+  extern std::vector<NamedFunc> sys_photon_jet1_dr_jetresup;
+  extern std::vector<NamedFunc> sys_photon_jet1_dr_jetresdn;
+
+  extern const NamedFunc sys_photon_jet2_dr_default;
+  extern const NamedFunc sys_photon_jet2_dr_phscaleup;
+  extern const NamedFunc sys_photon_jet2_dr_phscaledn;
+  extern const NamedFunc sys_photon_jet2_dr_phresup;
+  extern const NamedFunc sys_photon_jet2_dr_phresdn;
+  extern std::vector<NamedFunc> sys_photon_jet2_dr_jetscaleup;
+  extern std::vector<NamedFunc> sys_photon_jet2_dr_jetscaledn;
+  extern std::vector<NamedFunc> sys_photon_jet2_dr_jetresup;
+  extern std::vector<NamedFunc> sys_photon_jet2_dr_jetresdn;
+
+  extern const NamedFunc sys_photon_zeppenfeld_default;
+  extern const NamedFunc sys_photon_zeppenfeld_phscaleup;
+  extern const NamedFunc sys_photon_zeppenfeld_phscaledn;
+  extern const NamedFunc sys_photon_zeppenfeld_phresup;
+  extern const NamedFunc sys_photon_zeppenfeld_phresdn;
+  extern std::vector<NamedFunc> sys_photon_zeppenfeld_jetscaleup;
+  extern std::vector<NamedFunc> sys_photon_zeppenfeld_jetscaledn;
+  extern std::vector<NamedFunc> sys_photon_zeppenfeld_jetresup;
+  extern std::vector<NamedFunc> sys_photon_zeppenfeld_jetresdn;
+
+  //btag uncorrelated variations
+  extern std::vector<NamedFunc> sys_bchig_uncorr_up;
+  extern std::vector<NamedFunc> sys_bchig_uncorr_dn;
+  extern std::vector<NamedFunc> sys_udsghig_uncorr_up;
+  extern std::vector<NamedFunc> sys_udsghig_uncorr_dn;
+
   //horrible hack to get around the fact that I can't put a for loop outside
   //of a function to initialize what should be constant vectors...
   void initialize_jetvariations();
+
+  //old (25-03) BDTs
+  std::vector<std::shared_ptr<MVAWrapper>> SystVbfBdts();
+  NamedFunc ggfbdt2503_score_default(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_elscaleup(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_elscaledn(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_elresup(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_elresdn(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_muscaleup(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_muscaledn(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_muresup(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_muresdn(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_phscaleup(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_phscaledn(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_phresup(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc ggfbdt2503_score_phresdn(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
 }
 
 #endif

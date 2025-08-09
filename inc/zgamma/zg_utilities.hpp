@@ -50,6 +50,8 @@ namespace ZgUtilities {
   double get_cosTheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
   double get_costheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
   double get_phi(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
+  std::vector<double> CalculateAngles(TLorentzVector lplus, 
+      TLorentzVector lminus, TLorentzVector ph);
 
   //returns working version of kinematic BDT
   std::shared_ptr<MVAWrapper> KinematicBdt();
@@ -65,29 +67,36 @@ namespace ZgUtilities {
   //returns working version of dijet BDT
   std::vector<std::shared_ptr<MVAWrapper>> VbfBdts();
   //returns NamedFunc that returns VBF score
-  NamedFunc vbf_bdt_score(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  NamedFunc vbf_bdt_score(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts, 
+                          std::string variation="");
+  //returns NamedFunc that returns VBF score
+  NamedFunc vbf_bdt_score(const NamedFunc &bdt_scores);
   //returns NamedFunc that selects very high BDT score VBF category 
-  NamedFunc category_vbf1(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  NamedFunc category_vbf1(const NamedFunc &bdt_scores);
   //returns NamedFunc that selects high BDT score VBF category 
-  NamedFunc category_vbf2(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  NamedFunc category_vbf2(const NamedFunc &bdt_scores);
   //returns NamedFunc that selects medium BDT score VBF category
-  NamedFunc category_vbf3(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  NamedFunc category_vbf3(const NamedFunc &bdt_scores);
   //returns NamedFunc that selects low BDT score VBF category 
-  NamedFunc category_vbf4(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts);
+  NamedFunc category_vbf4(const NamedFunc &bdt_scores);
 
   //returns XGBoost BDTs
   const std::vector<fastforest::FastForest> XGBoostBDTs();
   //Returns NamedFunc that returns XGBoost score
-  NamedFunc XGBoostBDTScore(
+  NamedFunc OldXGBoostBDTScore(
       const std::vector<fastforest::FastForest> &xgb_bdts);
+  //Returns NamedFunc that returns XGBoost score
+  NamedFunc XGBoostBDTScore(
+      const std::vector<fastforest::FastForest> &xgb_bdts, 
+      const std::vector<NamedFunc> &inputs);
   //returns NamedFunc that selects low BDT score category "ggF 4"
-  NamedFunc category_ggf4(const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc category_ggf4(const NamedFunc &bdtscore);
   //returns NamedFunc that selects medium BDT score category "ggF 3"
-  NamedFunc category_ggf3(const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc category_ggf3(const NamedFunc &bdtscore);
   //returns NamedFunc that selects high BDT score category "ggF 2"
-  NamedFunc category_ggf2(const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc category_ggf2(const NamedFunc &bdtscore);
   //returns NamedFunc that selects very high BDT score category "ggF 1"
-  NamedFunc category_ggf1(const std::vector<fastforest::FastForest> &xgb_bdts);
+  NamedFunc category_ggf1(const NamedFunc &bdtscore);
 
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader();

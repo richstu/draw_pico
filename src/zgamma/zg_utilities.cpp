@@ -481,6 +481,8 @@ namespace ZgUtilities {
   }
   
   // Cosine of angle between lepton 1 and parent Z in Higgs frame 
+  // DO NOT USE THIS FUNCTION if you have FSR photons, it only works in the
+  // limit mlep = 0
   //  Defined in Equation 13
   double get_costheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
     TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
@@ -524,6 +526,68 @@ namespace ZgUtilities {
     else           phi = acos(cosphi);
     if (phi < 0) phi += 2*TMath::Pi();
     return phi;
+  }
+
+  //version of angle calculation taken directly from nano2pico
+  //works even for ml!=0 (i.e. FSR recovery)
+  vector<double> CalculateAngles(TLorentzVector lplus, TLorentzVector lminus, 
+                                 TLorentzVector ph) {
+    TLorentzVector dilep = lplus+lminus;
+    TLorentzVector llg = dilep+ph;
+  
+    // Variables used for defining kinematic angles presented in 
+    //https://arxiv.org/pdf/1108.2274.pdf
+    double M = llg.M(), mll = dilep.M();
+    double lZ = sqrt(pow(llg.Dot(dilep)/M,2)-pow(mll,2));
+    TVector3 hBoost = llg.BoostVector();
+  
+    // Calculation of cos(theta) changed since original made assumption ml=0,
+    // which is a poor approximation in some cases with hard FSR
+    TVector3 llBoost = dilep.BoostVector();
+    TLorentzVector ph_zframe = ph;
+    TLorentzVector lplus_zframe = lplus;
+    ph_zframe.Boost(-1*llBoost);
+    lplus_zframe.Boost(-1*llBoost);
+              
+    TVector3 gamma_p3 = ph_zframe.Vect();
+    TVector3 l1_p3 = lplus_zframe.Vect();
+    double costheta = l1_p3.Dot(gamma_p3)/l1_p3.Mag()/gamma_p3.Mag();
+  
+    // 4-momenta of q1/q2 (quarks from gluon-gluon fusion)
+    TLorentzVector q, qBar;
+    TVector3 hTransverseBoost = llg.BoostVector();
+    hTransverseBoost.SetZ(0);
+    TLorentzVector hH = llg;
+    hH.Boost(-1*hTransverseBoost);
+    double hPz = hH.Pz(), hE = hH.E();
+    q.SetPxPyPzE(0, 0, (hPz+hE)/2, (hE+hPz)/2);
+    qBar.SetPxPyPzE(0, 0, (hPz-hE)/2, (hE-hPz)/2);
+    q.Boost(hTransverseBoost);
+    qBar.Boost(hTransverseBoost);
+  
+    // Cosine of angle between incoming quarks and outgoing Zs in Higgs frame
+    double cosTheta = (qBar-q).Dot(dilep)/(M*lZ);
+    double sinTheta = sqrt(1 - pow(cosTheta, 2));
+  
+    // Angle phi
+    dilep.Boost(-1*hBoost);
+    TVector3 zBoost = dilep.BoostVector();
+    q.Boost(-1*hBoost);
+    lminus.Boost(-1*hBoost);
+    lplus.Boost(-1*hBoost);
+    TVector3 l1 = lminus.Vect(), l2 = lplus.Vect(), Z = dilep.Vect();
+    TVector3 qvec = q.Vect();
+    double cospsi = -1*l1.Cross(l2).Dot(qvec.Cross(Z))/l1.Cross(l2).Mag()
+                    /qvec.Cross(Z).Mag();
+    double sinpsi = -1*l1.Cross(l2).Dot(qvec)/l1.Cross(l2).Mag()/qvec.Mag()
+                    /sinTheta;
+    if (cospsi > 1) cospsi = 1;
+    else if (cospsi < -1) cospsi = -1;
+    double psi(0);
+    if(sinpsi < 0) psi = -1*acos(cospsi);
+    else           psi = acos(cospsi);
+  
+    return {cosTheta, costheta, psi};
   }
 
   //returns working version of kinematic BDT
@@ -610,78 +674,59 @@ namespace ZgUtilities {
   }
 
   //returns NamedFunc that returns VBF score
-  NamedFunc vbf_bdt_score(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
+  NamedFunc vbf_bdt_score(vector<shared_ptr<MVAWrapper>> vbf_bdts, 
+                          string variation) {
     vector<NamedFunc> bdt_scores;
     for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
-      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
+      bdt_scores.push_back(vbf_bdt->GetDiscriminant(variation));
     }
     return NamedFunc("vbf_bdtscore",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
       if (b.njet()<2) return -1.0;
       int bdt_index = (((b.event()%314159)+1)%4);
       return bdt_scores[bdt_index].GetScalar(b);
-    });
+    }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects very high BDT score VBF category
-  NamedFunc category_vbf1(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
-    vector<NamedFunc> bdt_scores;
-    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
-      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
-    }
+  NamedFunc category_vbf1(const NamedFunc &bdt_scores) {
     return NamedFunc("vbf1",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
       if (b.njet()<2) return -1.0;
-      int bdt_index = (((b.event()%314159)+1)%4);
-      float score = bdt_scores[bdt_index].GetScalar(b);
+      float score = bdt_scores.GetScalar(b);
       if (score > 0.489) return 1.0;
       return 0.0;
     });
   }
 
   //returns NamedFunc that selects high BDT score VBF category
-  NamedFunc category_vbf2(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
-    vector<NamedFunc> bdt_scores;
-    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
-      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
-    }
+  NamedFunc category_vbf2(const NamedFunc &bdt_scores) {
     return NamedFunc("vbf2",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
       if (b.njet()<2) return -1.0;
-      int bdt_index = (((b.event()%314159)+1)%4);
-      float score = bdt_scores[bdt_index].GetScalar(b);
+      float score = bdt_scores.GetScalar(b);
       if (score > 0.286 && score < 0.489) return 1.0;
       return 0.0;
     });
   }
 
   //returns NamedFunc that selects medium BDT score VBF category
-  NamedFunc category_vbf3(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
-    vector<NamedFunc> bdt_scores;
-    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
-      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
-    }
+  NamedFunc category_vbf3(const NamedFunc &bdt_scores) {
     return NamedFunc("vbf3",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
       if (b.njet()<2) return -1.0;
-      int bdt_index = (((b.event()%314159)+1)%4);
-      float score = bdt_scores[bdt_index].GetScalar(b);
+      float score = bdt_scores.GetScalar(b);
       if (score > 0.083 && score < 0.286) return 1.0;
       return 0.0;
     });
   }
 
   //returns NamedFunc that selects low BDT score VBF category
-  NamedFunc category_vbf4(vector<shared_ptr<MVAWrapper>> vbf_bdts) {
-    vector<NamedFunc> bdt_scores;
-    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
-      bdt_scores.push_back(vbf_bdt->GetDiscriminant());
-    }
+  NamedFunc category_vbf4(const NamedFunc &bdt_scores) {
     return NamedFunc("vbf4",[bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
       if (b.njet()<2) return -1.0;
-      int bdt_index = (((b.event()%314159)+1)%4);
-      float score = bdt_scores[bdt_index].GetScalar(b);
+      float score = bdt_scores.GetScalar(b);
       if (score < 0.083) return 1.0;
       return 0.0;
     });
@@ -719,9 +764,8 @@ namespace ZgUtilities {
   }
 
   //gets XGBoost score
-  float GetXGBoostBDTScore(const vector<FastForest> &xgb_bdts, const Baby &b) {
-    static vector<vector<float>> xgb_bdt_input_cache(4, vector<float>(11, 0));
-    static vector<float> xgb_bdt_output_cache(4, 0.0);
+  float OldGetXGBoostBDTScore(const vector<FastForest> &xgb_bdts, 
+                              const Baby &b) {
     int bdt_idx = (b.event()%314159)%4;
     vector<float> bdt_inputs = {
         b.photon_idmva()->at(0),
@@ -735,62 +779,69 @@ namespace ZgUtilities {
         static_cast<float>(ZgFunctions::lead_lepton_eta.GetScalar(b)),
         static_cast<float>(ZgFunctions::sublead_lepton_eta.GetScalar(b)),
         b.photon_eta()->at(0)};
-    if (!compare_float_vectors_delta(bdt_inputs, 
-                                     xgb_bdt_input_cache[bdt_idx])) {
-      for (unsigned iin = 0; iin < 11; iin++) {
-        xgb_bdt_input_cache[bdt_idx][iin] = bdt_inputs[iin];
-      }
-      xgb_bdt_output_cache[bdt_idx] = xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
-    }
-    return xgb_bdt_output_cache[bdt_idx];
+    return xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
   }
 
   //Returns NamedFunc that returns XGBoost score
-  NamedFunc XGBoostBDTScore(const vector<FastForest> &xgb_bdts) {
+  NamedFunc OldXGBoostBDTScore(const vector<FastForest> &xgb_bdts) {
     return NamedFunc("xgb_bdtscore",[xgb_bdts](const Baby &b) 
         -> NamedFunc::ScalarType{
-      return GetXGBoostBDTScore(xgb_bdts, b);
-    });
+      return OldGetXGBoostBDTScore(xgb_bdts, b);
+    }).EnableCaching(true);
+  }
+
+  //Returns NamedFunc that returns XGBoost score
+  NamedFunc XGBoostBDTScore(const vector<FastForest> &xgb_bdts, 
+                            const vector<NamedFunc> &inputs) {
+    return NamedFunc("xgb_bdtscore",[xgb_bdts, inputs](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      int bdt_idx = (b.event()%314159)%4;
+      vector<float> bdt_inputs;
+      for (const NamedFunc &nf : inputs) {
+        bdt_inputs.push_back(nf.GetScalar(b));
+      }
+      return xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
+    }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects low BDT score category "ggF 4"
-  NamedFunc category_ggf4(const vector<FastForest> &xgb_bdts) {
-    return NamedFunc("ggf4",[xgb_bdts](const Baby &b) 
+  NamedFunc category_ggf4(const NamedFunc &bdtscore) {
+    return NamedFunc("ggf4",[bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
-      float score = GetXGBoostBDTScore(xgb_bdts, b);
+      float score = bdtscore.GetScalar(b);
       if (score<0.47) return 1.0;
       return 0.0;
-    });
+    }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects medium BDT score category "ggF 3"
-  NamedFunc category_ggf3(const vector<FastForest> &xgb_bdts) {
-    return NamedFunc("ggf3",[xgb_bdts](const Baby &b) 
+  NamedFunc category_ggf3(const NamedFunc &bdtscore) {
+    return NamedFunc("ggf3",[bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
-      float score = GetXGBoostBDTScore(xgb_bdts, b);
+      float score = bdtscore.GetScalar(b);
       if (score>0.47&&score<0.64) return 1.0;
       return 0.0;
-    });
+    }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects high BDT score category "ggF 2"
-  NamedFunc category_ggf2(const vector<FastForest> &xgb_bdts) {
-    return NamedFunc("ggf2",[xgb_bdts](const Baby &b) 
+  NamedFunc category_ggf2(const NamedFunc &bdtscore) {
+    return NamedFunc("ggf2",[bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
-      float score = GetXGBoostBDTScore(xgb_bdts, b);
+      float score = bdtscore.GetScalar(b);
       if (score>0.64&&score<0.81) return 1.0;
       return 0.0;
-    });
+    }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects very high BDT score category "ggF 1"
-  NamedFunc category_ggf1(const vector<FastForest> &xgb_bdts) {
-    return NamedFunc("ggf1",[xgb_bdts](const Baby &b) 
+  NamedFunc category_ggf1(const NamedFunc &bdtscore) {
+    return NamedFunc("ggf1",[bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
-      float score = GetXGBoostBDTScore(xgb_bdts, b);
+      float score = bdtscore.GetScalar(b);
       if (score>0.81) return 1.0;
       return 0.0;
-    });
+    }).EnableCaching(true);
   }
 
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded

@@ -43,6 +43,21 @@ namespace NamedFuncUtilities {
       return mapped_named_func;
     });
   }
+
+  //Returns a named func that is input_named_funcs with map_function applied 
+  //to it
+  NamedFunc MultiMapNamedFunc(std::vector<NamedFunc> input_named_funcs, 
+      std::function<double(std::vector<double>)> map_function) {
+    return NamedFunc("MultiMapNamedFunc",
+        [input_named_funcs,map_function](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      std::vector<double> func_input;
+      for (const NamedFunc & input_named_func : input_named_funcs) {
+        func_input.push_back(input_named_func.GetScalar(b));
+      }
+      return map_function(func_input);
+    });
+  }
   
   //Returns a scalar named func that is vector_named_func with reduce_function applied to it
   NamedFunc ReduceNamedFunc(NamedFunc vector_named_func, std::function<double(std::vector<double>)> reduce_function) {
