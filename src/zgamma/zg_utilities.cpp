@@ -6,10 +6,13 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <regex>
 #include <sstream>
+#include <stdexcept>
 #include <stdlib.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "RooAbsPdf.h"
@@ -40,6 +43,9 @@ namespace ZgUtilities {
   using std::endl;
   using std::shared_ptr;
   using std::function;
+  using std::mutex;
+  using std::lock_guard;
+  using std::unordered_map;
   using fastforest::FastForest;
   using NamedFuncUtilities::MapNamedFunc;
   // Returns negative lepton 4-momentum
@@ -636,6 +642,73 @@ namespace ZgUtilities {
   const NamedFunc llphoton_dijet_absdphi = MapNamedFunc(
       "llphoton_dijet_dphi[0]", fabsf);
 
+  //returns thread_local working version of dijet BDT
+  //vector<shared_ptr<MVAWrapper>> VbfBdts() {
+  //  thread_local vector<shared_ptr<MVAWrapper>> vbf_bdt_readers = {
+  //    std::make_shared<MVAWrapper>("vbf_bdt0",
+  //        {"dijet_deta", "dijet_dphi", "j1_pt", "j2_pt", 
+  //         "llphoton_dijet_balance","llphoton_dijet_dphi", "phi", "min_dR", 
+  //         "max_dR", "costheta", "cosTheta","pt_mass","l1_rapidity",
+  //         "l2_rapidity","photon_rapidity", "photon_mva","photon_res",
+  //         "photon_zeppenfeld","photon_jet1_dr", "photon_jet2_dr"},
+  //        {"dijet_deta", dijet_absdphi, ZgFunctions::lead_jet_pt,
+  //         ZgFunctions::sublead_jet_pt, "llphoton_dijet_balance[0]",
+  //         llphoton_dijet_absdphi, "llphoton_psi[0]","photon_drmin[0]",
+  //         "photon_drmax[0]", "llphoton_costheta[0]","llphoton_cosTheta[0]",
+  //         "llphoton_pt[0]/llphoton_m[0]", ZgFunctions::lead_lepton_eta,
+  //         ZgFunctions::sublead_lepton_eta,"photon_eta[0]","photon_idmva[0]",
+  //         ZgFunctions::photon_relpterr,"photon_zeppenfeld[0]",
+  //         "photon_jet1_dr[0]","photon_jet2_dr[0]"},{},{},
+  //         "/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_0.weights.xml");
+  //    std::make_shared<MVAWrapper>("vbf_bdt1",
+  //        {"dijet_deta", "dijet_dphi", "j1_pt", "j2_pt", 
+  //         "llphoton_dijet_balance","llphoton_dijet_dphi", "phi", "min_dR", 
+  //         "max_dR", "costheta", "cosTheta","pt_mass","l1_rapidity",
+  //         "l2_rapidity","photon_rapidity", "photon_mva","photon_res",
+  //         "photon_zeppenfeld","photon_jet1_dr", "photon_jet2_dr"},
+  //        {"dijet_deta", dijet_absdphi, ZgFunctions::lead_jet_pt,
+  //         ZgFunctions::sublead_jet_pt, "llphoton_dijet_balance[0]",
+  //         llphoton_dijet_absdphi, "llphoton_psi[0]","photon_drmin[0]",
+  //         "photon_drmax[0]", "llphoton_costheta[0]","llphoton_cosTheta[0]",
+  //         "llphoton_pt[0]/llphoton_m[0]", ZgFunctions::lead_lepton_eta,
+  //         ZgFunctions::sublead_lepton_eta,"photon_eta[0]","photon_idmva[0]",
+  //         ZgFunctions::photon_relpterr,"photon_zeppenfeld[0]",
+  //         "photon_jet1_dr[0]","photon_jet2_dr[0]"},{},{},
+  //         "/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_1.weights.xml");
+  //    std::make_shared<MVAWrapper>("vbf_bdt2",
+  //        {"dijet_deta", "dijet_dphi", "j1_pt", "j2_pt", 
+  //         "llphoton_dijet_balance","llphoton_dijet_dphi", "phi", "min_dR", 
+  //         "max_dR", "costheta", "cosTheta","pt_mass","l1_rapidity",
+  //         "l2_rapidity","photon_rapidity", "photon_mva","photon_res",
+  //         "photon_zeppenfeld","photon_jet1_dr", "photon_jet2_dr"},
+  //        {"dijet_deta", dijet_absdphi, ZgFunctions::lead_jet_pt,
+  //         ZgFunctions::sublead_jet_pt, "llphoton_dijet_balance[0]",
+  //         llphoton_dijet_absdphi, "llphoton_psi[0]","photon_drmin[0]",
+  //         "photon_drmax[0]", "llphoton_costheta[0]","llphoton_cosTheta[0]",
+  //         "llphoton_pt[0]/llphoton_m[0]", ZgFunctions::lead_lepton_eta,
+  //         ZgFunctions::sublead_lepton_eta,"photon_eta[0]","photon_idmva[0]",
+  //         ZgFunctions::photon_relpterr,"photon_zeppenfeld[0]",
+  //         "photon_jet1_dr[0]","photon_jet2_dr[0]"},{},{},
+  //         "/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_2.weights.xml");
+  //    std::make_shared<MVAWrapper>("vbf_bdt3",
+  //        {"dijet_deta", "dijet_dphi", "j1_pt", "j2_pt", 
+  //         "llphoton_dijet_balance","llphoton_dijet_dphi", "phi", "min_dR", 
+  //         "max_dR", "costheta", "cosTheta","pt_mass","l1_rapidity",
+  //         "l2_rapidity","photon_rapidity", "photon_mva","photon_res",
+  //         "photon_zeppenfeld","photon_jet1_dr", "photon_jet2_dr"},
+  //        {"dijet_deta", dijet_absdphi, ZgFunctions::lead_jet_pt,
+  //         ZgFunctions::sublead_jet_pt, "llphoton_dijet_balance[0]",
+  //         llphoton_dijet_absdphi, "llphoton_psi[0]","photon_drmin[0]",
+  //         "photon_drmax[0]", "llphoton_costheta[0]","llphoton_cosTheta[0]",
+  //         "llphoton_pt[0]/llphoton_m[0]", ZgFunctions::lead_lepton_eta,
+  //         ZgFunctions::sublead_lepton_eta,"photon_eta[0]","photon_idmva[0]",
+  //         ZgFunctions::photon_relpterr,"photon_zeppenfeld[0]",
+  //         "photon_jet1_dr[0]","photon_jet2_dr[0]"},{},{},
+  //         "/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_3.weights.xml");
+  //  }
+  //  return vbf_bdt_readers;
+  //}
+
   //returns working version of dijet BDT
   vector<shared_ptr<MVAWrapper>> VbfBdts() {
     vector<shared_ptr<MVAWrapper>> vbf_bdt_readers = {
@@ -673,63 +746,74 @@ namespace ZgUtilities {
     return vbf_bdt_readers;
   }
 
-  //returns NamedFunc that returns VBF score
-  NamedFunc vbf_bdt_score(vector<shared_ptr<MVAWrapper>> vbf_bdts, 
-                          string variation) {
-    vector<NamedFunc> bdt_scores;
-    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
-      bdt_scores.push_back(vbf_bdt->GetDiscriminant(variation));
-    }
-    return NamedFunc("vbf_bdtscore",[bdt_scores](const Baby &b) 
-        -> NamedFunc::ScalarType{
+  //returns thread safe NamedFunc that returns VBF score
+  NamedFunc vbf_bdt_score(string variation) {
+    static mutex mutex_;
+    static unordered_map<std::thread::id, vector<shared_ptr<MVAWrapper>>> 
+      vbf_bdts;
+    return NamedFunc("vbf_bdtscore",[variation]
+        (const Baby &b) -> NamedFunc::ScalarType{
       if (b.njet()<2) return -1.0;
       int bdt_index = (((b.event()%314159)+1)%4);
-      return bdt_scores[bdt_index].GetScalar(b);
+      std::thread::id thread_id = std::this_thread::get_id();
+      shared_ptr<MVAWrapper> vbf_bdt;
+      {
+        lock_guard<mutex> lock(mutex_);
+        if (vbf_bdts.count(thread_id)==0) {
+          vbf_bdts[thread_id] = VbfBdts();
+        }
+        vbf_bdt = vbf_bdts[thread_id][bdt_index];
+      }
+      return vbf_bdt->GetDiscriminantScore(b, variation);
     }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects very high BDT score VBF category
+  //caution: bdt_scores cannot go out of scope
   NamedFunc category_vbf1(const NamedFunc &bdt_scores) {
-    return NamedFunc("vbf1",[bdt_scores](const Baby &b) 
+    return NamedFunc("vbf1",[&bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
-      if (b.njet()<2) return -1.0;
+      //if (b.njet()<2) return -1.0;
       float score = bdt_scores.GetScalar(b);
       if (score > 0.489) return 1.0;
       return 0.0;
-    });
+    }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects high BDT score VBF category
+  //caution: bdt_scores cannot go out of scope
   NamedFunc category_vbf2(const NamedFunc &bdt_scores) {
-    return NamedFunc("vbf2",[bdt_scores](const Baby &b) 
+    return NamedFunc("vbf2",[&bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
-      if (b.njet()<2) return -1.0;
+      //if (b.njet()<2) return -1.0;
       float score = bdt_scores.GetScalar(b);
       if (score > 0.286 && score < 0.489) return 1.0;
       return 0.0;
-    });
+    }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects medium BDT score VBF category
+  //caution: bdt_scores cannot go out of scope
   NamedFunc category_vbf3(const NamedFunc &bdt_scores) {
-    return NamedFunc("vbf3",[bdt_scores](const Baby &b) 
+    return NamedFunc("vbf3",[&bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
-      if (b.njet()<2) return -1.0;
+      //if (b.njet()<2) return -1.0;
       float score = bdt_scores.GetScalar(b);
       if (score > 0.083 && score < 0.286) return 1.0;
       return 0.0;
-    });
+    }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects low BDT score VBF category
+  //caution: bdt_scores cannot go out of scope
   NamedFunc category_vbf4(const NamedFunc &bdt_scores) {
-    return NamedFunc("vbf4",[bdt_scores](const Baby &b) 
+    return NamedFunc("vbf4",[&bdt_scores](const Baby &b) 
         -> NamedFunc::ScalarType{
-      if (b.njet()<2) return -1.0;
+      //if (b.njet()<2) return -1.0;
       float score = bdt_scores.GetScalar(b);
       if (score < 0.083) return 1.0;
       return 0.0;
-    });
+    }).EnableCaching(true);
   }
 
   //returns XGBoost BDTs
@@ -801,12 +885,29 @@ namespace ZgUtilities {
         bdt_inputs.push_back(nf.GetScalar(b));
       }
       return xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
+    });
+  }
+
+  //Returns NamedFunc that returns XGBoost score
+  //Be careful: neither NamedFuncs nor xgb_bdt may be allowed to go out of 
+  //scope
+  NamedFunc XGBoostBDTScoreCached(const vector<FastForest> &xgb_bdts, 
+                                  const vector<const NamedFunc*> &inputs) {
+    return NamedFunc("xgb_bdtscore",[&xgb_bdts, inputs](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      int bdt_idx = (b.event()%314159)%4;
+      vector<float> bdt_inputs;
+      for (const NamedFunc* nf : inputs) {
+        bdt_inputs.push_back(nf->GetScalar(b));
+      }
+      return xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
     }).EnableCaching(true);
   }
 
   //returns NamedFunc that selects low BDT score category "ggF 4"
+  //caution: bdtscore cannot go out of scope
   NamedFunc category_ggf4(const NamedFunc &bdtscore) {
-    return NamedFunc("ggf4",[bdtscore](const Baby &b) 
+    return NamedFunc("ggf4",[&bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = bdtscore.GetScalar(b);
       if (score<0.47) return 1.0;
@@ -815,8 +916,9 @@ namespace ZgUtilities {
   }
 
   //returns NamedFunc that selects medium BDT score category "ggF 3"
+  //caution: bdtscore cannot go out of scope
   NamedFunc category_ggf3(const NamedFunc &bdtscore) {
-    return NamedFunc("ggf3",[bdtscore](const Baby &b) 
+    return NamedFunc("ggf3",[&bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = bdtscore.GetScalar(b);
       if (score>0.47&&score<0.64) return 1.0;
@@ -825,8 +927,9 @@ namespace ZgUtilities {
   }
 
   //returns NamedFunc that selects high BDT score category "ggF 2"
+  //caution: bdtscore cannot go out of scope
   NamedFunc category_ggf2(const NamedFunc &bdtscore) {
-    return NamedFunc("ggf2",[bdtscore](const Baby &b) 
+    return NamedFunc("ggf2",[&bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = bdtscore.GetScalar(b);
       if (score>0.64&&score<0.81) return 1.0;
@@ -835,8 +938,9 @@ namespace ZgUtilities {
   }
 
   //returns NamedFunc that selects very high BDT score category "ggF 1"
+  //caution: bdtscore cannot go out of scope
   NamedFunc category_ggf1(const NamedFunc &bdtscore) {
-    return NamedFunc("ggf1",[bdtscore](const Baby &b) 
+    return NamedFunc("ggf1",[&bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = bdtscore.GetScalar(b);
       if (score>0.81) return 1.0;
@@ -990,9 +1094,12 @@ namespace ZgUtilities {
     return return_map;
   }
 
+  //One KinZfitter to rule them all
+  //RooFit annoyingly uses global variables, so even thread_local will not
+  //make this thread safe, mutex required
+  KinZfitter kin_z_fitter;
+
   double KinRefit(const Baby &b) {
-    KinZfitter *kinZfitter;
-    kinZfitter = new KinZfitter();
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -1002,16 +1109,14 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
-    kinZfitter->KinRefitZ1();
-    double massZ1REFIT = kinZfitter->GetRefitMZ1();
-    delete kinZfitter;
+    lock_guard<mutex> lock(Multithreading::root_mutex);
+    kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kin_z_fitter.KinRefitZ1();
+    double massZ1REFIT = kin_z_fitter.GetRefitMZ1();
     return massZ1REFIT;
   }
 
-  double KinRefit(const Baby &b, TString txtFile) {
-    KinZfitter *kinZfitter;
-    kinZfitter = new KinZfitter(txtFile);
+  std::vector<TLorentzVector> RefitP4(const Baby &b) {
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -1021,36 +1126,14 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
-    kinZfitter->KinRefitZ1();
-
-    double massZ1REFIT = kinZfitter->GetRefitMZ1();
-    delete kinZfitter;
-    return massZ1REFIT;
-  }
-
-  std::vector<TLorentzVector> RefitP4(const Baby &b, TString txtFile) {
-    KinZfitter *kinZfitter;
-    kinZfitter = new KinZfitter(txtFile);
-
-    std::map<unsigned int, TLorentzVector> selectedLeptons;
-    selectedLeptons[0] = AssignL1(b);
-    selectedLeptons[1] = AssignL2(b);
-    std::map<unsigned int, double> errorLeptons;
-    errorLeptons[0] = AssignL1Error(b);
-    errorLeptons[1] = AssignL2Error(b);
-    std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
-
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
-    kinZfitter->KinRefitZ1();
-    std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
-    delete kinZfitter;
+    lock_guard<mutex> lock(Multithreading::root_mutex);
+    kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kin_z_fitter.KinRefitZ1();
+    std::vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
     return reFit;
   }
 
-  double difference_check(const Baby &b, TString txtFile){
-    KinZfitter *kinZfitter;
-    kinZfitter = new KinZfitter(txtFile);
+  double difference_check(const Baby &b){
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -1060,17 +1143,14 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
-    kinZfitter->KinRefitZ1();
-    std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
-    delete kinZfitter;
+    lock_guard<mutex> lock(Multithreading::root_mutex);
+    kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kin_z_fitter.KinRefitZ1();
+    std::vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
     return ((reFit[0]+reFit[1]).M() - (selectedLeptons[0]+selectedLeptons[1]).M());
   }
 
-  double difference_check_lly(const Baby &b, TString txtFile){
-    KinZfitter *kinZfitter;
-    kinZfitter = new KinZfitter(txtFile);
-
+  double difference_check_lly(const Baby &b){
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
     selectedLeptons[1] = AssignL2(b);
@@ -1079,12 +1159,11 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
-    kinZfitter->KinRefitZ1();
-    std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
+    lock_guard<mutex> lock(Multithreading::root_mutex);
+    kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kin_z_fitter.KinRefitZ1();
+    std::vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
     TLorentzVector ph = AssignGamma(b);
-    delete kinZfitter;
     return ((reFit[0]+reFit[1]+ph).M() - (selectedLeptons[0]+selectedLeptons[1]+ph).M());
   }
 
@@ -1177,9 +1256,7 @@ namespace ZgUtilities {
     return l2Err;
   }
 
-  double KinRefitCorrected(const Baby &b, TString txtFile) {
-    KinZfitter *kinZfitter;
-    kinZfitter = new KinZfitter(txtFile);
+  double KinRefitCorrected(const Baby &b) {
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
 
@@ -1190,16 +1267,14 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignCorrL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
-    kinZfitter->KinRefitZ1();
-    double massZ1REFIT = kinZfitter->GetRefitMZ1();
-    delete kinZfitter;
+    lock_guard<mutex> lock(Multithreading::root_mutex);
+    kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kin_z_fitter.KinRefitZ1();
+    double massZ1REFIT = kin_z_fitter.GetRefitMZ1();
     return massZ1REFIT;
   }
 
-  std::vector<TLorentzVector> RefitP4Corr(const Baby &b, TString txtFile) {
-    KinZfitter *kinZfitter;
-    kinZfitter = new KinZfitter(txtFile);
+  std::vector<TLorentzVector> RefitP4Corr(const Baby &b) {
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignCorrL1(b);
@@ -1209,10 +1284,10 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignCorrL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
-    kinZfitter->KinRefitZ1();
-    std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
-    delete kinZfitter;
+    lock_guard<mutex> lock(Multithreading::root_mutex);
+    kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kin_z_fitter.KinRefitZ1();
+    std::vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
     return reFit;
   }
 
@@ -1224,43 +1299,42 @@ namespace ZgUtilities {
   }
 
   //returns lepton (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) with custom refit
-  vector<double> get_lep_custom_refit(const Baby &b, 
-      shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt, NamedFunc mu_pt, 
-      NamedFunc ll_lepid, NamedFunc ll_i1, NamedFunc ll_i2) {
+  vector<double> get_lep_custom_refit(const Baby &b, NamedFunc el_pt, 
+      NamedFunc mu_pt, int ll_lepid, int ll_i1, int ll_i2) {
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = TLorentzVector();
     selectedLeptons[1] = TLorentzVector();
-    int l1_idx = static_cast<int>(ll_i1.GetScalar(b));
-    int l2_idx = static_cast<int>(ll_i2.GetScalar(b));
-    int lepid = static_cast<int>(ll_lepid.GetScalar(b));
     map<unsigned int, double> errorLeptons;
-    if (lepid == 11) {
+    if (ll_lepid == 0)
+      throw std::runtime_error("get_lep_custom_refit: No ll candidate.");
+    if (ll_lepid == 11) {
       vector<double> el_pt0 = el_pt.GetVector(b);
-      selectedLeptons[0].SetPtEtaPhiM(el_pt0[l1_idx], b.el_eta()->at(l1_idx),
-                                      b.el_phi()->at(l1_idx), 0.000511);
-      selectedLeptons[1].SetPtEtaPhiM(el_pt0[l2_idx], b.el_eta()->at(l2_idx),
-                                      b.el_phi()->at(l2_idx), 0.000511);
-      errorLeptons[0] = b.el_energyErr()->at(l1_idx) * selectedLeptons[0].Pt() 
+      selectedLeptons[0].SetPtEtaPhiM(el_pt0[ll_i1], b.el_eta()->at(ll_i1),
+                                      b.el_phi()->at(ll_i1), 0.000511);
+      selectedLeptons[1].SetPtEtaPhiM(el_pt0[ll_i2], b.el_eta()->at(ll_i2),
+                                      b.el_phi()->at(ll_i2), 0.000511);
+      errorLeptons[0] = b.el_energyErr()->at(ll_i1) * selectedLeptons[0].Pt() 
                         / selectedLeptons[0].P();
-      errorLeptons[1] = b.el_energyErr()->at(l2_idx) * selectedLeptons[1].Pt() 
+      errorLeptons[1] = b.el_energyErr()->at(ll_i2) * selectedLeptons[1].Pt() 
                         / selectedLeptons[1].P();
     }
     else {
       vector<double> mu_pt0 = mu_pt.GetVector(b);
-      selectedLeptons[0].SetPtEtaPhiM(mu_pt0[l1_idx], b.mu_eta()->at(l1_idx),
-                                      b.mu_phi()->at(l1_idx), 0.105);
-      selectedLeptons[1].SetPtEtaPhiM(mu_pt0[l2_idx], b.mu_eta()->at(l2_idx),
-                                      b.mu_phi()->at(l2_idx), 0.105);
-      errorLeptons[0] = b.mu_ptErr()->at(l1_idx);
-      errorLeptons[1] = b.mu_ptErr()->at(l2_idx);
+      selectedLeptons[0].SetPtEtaPhiM(mu_pt0[ll_i1], b.mu_eta()->at(ll_i1),
+                                      b.mu_phi()->at(ll_i1), 0.105);
+      selectedLeptons[1].SetPtEtaPhiM(mu_pt0[ll_i2], b.mu_eta()->at(ll_i2),
+                                      b.mu_phi()->at(ll_i2), 0.105);
+      errorLeptons[0] = b.mu_ptErr()->at(ll_i1);
+      errorLeptons[1] = b.mu_ptErr()->at(ll_i2);
     }
     map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret_customll(
-        b, lepid, l1_idx, l2_idx);
+        b, ll_lepid, ll_i1, ll_i2);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
-    kinZfitter->KinRefitZ1();
-    vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
+    lock_guard<mutex> lock(Multithreading::root_mutex);
+    kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kin_z_fitter.KinRefitZ1();
+    vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
     vector<double> refit_prop = {reFit[0].Pt(), reFit[0].Eta(), reFit[0].Phi(),
                                  reFit[0].M(), reFit[1].Pt(), reFit[1].Eta(),
                                  reFit[1].Phi(), reFit[1].M()};

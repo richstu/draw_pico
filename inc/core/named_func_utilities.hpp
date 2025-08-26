@@ -11,6 +11,9 @@ namespace NamedFuncUtilities {
   //Returns a vector named func that is vector_named_func filtered with filter_named_func
   NamedFunc FilterNamedFunc(NamedFunc vector_named_func, NamedFunc filter_named_func);
 
+  //Returns a vector named func that is vector_named_func filtered with filter_named_func. Warning: inputs cannot go out of scope
+  NamedFunc FilterNamedFuncCached(const NamedFunc &vector_named_func, const NamedFunc &filter_named_func);
+
   //Returns a named func that is input_named_func with map_function applied (entrywise) to it
   NamedFunc MapNamedFunc(NamedFunc input_named_func, std::function<double(double)> map_function);
 
@@ -19,13 +22,29 @@ namespace NamedFuncUtilities {
   NamedFunc MultiMapNamedFunc(std::vector<NamedFunc> input_named_funcs, 
       std::function<double(std::vector<double>)> map_function);
 
+  //Returns a named func that is input_named_funcs with map_function applied 
+  //to it. Warning: inputs cannot go out of scope
+  NamedFunc MultiMapNamedFuncCached(
+      std::vector<const NamedFunc*> input_named_funcs, 
+      const std::function<double(std::vector<double>)> &map_function);
+
   //Returns a scalar named func that is vector_named_func with reduce_function applied to it
   NamedFunc ReduceNamedFunc(NamedFunc vector_named_func, 
       std::function<double(std::vector<double>)> reduce_function);
 
+  //Returns a scalar named func that is vector_named_func with reduce_function applied to it. Warning: inputs cannot go out of scope
+  NamedFunc ReduceNamedFuncCached(const NamedFunc &vector_named_func, 
+      const std::function<double(std::vector<double>)> &reduce_function);
+
   //Returns a scalar named func that is the output of reduce_function applied to the vector created by vector_named_func
   NamedFunc MultiReduceNamedFunc(std::vector<NamedFunc> vector_named_func, 
       std::function<double(std::vector<std::vector<double>>)> reduce_function);
+
+  //Returns a scalar named func that is the output of reduce_function applied to the vector created by vector_named_func. Warning: inputs cannot go out of scope
+  NamedFunc MultiReduceNamedFuncCached(
+      std::vector<const NamedFunc*> vector_named_func, 
+      const std::function<double(std::vector<std::vector<double>>)> 
+        &reduce_function);
 
   //Turns a vector<NamedFunc> into one usable for a cutflow table
   std::vector<NamedFunc> progressive_cuts(std::vector<NamedFunc> vector_NamedFunc);
@@ -41,7 +60,6 @@ namespace NamedFuncUtilities {
 
   //Returns a NamedFunc without all selections in the vector skip
   NamedFunc Nminusk(std::vector<NamedFunc> vector_NamedFunc, std::vector<unsigned int> skip);
-
 
   //get the sum of a vector
   double reduce_sum(std::vector<double> data);

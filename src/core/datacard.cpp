@@ -289,11 +289,11 @@ void Datacard::DatacardProcessNonparametric::RecordEvent(const Baby &baby) {
   for (unsigned ichan = 0; ichan < datacard->n_channels_; ichan++) {
     for (unsigned isyst = 0; isyst < n_variations; isyst++) {
       float weight = datacard->weight_[isyst].GetScalar(baby);
-      float fit_var = datacard->fit_var_[isyst].GetScalar(baby);
       if (datacard->channel_selection_[isyst][ichan].GetScalar(baby)) {
         yield_[ichan][isyst] += weight;
         sumw2_[ichan][isyst] += weight*weight;
         if (datacard->save_shape_[isyst]) {
+          float fit_var = datacard->fit_var_[isyst].GetScalar(baby);
           var_[ichan].setVal(fit_var);
           rrv_weight_.setVal(weight);
           dataset_[ichan][isyst].add(RooArgSet(var_[ichan]),weight);

@@ -44,6 +44,8 @@
 #include "core/named_func.hpp"
 
 #include <iostream>
+#include <mutex>
+#include <thread>
 #include <utility>
 
 #include "core/utilities.hpp"
@@ -313,8 +315,8 @@ NamedFunc::NamedFunc(const std::string &name,
   scalar_func_(function),
   vector_func_(),
   enable_caching_(false),
-  cached_baby_(nullptr),
-  cached_entry_(0){
+  cached_baby_({}),
+  cached_entry_({}){
   CleanName();
 }
 
@@ -330,8 +332,8 @@ NamedFunc::NamedFunc(const std::string &name,
   scalar_func_(),
   vector_func_(function),
   enable_caching_(false),
-  cached_baby_(nullptr),
-  cached_entry_(0){
+  cached_baby_({}),
+  cached_entry_({}){
   CleanName();
 }
 
@@ -374,8 +376,68 @@ NamedFunc::NamedFunc(ScalarType x):
   scalar_func_([x](const Baby&){return x;}),
   vector_func_(),
   enable_caching_(false),
-  cached_baby_(nullptr),
-  cached_entry_(0){
+  cached_baby_({}),
+  cached_entry_({}){
+}
+
+/*!\brief Copy constructor
+
+  \param[in] named_func NamedFunc to copy
+*/
+NamedFunc::NamedFunc(const NamedFunc & named_func):
+  name_(named_func.name_),
+  scalar_func_(named_func.scalar_func_),
+  vector_func_(named_func.vector_func_),
+  enable_caching_(named_func.enable_caching_),
+  cached_baby_(named_func.cached_baby_),
+  cached_entry_(named_func.cached_entry_),
+  cached_scalar_result_(named_func.cached_scalar_result_),
+  cached_vector_result_(named_func.cached_vector_result_) {}
+
+/*!\brief Assignment operator
+
+  \param[in] named_func NamedFunc to copy
+*/
+NamedFunc & NamedFunc::operator=(const NamedFunc & named_func) {
+  name_ = named_func.name_,
+  scalar_func_ = named_func.scalar_func_;
+  vector_func_ = named_func.vector_func_;
+  enable_caching_ = named_func.enable_caching_;
+  cached_baby_ = named_func.cached_baby_;
+  cached_entry_ = named_func.cached_entry_;
+  cached_scalar_result_ = named_func.cached_scalar_result_;
+  cached_vector_result_ = named_func.cached_vector_result_;
+  return *this;
+}
+
+/*!\brief Copy constructor
+
+  \param[in] named_func NamedFunc to copy
+*/
+NamedFunc::NamedFunc(NamedFunc && named_func):
+  name_(named_func.name_),
+  scalar_func_(named_func.scalar_func_),
+  vector_func_(named_func.vector_func_),
+  enable_caching_(named_func.enable_caching_),
+  cached_baby_(named_func.cached_baby_),
+  cached_entry_(named_func.cached_entry_),
+  cached_scalar_result_(named_func.cached_scalar_result_),
+  cached_vector_result_(named_func.cached_vector_result_) {}
+
+/*!\brief Assignment operator
+
+  \param[in] named_func NamedFunc to copy
+*/
+NamedFunc & NamedFunc::operator=(NamedFunc && named_func) {
+  name_ = named_func.name_,
+  scalar_func_ = named_func.scalar_func_;
+  vector_func_ = named_func.vector_func_;
+  enable_caching_ = named_func.enable_caching_;
+  cached_baby_ = named_func.cached_baby_;
+  cached_entry_ = named_func.cached_entry_;
+  cached_scalar_result_ = named_func.cached_scalar_result_;
+  cached_vector_result_ = named_func.cached_vector_result_;
+  return *this;
 }
 
 /*!\brief Get the string representation of this function
@@ -478,12 +540,30 @@ bool NamedFunc::IsVector() const{
 ScalarType NamedFunc::GetScalar(const Baby &b) const {
   if (!enable_caching_)
     return scalar_func_(b);
-  if (!(cached_baby_ == &b && b.GetCurrentEntry()==cached_entry_)) {
-    cached_baby_ = &b;
-    cached_entry_ = b.GetCurrentEntry();
-    cached_scalar_result_ = scalar_func_(b);
+
+  std::thread::id thread_id = std::this_thread::get_id();
+  {
+    lock_guard<mutex> lock(cache_mutex_);
+    if (cached_baby_.count(thread_id)==0) {
+      cached_baby_[thread_id] = nullptr;
+      cached_entry_[thread_id] = -1;
+      cached_scalar_result_[thread_id] = 0;
+      cached_vector_result_[thread_id] = {};
+    }
+    if (cached_baby_[thread_id] == &b
+        && b.GetCurrentEntry()==cached_entry_[thread_id]) {
+      return cached_scalar_result_[thread_id];
+    }
   }
-  return cached_scalar_result_;
+  //call can be slow, leave out of mutex
+  ScalarType result = scalar_func_(b);
+  {
+    lock_guard<mutex> lock(cache_mutex_);
+    cached_baby_[thread_id] = &b;
+    cached_entry_[thread_id] = b.GetCurrentEntry();
+    cached_scalar_result_[thread_id] = result;
+  }
+  return result;
 }
 
 /*!\brief Evaluate vector function with b as argument
@@ -495,12 +575,30 @@ ScalarType NamedFunc::GetScalar(const Baby &b) const {
 VectorType NamedFunc::GetVector(const Baby &b) const {
   if (!enable_caching_)
     return vector_func_(b);
-  if (!(cached_baby_ == &b && b.GetCurrentEntry()==cached_entry_)) {
-    cached_baby_ = &b;
-    cached_entry_ = b.GetCurrentEntry();
-    cached_vector_result_ = vector_func_(b);
+
+  std::thread::id thread_id = std::this_thread::get_id();
+  {
+    lock_guard<mutex> lock(cache_mutex_);
+    if (cached_baby_.count(thread_id)==0) {
+      cached_baby_[thread_id] = nullptr;
+      cached_entry_[thread_id] = 0;
+      cached_scalar_result_[thread_id] = 0;
+      cached_vector_result_[thread_id] = {};
+    }
+    if (cached_baby_[thread_id] == &b
+        && b.GetCurrentEntry()==cached_entry_[thread_id]) {
+      return cached_vector_result_[thread_id];
+    }
   }
-  return cached_vector_result_;
+  //call can be slow, leave out of mutex
+  VectorType result = vector_func_(b);
+  {
+    lock_guard<mutex> lock(cache_mutex_);
+    cached_baby_[thread_id] = &b;
+    cached_entry_[thread_id] = b.GetCurrentEntry();
+    cached_vector_result_[thread_id] = vector_func_(b);
+  }
+  return result;
 }
 
 /*!\brief Add func to *this

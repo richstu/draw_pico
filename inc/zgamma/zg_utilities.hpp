@@ -67,10 +67,7 @@ namespace ZgUtilities {
   //returns working version of dijet BDT
   std::vector<std::shared_ptr<MVAWrapper>> VbfBdts();
   //returns NamedFunc that returns VBF score
-  NamedFunc vbf_bdt_score(std::vector<std::shared_ptr<MVAWrapper>> vbf_bdts, 
-                          std::string variation="");
-  //returns NamedFunc that returns VBF score
-  NamedFunc vbf_bdt_score(const NamedFunc &bdt_scores);
+  NamedFunc vbf_bdt_score(std::string variation="");
   //returns NamedFunc that selects very high BDT score VBF category 
   NamedFunc category_vbf1(const NamedFunc &bdt_scores);
   //returns NamedFunc that selects high BDT score VBF category 
@@ -89,6 +86,12 @@ namespace ZgUtilities {
   NamedFunc XGBoostBDTScore(
       const std::vector<fastforest::FastForest> &xgb_bdts, 
       const std::vector<NamedFunc> &inputs);
+  //Returns NamedFunc that returns XGBoost score
+  //Be careful: neither NamedFuncs nor xgb_bdt may be allowed to go out of 
+  //scope
+  NamedFunc XGBoostBDTScoreCached(
+      const std::vector<fastforest::FastForest> &xgb_bdts, 
+      const std::vector<const NamedFunc*> &inputs);
   //returns NamedFunc that selects low BDT score category "ggF 4"
   NamedFunc category_ggf4(const NamedFunc &bdtscore);
   //returns NamedFunc that selects medium BDT score category "ggF 3"
@@ -112,19 +115,17 @@ namespace ZgUtilities {
   std::map<unsigned int, TLorentzVector> fsrphoton_ret_customll(const Baby &b,
       int lepid, int i1, int i2);
   double KinRefit(const Baby &b);
-  double KinRefit(const Baby &b,TString txtFile);
   std::vector<TLorentzVector> RefitP4(const Baby &b);
-  std::vector<TLorentzVector> RefitP4(const Baby &b,TString txtFile);
   double AssignL1Error(const Baby &b);
   double AssignL2Error(const Baby &b);
-  double difference_check(const Baby &b,TString txtFile);
-  double difference_check_lly(const Baby &b,TString txtFile);
+  double difference_check(const Baby &b);
+  double difference_check_lly(const Baby &b);
 
   //Functions to test the mu_correctedPt
   TLorentzVector AssignCorrL1(const Baby &b);
   TLorentzVector AssignCorrL2(const Baby &b);
-  double KinRefitCorrected(const Baby &b, TString txtFile);
-  std::vector<TLorentzVector> RefitP4Corr(const Baby &b, TString txtFile); 
+  double KinRefitCorrected(const Baby &b);
+  std::vector<TLorentzVector> RefitP4Corr(const Baby &b); 
 
   //returns WP. 1 is loose, 2 is medium, 3 is tight
   float get_btag_wp_deepjet(const std::string& year, int wp);
@@ -135,7 +136,6 @@ namespace ZgUtilities {
 
   //returns lepton (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) with custom refit
   std::vector<double> get_lep_custom_refit(const Baby &b, 
-      std::shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt, NamedFunc mu_pt, 
-      NamedFunc ll_lepid, NamedFunc ll_i1, NamedFunc ll_i2);
+      NamedFunc el_pt, NamedFunc mu_pt, int ll_lepid, int ll_i1, int ll_i2);
 }
 #endif

@@ -488,7 +488,8 @@ namespace NanoFunctions {
   }
 
   NamedFunc GoldenJsonLoader::pass_json() {
-    return NamedFunc("pass_json",[&](const Baby &b) -> NamedFunc::ScalarType{
+    return NamedFunc("pass_json",[this](const Baby &b) 
+        -> NamedFunc::ScalarType{
       bool answer = false;
       if(b.run() < 120000){
         answer = true;

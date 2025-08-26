@@ -26,6 +26,21 @@ namespace NamedFuncUtilities {
       return mapped_named_func;
     });
   }
+
+  //Returns a vector named func that is vector_named_func filtered with filter_named_func. Warning: inputs cannot go out of scope
+  NamedFunc FilterNamedFuncCached(const NamedFunc &vector_named_func, const NamedFunc &filter_named_func) {
+    return NamedFunc("FilterNamedFunc("+vector_named_func.Name()+","+filter_named_func.Name()+")",[&vector_named_func,filter_named_func](const Baby &b) -> NamedFunc::VectorType{
+      std::vector<double> mapped_named_func;
+      std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
+      std::vector<double> filter_named_func_ = filter_named_func.GetVector(b);
+      for (unsigned i = 0; i < vector_named_func_.size(); i++) {
+        if (filter_named_func_[i]) {
+          mapped_named_func.push_back(vector_named_func_[i]);
+        }
+      }
+      return mapped_named_func;
+    });
+  }
   
   //Returns a named func that is input_named_func with map_function applied (entrywise) to it
   NamedFunc MapNamedFunc(NamedFunc input_named_func, std::function<double(double)> map_function) {
@@ -58,6 +73,22 @@ namespace NamedFuncUtilities {
       return map_function(func_input);
     });
   }
+
+  //Returns a named func that is input_named_funcs with map_function applied 
+  //to it. Warning: inputs cannot go out of scope
+  NamedFunc MultiMapNamedFuncCached(
+      std::vector<const NamedFunc*> input_named_funcs, 
+      const std::function<double(std::vector<double>)> &map_function) {
+    return NamedFunc("MultiMapNamedFunc",
+        [input_named_funcs,map_function](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      std::vector<double> func_input;
+      for (const NamedFunc* nf : input_named_funcs) {
+        func_input.push_back(nf->GetScalar(b));
+      }
+      return map_function(func_input);
+    }).EnableCaching(true);
+  }
   
   //Returns a scalar named func that is vector_named_func with reduce_function applied to it
   NamedFunc ReduceNamedFunc(NamedFunc vector_named_func, std::function<double(std::vector<double>)> reduce_function) {
@@ -65,6 +96,14 @@ namespace NamedFuncUtilities {
       std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
       return reduce_function(vector_named_func_);
     });
+  }
+
+  //Returns a scalar named func that is vector_named_func with reduce_function applied to it. Warning: inputs cannot go out of scope
+  NamedFunc ReduceNamedFuncCached(const NamedFunc &vector_named_func, const std::function<double(std::vector<double>)> &reduce_function) {
+    return NamedFunc("ReduceNamedFuncCached("+vector_named_func.Name()+")",[&vector_named_func,reduce_function](const Baby &b) -> NamedFunc::ScalarType{
+      std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
+      return reduce_function(vector_named_func_);
+    }).EnableCaching(true);
   }
   
   //Returns a scalar named func that is the output of reduce_function applied to the vector created by vector_named_func
@@ -84,6 +123,25 @@ namespace NamedFuncUtilities {
       }
       return reduce_function(vector_named_func_);
     });
+  }
+
+  //Returns a scalar named func that is the output of reduce_function applied to the vector created by vector_named_func. Warning: inputs cannot go out of scope
+  NamedFunc MultiReduceNamedFuncCached(std::vector<const NamedFunc*> vector_named_func, const std::function<double(std::vector<std::vector<double>>)> &reduce_function) {
+    std::string named_func_name = "MultiReduceNamedFunc(";
+    bool first = true;
+    for (const NamedFunc* named_func : vector_named_func) {
+      if (!first) named_func_name += ",";
+      named_func_name += named_func->Name();
+      first = false;
+    }
+    named_func_name += ")";
+    return NamedFunc(named_func_name,[vector_named_func,reduce_function](const Baby &b) -> NamedFunc::ScalarType{
+      std::vector<std::vector<double>> vector_named_func_;
+      for (const NamedFunc* named_func : vector_named_func) {
+        vector_named_func_.push_back(named_func->GetVector(b));
+      }
+      return reduce_function(vector_named_func_);
+    }).EnableCaching(true);
   }
 
   //Turns a vector<NamedFunc> into one usable for a cutflow table

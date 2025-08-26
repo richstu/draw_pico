@@ -3,7 +3,9 @@
 
 #include <string>
 #include <functional>
+#include <mutex>
 #include <ostream>
+#include <thread>
 #include <vector>
 
 #include "TString.h"
@@ -25,10 +27,10 @@ public:
   NamedFunc(const char *function);
   NamedFunc(const TString &function);
   NamedFunc(ScalarType x);
-  NamedFunc(const NamedFunc &) = default;
-  NamedFunc & operator=(const NamedFunc &) = default;
-  NamedFunc(NamedFunc &&) = default;
-  NamedFunc & operator=(NamedFunc &&) = default;
+  NamedFunc(const NamedFunc &);
+  NamedFunc & operator=(const NamedFunc &);
+  NamedFunc(NamedFunc &&);
+  NamedFunc & operator=(NamedFunc &&);
   ~NamedFunc() = default;
 
   const std::string & Name() const;
@@ -63,10 +65,13 @@ private:
   std::function<ScalarFunc> scalar_func_;//<!Scalar function. Cannot be valid at same time as NamedFunc::vector_func_.
   std::function<VectorFunc> vector_func_;//<!Vector function. Cannot be valid at same time as NamedFunc::scalar_func_.
   bool enable_caching_;
-  mutable ScalarType cached_scalar_result_;
-  mutable VectorType cached_vector_result_;
-  mutable const Baby* cached_baby_;
-  mutable long cached_entry_;
+  mutable std::unordered_map<std::thread::id, const Baby*> cached_baby_;
+  mutable std::unordered_map<std::thread::id, long> cached_entry_;
+  mutable std::unordered_map<std::thread::id, ScalarType> 
+    cached_scalar_result_;
+  mutable std::unordered_map<std::thread::id, VectorType> 
+    cached_vector_result_;
+  mutable std::mutex cache_mutex_;
 
   void CleanName();
 };

@@ -50,6 +50,7 @@ public:
   bool print_2d_figures_;
   long max_entries_;
   void * event_veto_data_;
+  size_t max_threads_;
 
 private:
   std::vector<std::unique_ptr<Figure> > figures_;//!<Figures to be produced
