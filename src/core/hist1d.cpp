@@ -1619,7 +1619,7 @@ void Hist1D::AddEntries(vector<shared_ptr<TLegend> > &legends,
     TLegend &legend = *legends.at(legend_index);
     string label = " ";
     label += (*h)->process_->name_.c_str();
-    if(this_opt_.Title() == TitleType::info){
+    if(this_opt_.Title() == TitleType::info || this_opt_.DisplayMCNorm()){
       double value;
       switch(this_opt_.Stack()){
       default:

@@ -620,7 +620,7 @@ namespace ZgUtilities {
     //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isisr);
     //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isfsr",
     //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isfsr);
-    zg_sample_loader.LoadPalette("txt/colors_zgamma_official.txt","default");
+    zg_sample_loader.LoadPalette("txt/colors_zgamma.txt","default");
     return zg_sample_loader;
   }
   

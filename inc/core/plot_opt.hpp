@@ -78,6 +78,9 @@ public:
   PlotOpt & TitleInFrame(bool title_in_frame);
   bool TitleInFrame() const;
 
+  PlotOpt & DisplayMCNorm(bool display_mc_norm);
+  bool DisplayMCNorm() const;
+
   PlotOpt & CanvasSize(int width, int height);
   PlotOpt & CanvasWidth(int width);
   int CanvasWidth() const;
@@ -182,6 +185,7 @@ private:
   bool use_cmyk_;
   bool print_vals_;
   bool title_in_frame_;
+  bool display_mc_norm_;
 
   void SetProperty(const std::string &property_name,
                    const std::string &value_string);

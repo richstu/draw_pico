@@ -17,6 +17,7 @@
  vbfzg     36 198   0
  blue       0   0 255
  red      255   0   0
+ htozg    255   0   0
  htomumu  255   0 172
  htogg    221 255   5   
  htott      7 208   2
