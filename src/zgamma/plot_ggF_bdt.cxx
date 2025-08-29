@@ -100,10 +100,12 @@ int main(int argc, char *argv[]) {
   string plot_names = "_run2";
   cout << "Rui" << endl;
   string lumi_label = "137.61";
-  vector<shared_ptr<Process>> procs_mc = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMC");//"AllSplit");
+  //  vector<shared_ptr<Process>> procs_mc = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMC");//"AllSplit");
+  vector<shared_ptr<Process>> procs_mc;
   cout << "Rui" << endl;
   if(plot_option=="run3"){
-    procs_mc       = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","AllMoreTrigsDataRun3");
+    //    procs       = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMCDataRun3");//AllMoreTrigsDataRun3");
+    procs_mc       = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMCRun3");
     plot_names = "_run3";
     lumi_label = "62.32";
     cout << "Plotting Run 3" << endl;
@@ -252,7 +254,7 @@ int main(int argc, char *argv[]) {
   PlotMaker pm;
 
   //Initial definitions of variables used in the loop
-  NamedFunc selection_hmass = "1"; string labels = "";
+  NamedFunc selection_hmass = "1"; string labels = "weight"+plot_names;
   NamedFunc selection_blind = "1";
   NamedFunc not_hwin = mlly < 120 || mlly > 130; //<------ ALTERNATIVE TO BLIND_DATA. NEEDED IF USING StackType("data_norm")
   NamedFunc hmasswindow = mlly > 120 && mlly < 130; 

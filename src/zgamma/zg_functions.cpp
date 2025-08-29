@@ -382,7 +382,10 @@ namespace ZgFunctions {
 
     double w_year = w_years.GetScalar(b);
     if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
-    if(b.SampleType() > 2020){ return b.w_lumi()*w_year;}
+    if(b.SampleType() > 2020){ 
+      if (b.type() == 17302) return b.weight()*w_year;
+      if (b.type() >= 17300 && b.type() <= 17303 && b.SampleType() < 2023) return b.weight()*w_year*0.5;
+      return b.weight()*w_year;}
 
     return b.weight()*w_year;
   });

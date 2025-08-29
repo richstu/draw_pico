@@ -390,14 +390,19 @@ void Hist1D::Print(double luminosity,
       bottom->cd();
 
 
+      if (this_opt_.Stack() == StackType::prop_shape_stack ) {
+	if(bot_plots.size()>1) bot_plots.at(0).Draw("e0p");
+	bottom_background.Draw("2 same");
+	string draw_opt = "e0p0 same";
+      }
+      else {
       if(bot_plots.size()>0) bot_plots.at(0).Draw("e0p");
       bottom_background.Draw("2 same");
       string draw_opt = "e0p0 same";
       for(auto &h: bot_plots){
         h.Draw(draw_opt.c_str());
       }
-
-
+      }
       horizontal.Draw("same");
 
       bottom->RedrawAxis();
