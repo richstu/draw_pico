@@ -115,7 +115,8 @@ Table::Table(const string &name,
     bool print_pie,
     bool print_titlepie, 
     bool do_eff,
-    bool do_unc):
+    bool do_unc,
+    bool rel_prev_cut):
   Figure(),
   name_(name),
   rows_(rows),
@@ -125,6 +126,7 @@ Table::Table(const string &name,
   print_titlepie_(print_titlepie),
   do_eff_(do_eff),
   do_unc_(do_unc),
+  rel_prev_cut_(rel_prev_cut),
   plot_options_({PlotOpt("txt/plot_styles.txt", "Pie")}),
   backgrounds_(),
   signals_(),
@@ -350,108 +352,130 @@ void Table::PrintRow(ofstream &file, size_t irow, double luminosity) const{
     file << "\n";
   }
 
+  size_t cb = 1; //countback
+  if (rel_prev_cut_ == 0) cb = irow;
+  double totyield(0), totyield_err(0);
+  double eff(0), eff_relUnc(0);
+
   if(row.is_data_row_){
     file << "    " << setw(52) << row.label_;
-    if(backgrounds_.size() > 1){
-      double totyield = luminosity*GetYield(backgrounds_, irow);
-      for(size_t i = 0; i < backgrounds_.size(); ++i){
-        if (print_pie_) 
-          file << " & " << luminosity*backgrounds_.at(i)->sumw_.at(irow)/totyield << "$\\pm$" 
-            << luminosity*sqrt(backgrounds_.at(i)->sumw2_.at(irow))/totyield;
-        // changed these lines for efficiencies
-        if (do_eff_){
-          if(irow==0)
-            file << " & " << luminosity*backgrounds_.at(i)->sumw_.at(irow);
-          else{
-            double eff = 100*backgrounds_.at(i)->sumw_.at(irow)/backgrounds_.at(i)->sumw_.at(irow-1);
-            double eff_relUnc = hypot(sqrt(backgrounds_.at(i)->sumw2_.at(irow))/backgrounds_.at(i)->sumw_.at(irow),sqrt(backgrounds_.at(i)->sumw2_.at(irow-1))/backgrounds_.at(i)->sumw_.at(irow-1));
-            if(do_unc_){
-              if(eff != eff || eff_relUnc != eff_relUnc)
-                // 		file << " & \\num[parse-numbers=false]{" << eff << "}$\\pm$\\num[parse-numbers=false]{" << eff*eff_relUnc << "}";
-                file << " & " << setprecision(1) << eff << " $\\pm$ " << eff*eff_relUnc;
-              else
-                file << " & " << setprecision(1) << eff << " $\\pm$ " << eff*eff_relUnc;
-            }
-            else
-              file << " & " << eff;
-          }
-        }
-        else
-          if(do_unc_) {
-            file << " & " << setw(10) << luminosity*backgrounds_.at(i)->sumw_.at(irow) << "$\\pm$" << luminosity*sqrt(backgrounds_.at(i)->sumw2_.at(irow));
-          } else
-            file << " & " << setw(10) << luminosity*backgrounds_.at(i)->sumw_.at(irow);
-      }
-      if (do_eff_){
-        if(irow==0)
-          file << " & " << totyield;
-        else{
-          double eff = 100*totyield / (luminosity*GetYield(backgrounds_, irow-1));
-          double eff_relUnc = hypot(luminosity*GetError(backgrounds_,irow)/totyield, GetError(backgrounds_,irow-1)/GetYield(backgrounds_,irow-1));
-          if(do_unc_){
-            if(eff != eff || eff_relUnc != eff_relUnc)
-              file << " & " << setprecision(1) << eff << " $\\pm$ " << eff*eff_relUnc;
-            // 	      file << " & \\num[parse-numbers=false]{" << eff << "}$\\pm$\\num[parse-numbers=false]{" << eff*eff_relUnc << "}"; 
-            else
-              file << " & " << setprecision(1) << eff << " $\\pm$ " << eff*eff_relUnc;
-            // 	      file << " & \\num{" << eff << "}$\\pm$\\num{" << eff*eff_relUnc << "}";
-          }
-          else
-            file << " & " << eff;
-        }
-      }
-      else {
-        if (do_unc_) file << " & " << setw(10) << totyield << "$\\pm$" << luminosity*GetError(backgrounds_, irow);
-        else file << " & " << setw(10) << totyield; // << "$\\pm$" << luminosity*GetError(backgrounds_, irow);
-      }
-    }else if(backgrounds_.size() == 1){
-      if(do_unc_) {
-        file << " & " << luminosity*GetYield(backgrounds_, irow) << "$\\pm$" << luminosity*GetError(backgrounds_, irow);
-      } else
-        file << " & " << luminosity*GetYield(backgrounds_, irow);
-    }
 
-    if(datas_.size() > 1){
+
+
+    if(backgrounds_.size() >= 1){//backgrounds
+      totyield = luminosity*GetYield(backgrounds_, irow);
+      totyield_err = luminosity*GetError(backgrounds_, irow);
+      if(irow!=0){
+        eff = 100*totyield / (luminosity*GetYield(backgrounds_, irow-cb));
+        if(do_eff_) eff_relUnc = hypot(luminosity*GetError(backgrounds_,irow)/totyield, GetError(backgrounds_,irow-cb)/GetYield(backgrounds_,irow-cb));
+      }
+
+      if((backgrounds_.size() == 1 && irow == 0) || (backgrounds_.size() == 1 && do_eff_ != 1)){//Single background table entries for eff(y/n) and unc(y/n). Single background meaningless for pie chart
+        WriteSeg(file, totyield, totyield_err, do_unc_,0);
+      }else if(backgrounds_.size() == 1 && irow != 0 && do_eff_ == 1) {
+        WriteSeg(file, eff, eff*eff_relUnc, do_unc_,0);
+      }else if(backgrounds_.size() > 1){//multi background tables, w/ pie chart details
+
+        for(size_t i = 0; i < backgrounds_.size(); ++i){//backgrounds loop
+          if(print_pie_){
+            eff = luminosity*backgrounds_.at(i)->sumw_.at(irow)/totyield;
+            eff_relUnc = luminosity*sqrt(backgrounds_.at(i)->sumw2_.at(irow))/totyield;
+            WriteSeg(file, eff, eff_relUnc, do_unc_,0);//Fraction of total yield
+          }
+          if(do_eff_ && irow == 0){
+            eff = luminosity*backgrounds_.at(i)->sumw_.at(irow);
+            WriteSeg(file, eff, eff_relUnc, do_unc_,0);
+          } else if(do_eff_ && irow !=0){
+            eff = 100*backgrounds_.at(i)->sumw_.at(irow)/backgrounds_.at(i)->sumw_.at(irow-cb);
+            eff_relUnc = hypot(sqrt(backgrounds_.at(i)->sumw2_.at(irow))/backgrounds_.at(i)->sumw_.at(irow),sqrt(backgrounds_.at(i)->sumw2_.at(irow-1))/backgrounds_.at(i)->sumw_.at(irow-1));
+            WriteSeg(file, eff, eff_relUnc, do_unc_,0);
+          } else if(do_eff_ != 1){
+            WriteSeg(file, luminosity*backgrounds_.at(i)->sumw_.at(irow), luminosity*sqrt(backgrounds_.at(i)->sumw2_.at(irow)), do_unc_, 1);
+          }
+        }//backgrounds loop
+
+        if(do_eff_ && irow == 0){//Does the last column of table with multiple bkg processes, or only row of table with 1 process
+          WriteSeg(file, totyield, totyield_err, do_unc_, 0);
+        } else if(do_eff_){
+          WriteSeg(file, eff, eff_relUnc, do_unc_, 0);
+        } else {
+          WriteSeg(file, totyield, totyield_err, do_unc_, 1);
+        }
+
+      }//multi background tables 
+    }//backgrounds
+
+    if(signals_.size() >= 1){//signals
+      totyield = luminosity*GetYield(signals_, irow);
+      totyield_err = luminosity*GetError(signals_, irow);
+      if(irow!=0){
+        eff = 100*totyield / (luminosity*GetYield(signals_, irow-cb));
+        if(do_eff_) eff_relUnc = hypot(luminosity*GetError(signals_,irow)/totyield, GetError(signals_,irow-cb)/GetYield(signals_,irow-cb));
+      }
+
+      if((signals_.size() == 1 && irow == 0) || (signals_.size() == 1 && do_eff_ != 1)){//Single signal table entries for eff(y/n) and unc(y/n). Single signal meaningless for pie chart
+        WriteSeg(file, totyield, totyield_err, do_unc_,0);
+      }else if(signals_.size() == 1 && irow != 0 && do_eff_ == 1) {
+        WriteSeg(file, eff, eff*eff_relUnc, do_unc_,0);
+      }else if(signals_.size() > 1){//multi signal tables, w/ pie chart details
+
+        for(size_t i = 0; i < signals_.size(); ++i){//signals loop
+          if(print_pie_){
+            eff = luminosity*signals_.at(i)->sumw_.at(irow)/totyield;
+            eff_relUnc = luminosity*sqrt(signals_.at(i)->sumw2_.at(irow))/totyield;
+            WriteSeg(file, eff, eff_relUnc, do_unc_,0);//Fraction of total yield
+          }
+          if(do_eff_ && irow == 0){
+            eff = luminosity*signals_.at(i)->sumw_.at(irow);
+            WriteSeg(file, eff, eff_relUnc, do_unc_,0);
+          } else if(do_eff_ && irow !=0){
+            eff = 100*signals_.at(i)->sumw_.at(irow)/signals_.at(i)->sumw_.at(irow-cb);
+            eff_relUnc = hypot(sqrt(signals_.at(i)->sumw2_.at(irow))/signals_.at(i)->sumw_.at(irow),sqrt(signals_.at(i)->sumw2_.at(irow-1))/signals_.at(i)->sumw_.at(irow-1));
+            WriteSeg(file, eff, eff_relUnc, do_unc_,0);
+          } else if(do_eff_ != 1){
+            WriteSeg(file, luminosity*signals_.at(i)->sumw_.at(irow), luminosity*sqrt(signals_.at(i)->sumw2_.at(irow)), do_unc_, 1);
+          }
+          if(do_zbi_){//haven't updated this
+            file << " & " << RooStats::NumberCountingUtils::BinomialExpZ(luminosity*signals_.at(i)->sumw_.at(irow),
+                luminosity*GetYield(backgrounds_, irow),
+                GetError(backgrounds_, irow)/GetYield(backgrounds_, irow));
+            //hypot(GetError(backgrounds_, irow)/GetYield(backgrounds_, irow), 0.3));
+            //double sigma_b = hypot(luminosity*GetError(backgrounds_, irow), 0.3*luminosity*GetYield(backgrounds_, irow));
+            double sigma_b = luminosity*GetError(backgrounds_, irow);
+            double signalYield = luminosity*signals_.at(i)->sumw_.at(irow);
+            double bkgdYield = luminosity*GetYield(backgrounds_, irow);
+            double cowan1 = log((signalYield + bkgdYield)*(bkgdYield + sigma_b*sigma_b)/(bkgdYield*bkgdYield + (signalYield + bkgdYield)*sigma_b*sigma_b));
+            cowan1 = cowan1 * (signalYield + bkgdYield);
+            double cowan2 = log(1 + sigma_b*sigma_b*signalYield/(bkgdYield*(bkgdYield + sigma_b*sigma_b)));
+            cowan2 = cowan2 * bkgdYield*bkgdYield / (sigma_b*sigma_b);
+            double cowan = sqrt(2 * (cowan1 - cowan2));
+            file << " & " <<  cowan; // ***NEW LINE***
+        }
+ 
+        }//signals loop
+
+        if(do_eff_ && irow == 0){//Does the last column of table with multiple sig processes, or only row of table with 1 process
+          WriteSeg(file, totyield, totyield_err, do_unc_, 0);
+        } else if(do_eff_){
+          WriteSeg(file, eff, eff_relUnc, do_unc_, 0);
+        } else {
+          WriteSeg(file, totyield, totyield_err, do_unc_, 1);
+        }
+      }//multi signal tables
+    }//signals
+
+
+
+    if(datas_.size() >= 1){
+      bool pad = false;
+      totyield = GetYield(datas_, irow);
+      if(datas_.size() > 1) pad = 1;
       for(size_t i = 0; i < datas_.size(); ++i){
-        file << " & " << datas_.at(i)->sumw_.at(irow);
+        WriteSeg(file, datas_.at(i)->sumw_.at(irow), totyield_err, 0, pad);
       }
-      file << " & " << GetYield(datas_, irow);
-    }else if(datas_.size() == 1){
-      file << " & " << GetYield(datas_, irow);
+      if(datas_.size() > 1) WriteSeg(file, totyield, totyield_err, 0, pad);
     }
-
-    for(size_t i = 0; i < signals_.size(); ++i){
-      if(do_eff_){
-        if(irow==0)
-          file << " & " << luminosity*signals_.at(i)->sumw_.at(irow);
-        else if(irow<=3)
-          file << " & " << setprecision(1) << 100*signals_.at(i)->sumw_.at(irow)/signals_.at(i)->sumw_.at(irow-1);
-        else
-          file << " & " << setprecision(1) << 100*signals_.at(i)->sumw_.at(irow)/signals_.at(i)->sumw_.at(irow-1);
-      }
-      else {
-        if (do_unc_) file << " & " << luminosity*signals_.at(i)->sumw_.at(irow) << "$\\pm$"<< luminosity*sqrt(signals_.at(i)->sumw2_.at(irow));
-        else file << " & " << luminosity*signals_.at(i)->sumw_.at(irow);
-      // file << " & " << luminosity*signals_.at(i)->sumw_.at(irow) << "$\\pm$" 
-      //         << luminosity*sqrt(signals_.at(i)->sumw2_.at(irow));
-      }
-      if(do_zbi_){
-        file << " & " << RooStats::NumberCountingUtils::BinomialExpZ(luminosity*signals_.at(i)->sumw_.at(irow),
-            luminosity*GetYield(backgrounds_, irow),
-            GetError(backgrounds_, irow)/GetYield(backgrounds_, irow));
-        //hypot(GetError(backgrounds_, irow)/GetYield(backgrounds_, irow), 0.3));
-        //double sigma_b = hypot(luminosity*GetError(backgrounds_, irow), 0.3*luminosity*GetYield(backgrounds_, irow));
-        double sigma_b = luminosity*GetError(backgrounds_, irow);
-        double signalYield = luminosity*signals_.at(i)->sumw_.at(irow);
-        double bkgdYield = luminosity*GetYield(backgrounds_, irow);
-        double cowan1 = log((signalYield + bkgdYield)*(bkgdYield + sigma_b*sigma_b)/(bkgdYield*bkgdYield + (signalYield + bkgdYield)*sigma_b*sigma_b));
-        cowan1 = cowan1 * (signalYield + bkgdYield);
-        double cowan2 = log(1 + sigma_b*sigma_b*signalYield/(bkgdYield*(bkgdYield + sigma_b*sigma_b)));
-        cowan2 = cowan2 * bkgdYield*bkgdYield / (sigma_b*sigma_b);
-        double cowan = sqrt(2 * (cowan1 - cowan2));
-        file << " & " <<  cowan; // ***NEW LINE***
-      }
-    }
+    
   }else{
     file << "    \\multicolumn{" << NumColumns() << "}{c}{" << row.label_ << "}";
   }
@@ -465,9 +489,24 @@ void Table::PrintRow(ofstream &file, size_t irow, double luminosity) const{
     }
     file << "\n";
   }
-
   if(print_pie_) PrintPie(irow, luminosity);
 } // PrintRow
+
+void Table::WriteSeg(ofstream &file, double val, double valUnc = 0.0, bool unc = false, bool pad = false) const{
+  if(pad == 0){
+    if(unc == 1){
+      file << " & " << val << " $\\pm$ " << valUnc;
+    } else{
+      file << " & " << val;
+    }
+  } else{
+    if(unc == 1){
+      file << " & " << setw(10) << val << " $\\pm$ " << valUnc;
+    } else{
+      file << " & " << setw(10) << val;
+    }
+  }
+}
 
 void Table::PrintPie(std::size_t irow, double luminosity) const{
   size_t Nbkg = backgrounds_.size();
