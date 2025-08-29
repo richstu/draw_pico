@@ -311,7 +311,10 @@ NamedFunc::NamedFunc(const std::string &name,
                      const std::function<ScalarFunc> &function):
   name_(name),
   scalar_func_(function),
-  vector_func_(){
+  vector_func_(),
+  enable_caching_(false),
+  cached_baby_(nullptr),
+  cached_entry_(0){
   CleanName();
 }
 
@@ -325,9 +328,12 @@ NamedFunc::NamedFunc(const std::string &name,
                      const std::function<VectorFunc> &function):
   name_(name),
   scalar_func_(),
-  vector_func_(function){
+  vector_func_(function),
+  enable_caching_(false),
+  cached_baby_(nullptr),
+  cached_entry_(0){
   CleanName();
-  }
+}
 
 /*!\brief Constructor using FunctionParser to produce a real function from a
   string
@@ -366,7 +372,10 @@ NamedFunc::NamedFunc(const TString &function):
 NamedFunc::NamedFunc(ScalarType x):
   name_(ToString(x)),
   scalar_func_([x](const Baby&){return x;}),
-  vector_func_(){
+  vector_func_(),
+  enable_caching_(false),
+  cached_baby_(nullptr),
+  cached_entry_(0){
 }
 
 /*!\brief Get the string representation of this function
@@ -384,6 +393,15 @@ const string & NamedFunc::Name() const{
 NamedFunc & NamedFunc::Name(const string &name){
   name_ = name;
   CleanName();
+  return *this;
+}
+
+/*!\brief Enable or disable caching
+
+  \param[in] enable_caching bool enables or disables caching
+*/
+NamedFunc & NamedFunc::EnableCaching(bool enable_caching){
+  enable_caching_ = enable_caching;
   return *this;
 }
 
@@ -457,8 +475,15 @@ bool NamedFunc::IsVector() const{
 
   \return Result of applying scalar function to b
 */
-ScalarType NamedFunc::GetScalar(const Baby &b) const{
-  return scalar_func_(b);
+ScalarType NamedFunc::GetScalar(const Baby &b) const {
+  if (!enable_caching_)
+    return scalar_func_(b);
+  if (!(cached_baby_ == &b && b.GetCurrentEntry()==cached_entry_)) {
+    cached_baby_ = &b;
+    cached_entry_ = b.GetCurrentEntry();
+    cached_scalar_result_ = scalar_func_(b);
+  }
+  return cached_scalar_result_;
 }
 
 /*!\brief Evaluate vector function with b as argument
@@ -467,8 +492,15 @@ ScalarType NamedFunc::GetScalar(const Baby &b) const{
 
   \return Result of applying vector function to b
 */
-VectorType NamedFunc::GetVector(const Baby &b) const{
-  return vector_func_(b);
+VectorType NamedFunc::GetVector(const Baby &b) const {
+  if (!enable_caching_)
+    return vector_func_(b);
+  if (!(cached_baby_ == &b && b.GetCurrentEntry()==cached_entry_)) {
+    cached_baby_ = &b;
+    cached_entry_ = b.GetCurrentEntry();
+    cached_vector_result_ = vector_func_(b);
+  }
+  return cached_vector_result_;
 }
 
 /*!\brief Add func to *this

@@ -154,7 +154,10 @@ void Table::Print(double luminosity,
   if(!print_table_) return;
   if(subdir != "") mkdir(("tables/"+subdir).c_str(), 0777);
   string fmt_lumi = CopyReplaceAll(RoundNumber(luminosity,1).Data(),".","p");
-  if (luminosity_tag_ != "") fmt_lumi = CopyReplaceAll(luminosity_tag_,".","p");
+  if (luminosity_tag_ != "") {
+    if (!Contains(luminosity_tag_, "TeV"))
+      fmt_lumi = CopyReplaceAll(luminosity_tag_,".","p");
+  }
   string file_name = subdir != ""
     ? "tables/"+subdir+"/"+name_+"_lumi_"+fmt_lumi+".tex"
     : "tables/"+name_+"_lumi_"+fmt_lumi+".tex";
@@ -298,7 +301,13 @@ void Table::PrintHeader(ofstream &file, double luminosity) const{
 
   file << " }\n";
   file << "    \\hline\\hline\n";
-  if (luminosity_tag_ != "") file <<" \\multicolumn{1}{c|}{${\\cal L} = "<<setprecision(1)<<luminosity_tag_<<"$ fb$^{-1}$} ";
+  if (luminosity_tag_ != "") {
+    if (Contains(luminosity_tag_, "TeV"))
+      file << " \\multicolumn{1}{c|}{$ " << luminosity_tag_ << "$} ";
+    else
+      file << " \\multicolumn{1}{c|}{${\\cal L} = " << luminosity_tag_ 
+           << "$ fb$^{-1}$} ";
+  }
   else file <<" \\multicolumn{1}{c|}{${\\cal L} = "<<setprecision(1)<<luminosity<<"$ fb$^{-1}$} ";
   if (precision_<0) {
     if(do_unc_)

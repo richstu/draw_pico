@@ -574,6 +574,7 @@ void WriteBaseHeader(const set<Variable> &vars,
   file << "  virtual ~Baby() = default;\n\n";
 
   file << "  long GetEntries() const;\n";
+  file << "  long GetCurrentEntry() const;\n";
   file << "  virtual void GetEntry(long entry);\n\n";
 
   file << "  std::string FirstFileName() const;\n";
@@ -846,6 +847,15 @@ void WriteBaseSource(const set<Variable> &vars){
   file << "    total_entries_ = chain_->GetEntries();\n";
   file << "  }\n";
   file << "  return total_entries_;\n";
+  file << "}\n\n";
+
+
+  file << "/*!\\brief Get current entry number\n\n";
+
+  file << "  \\return current entry number\n";
+  file << "*/\n";
+  file << "long Baby::GetCurrentEntry() const{\n";
+  file << "  return entry_;\n";
   file << "}\n\n";
 
   file << "/*!\\brief Change current entry\n\n";

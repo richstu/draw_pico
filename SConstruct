@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+DEBUG = False
+
 # envDict: { key: value }
 def findEnviornment(scriptname, envDict):
   if not os.path.isfile(scriptname):
@@ -26,7 +28,8 @@ def returnEnviornment(scriptname):
 
 def addRootEnv(_env):
   _env.Append (CCFLAGS = '-isystem `root-config --incdir`' )
-  #_env.Append (CCFLAGS = '-g' ) #debug symbols cause big executables, use only when gdb is needed
+  if DEBUG:
+    _env.Append (CCFLAGS = '-g' ) #debug symbols cause big executables, use only when gdb is needed
   _env.Append (CCFLAGS = '`root-config --cflags`' )
   _env.Append (LINKFLAGS = '`root-config --glibs`') 
   _env.Append (LINKFLAGS = '`root-config --ldflags`')
@@ -51,7 +54,8 @@ def addExternalEnv(_env):
   _env.Append (CCFLAGS = '-isystem external_inc' )
 
 def addBasicEnv(_env):
-  _env.Append (CCFLAGS = '-O2')
+  if not DEBUG:
+    _env.Append (CCFLAGS = '-O2')
 
 def addKernelEnv(_env):
   _env['kernel'] = getKernel()

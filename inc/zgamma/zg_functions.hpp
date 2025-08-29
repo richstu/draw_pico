@@ -1,6 +1,9 @@
 #ifndef H_ZG_FUNCTIONS
 #define H_ZG_FUNCTIONS
 
+#include <array>
+
+#include "core/baby.hpp"
 #include "core/named_func.hpp"
 
 namespace ZgFunctions {
@@ -45,6 +48,12 @@ namespace ZgFunctions {
 
   //subleading electron pt
   extern const NamedFunc sublead_el_pt;
+
+  //fixed signal jet criteria
+  extern const NamedFunc jet_isgood_hornveto;
+
+  //fixed njet
+  extern const NamedFunc njet_hornveto;
 
   //leading jet pt
   extern const NamedFunc lead_jet_pt;
@@ -141,6 +150,51 @@ namespace ZgFunctions {
 
   //vector mother PDGID of mother of GenParticle
   extern const NamedFunc mc_mommom;
+
+  //returns true if photon is dr-matched to any hardprocess particle
+  extern const NamedFunc photon_isjet;
+
+  std::array<float, 2> get_mht(const Baby &b);
+
+  //magnitude of vector sum of lepton, photon, and jet pts
+  extern const NamedFunc mht;
+
+  //angle of vector sum of lepton, photon, and jet pts
+  extern const NamedFunc mht_phi;
+
+  //scalar sum of lepton, photon, and jet pts
+  extern const NamedFunc ht;
+
+  //angle between photon and MHT
+  extern const NamedFunc photon_mht_dphi;
+
+  //dR between jet and photon
+  extern const NamedFunc jet_photon_dr;
+
+  //dR between lead jet and photon
+  extern const NamedFunc lead_jet_photon_dr;
+
+  //deta between jet and photon
+  extern const NamedFunc jet_photon_deta;
+
+  //deta between lead jet and photon
+  extern const NamedFunc lead_jet_photon_deta;
+
+  //dR between Higgs candidate and leading jet
+  extern const NamedFunc lead_jet_llphoton_dr;
+
+  //dphi between Higgs candidate and leading jet
+  extern const NamedFunc lead_jet_llphoton_dphi;
+
+  //MHT(llgj)/HT(llgj)
+  extern const NamedFunc llphoton_j_balance;
+
+  //MHT(llgjj)/HT(llgjj)
+  extern const NamedFunc llphoton_dijet_balance_hornveto;
+
+  //selector for untagged category consisting of events that pass baseline but
+  //do not fall into another category
+  extern const NamedFunc untagged_category;
 }
 
 #endif

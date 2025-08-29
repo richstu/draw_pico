@@ -14,6 +14,11 @@ namespace NamedFuncUtilities {
   //Returns a named func that is input_named_func with map_function applied (entrywise) to it
   NamedFunc MapNamedFunc(NamedFunc input_named_func, std::function<double(double)> map_function);
 
+  //Returns a named func that is input_named_funcs with map_function applied 
+  //to it
+  NamedFunc MultiMapNamedFunc(std::vector<NamedFunc> input_named_funcs, 
+      std::function<double(std::vector<double>)> map_function);
+
   //Returns a scalar named func that is vector_named_func with reduce_function applied to it
   NamedFunc ReduceNamedFunc(NamedFunc vector_named_func, 
       std::function<double(std::vector<double>)> reduce_function);

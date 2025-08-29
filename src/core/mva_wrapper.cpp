@@ -21,14 +21,13 @@ MVAWrapper::MVAWrapper(std::string name) :
   name_(name),
   variables_(std::vector<NamedFunc>()),
   variable_names_(std::vector<std::string>()),
+  alt_variables_(std::unordered_map<std::string,std::vector<NamedFunc>>()),
   variable_values_(std::vector<float>()),
   spectators_(std::vector<NamedFunc>()),
   spectator_names_(std::vector<std::string>()),
   spectator_values_(std::vector<float>()),
   mva_reader_(TMVA::Reader()),
-  booked_(false),
-  previous_event_(0),
-  cached_value_(0.0)
+  booked_(false)
 {}
 
 /*!\brief Assigns a variable for the MVA and associates a NamedFunc
@@ -42,6 +41,24 @@ MVAWrapper & MVAWrapper::SetVariable(std::string name, NamedFunc variable) {
     variables_.push_back(variable);
     variable_names_.push_back(name);
     variable_values_.push_back(0);
+  }
+  else {
+    throw std::runtime_error("Cannot add variables after booking.");
+  }
+  return *this;
+}
+
+/*!\brief Assigns a variant version of a variable for the MVA and associates a 
+ * NamedFunc
+ * \param[in] variation - variation name
+ * \param[in] varaible - NamedFunc that will be evaluated to create variable
+*/
+MVAWrapper & MVAWrapper::SetAltVariable(std::string variation, 
+                                        NamedFunc variable) {
+  if (!booked_) {
+    if (alt_variables_.count(variation)==0)
+      alt_variables_[variation] = std::vector<NamedFunc>();
+    alt_variables_[variation].push_back(variable);
   }
   else {
     throw std::runtime_error("Cannot add variables after booking.");
@@ -65,7 +82,12 @@ MVAWrapper & MVAWrapper::SetSpectator(std::string name, NamedFunc variable) {
  * \param[in] weights_filename - filename for the MVA weights files
 */
 MVAWrapper & MVAWrapper::BookMVA(std::string weights_filename) {
-  std::cout << "Creating an MVA reader. For the reader to work, ensure PlotMaker is set to single-threaded." << std::endl;
+  std::cout << "Creating an MVA reader. For the reader to work, ensure "
+               "PlotMaker is set to single-threaded." << std::endl;
+  for (auto& alt_var : alt_variables_) {
+    if (alt_var.second.size() != variables_.size())
+      throw std::runtime_error("Alternate variable set size differs.");
+  }
   for (unsigned i = 0; i < variables_.size(); i++) {
     mva_reader_.AddVariable(variable_names_[i], &(variable_values_[i]));
   }
@@ -81,14 +103,17 @@ MVAWrapper & MVAWrapper::BookMVA(std::string weights_filename) {
 
 /*!\brief Returns a NamedFunc that yields discriminant for an event
 */
-NamedFunc MVAWrapper::GetDiscriminant() {
-  return NamedFunc((name_+"Score").c_str(),[&](const Baby &b) -> NamedFunc::ScalarType{ 
-    if (b.event() == previous_event_) return cached_value_;
-    previous_event_ = b.event();
+NamedFunc MVAWrapper::GetDiscriminant(std::string variation) {
+  return NamedFunc((name_+"Score").c_str(),[&](const Baby &b) 
+      -> NamedFunc::ScalarType{ 
     for (unsigned i = 0; i < variables_.size(); i++) {
-      variable_values_[i] = variables_[i].GetScalar(b);
+      if (variation=="") {
+        variable_values_[i] = variables_[i].GetScalar(b);
+      }
+      else {
+        variable_values_[i] = alt_variables_[variation][i].GetScalar(b);
+      }
     }
-    cached_value_ = mva_reader_.EvaluateMVA("BDT");
-    return cached_value_;
-    });
+    return mva_reader_.EvaluateMVA("BDT");
+  }).EnableCaching(true);
 }

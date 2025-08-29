@@ -1,14 +1,4 @@
-//This script generates some tables for run3 H->ZGamma trigger studies
-//
-//Arguments
-// --single_thread (-s) to run single thread for debugging
-// --unblind (-u) to unblind (not done for AN plots)
-// --year (-y) yearname to select data year (2016, 2017, 2018, run2)
-// --tag (-t) to add a tag to produced plots
-// --string_options (-o) to specify what to plot
-//
-//possible string options: 
-//
+//script used to do H->Zgamma trigger studies
 
 #include "core/test.hpp"
 
@@ -46,20 +36,45 @@
 #include "core/hist1d.hpp"
 #include "core/hist2d.hpp"
 #include "core/named_func.hpp"
+#include "core/named_func_utilities.hpp"
 #include "core/palette.hpp"
 #include "core/plot_maker.hpp"
 #include "core/plot_opt.hpp"
 #include "core/process.hpp"
 #include "core/table.hpp"
 #include "core/utilities.hpp"
-//#include "higgsino/script_utilities.hpp"
-//#include "higgsino/hig_functions.hpp"
 #include "zgamma/apply_zg_trigeffs.hpp"
 #include "zgamma/nano_functions.hpp"
+#include "zgamma/zg_functions.hpp"
+#include "zgamma/zg_utilities.hpp"
+
+//Update 25.02.2025
+//Below this is 6000 lines of several years of trigger studies from the dawn
+//of time. Except for the pieces generated from NanoAOD, they are almost
+//certainly incompatible with all n-tuples from the last N years. I'm leaving
+//them for the record, but be warned very few things are expected to work
+//-MO
+
+//This script generates some tables for run3 H->ZGamma trigger studies
+//
+//Arguments
+// --single_thread (-s) to run single thread for debugging
+// --unblind (-u) to unblind (not done for AN plots)
+// --year (-y) yearname to select data year (2016, 2017, 2018, run2)
+// --tag (-t) to add a tag to produced plots
+// --string_options (-o) to specify what to plot
+//
+//possible string options: 
+//
 
 using namespace std;
 using namespace PlotOptTypes;
 using namespace NanoFunctions;
+using namespace NamedFuncUtilities;
+using namespace ZgUtilities;
+using ZgFunctions::w_years;
+using ZgFunctions::Ztoee;
+using ZgFunctions::ZtoMuMu;
 
 //declare helper functions
 //these are defined at the end of the file, after main()
@@ -214,86 +229,9 @@ unsigned vector_count(std::vector<vec_type> vec, vec_type value) {
   return counter;
 }
 
-//------------------------------------------------------------------------------------
-//                      named funcs to be moved to a common location
-//------------------------------------------------------------------------------------
-
-//Returns a scalar NamedFunc that is the sum of the entries of vector_named_func
-NamedFunc SumNamedFunc(NamedFunc vector_named_func) {
-  return NamedFunc("SumNamedFunc("+vector_named_func.Name()+")",[vector_named_func](const Baby &b) -> NamedFunc::ScalarType{
-    double sum = 0;
-    std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
-    for (double named_func_entry : vector_named_func_) {
-      sum += named_func_entry;
-    }
-    return sum;
-  });
-}
-
-////Returns a scalar NamedFunc that is element index of vector_named_func or -999 if no index index
-//NamedFunc AtNamedFunc(NamedFunc vector_named_func, unsigned index) {
-//  return NamedFunc("AtNamedFunc("+vector_named_func.Name()+","+std::to_string(index)+")",[vector_named_func](const Baby &b) -> NamedFunc::ScalarType{
-//    std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
-//    if (index < 0 || index >= vector_named_func_.size()) {
-//      return -999;
-//    }
-//    return vector_named_func_[index];
-//  });
-//}
-
-//Returns a vector named func that is vector_named_func filtered with filter_named_func
-NamedFunc FilterNamedFunc(NamedFunc vector_named_func, NamedFunc filter_named_func) {
-  return NamedFunc("FilterNamedFunc("+vector_named_func.Name()+","+filter_named_func.Name()+")",[vector_named_func,filter_named_func](const Baby &b) -> NamedFunc::VectorType{
-    std::vector<double> mapped_named_func;
-    std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
-    std::vector<double> filter_named_func_ = filter_named_func.GetVector(b);
-    for (unsigned i = 0; i < vector_named_func_.size(); i++) {
-      if (filter_named_func_[i]) {
-        mapped_named_func.push_back(vector_named_func_[i]);
-      }
-    }
-    return mapped_named_func;
-  });
-}
-
-//Returns a vector named func that is vector_named_func with map_function applied to it
-NamedFunc MapNamedFunc(NamedFunc vector_named_func, std::function<double(double)> map_function) {
-  return NamedFunc("MapNamedFunc("+vector_named_func.Name()+")",[vector_named_func,map_function](const Baby &b) -> NamedFunc::VectorType{
-    std::vector<double> mapped_named_func;
-    std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
-    for (unsigned i = 0; i < vector_named_func_.size(); i++) {
-      mapped_named_func.push_back(map_function(vector_named_func_[i]));
-    }
-    return mapped_named_func;
-  });
-}
-
-//Returns a scalar named func that is vector_named_func with reduce_function applied to it
-NamedFunc ReduceNamedFunc(NamedFunc vector_named_func, std::function<double(std::vector<double>)> reduce_function) {
-  return NamedFunc("ReduceNamedFunc("+vector_named_func.Name()+")",[vector_named_func,reduce_function](const Baby &b) -> NamedFunc::ScalarType{
-    std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
-    return reduce_function(vector_named_func_);
-  });
-}
-
-//Returns a scalar NamedFunc that is element index of vector_named_func or -999 if no index index
-//only considering indices for which mask_named_func is true
-NamedFunc AtNamedFunc(NamedFunc vector_named_func, NamedFunc mask_named_func, unsigned index) {
-  return NamedFunc("AtNamedFunc("+vector_named_func.Name()+","+mask_named_func.Name()+","+std::to_string(index)+")",[vector_named_func, mask_named_func, index](const Baby &b) -> NamedFunc::ScalarType{
-    std::vector<double> vector_named_func_ = vector_named_func.GetVector(b);
-    std::vector<double> mask_named_func_ = mask_named_func.GetVector(b);
-    unsigned sig_index = 0;
-    for (unsigned i = 0; i < vector_named_func_.size(); i++) {
-      if (mask_named_func_[i]) {
-        if (sig_index==index) {
-          return vector_named_func_[i];
-        }
-        sig_index++;
-      }
-    }
-    return -999;
-  });
-}
+//-----------------------------------------------------------------------------
+//                 named funcs to be moved to a common location
+//-----------------------------------------------------------------------------
 
 //returns a vector NamedFunc that is the list of indices from list2 matched by deltaR to list1
 //can exclude elements of list2 using NamedFunc list2_mask
@@ -343,9 +281,9 @@ NamedFunc DeltaRMatchNamedFunc(NamedFunc list1_eta, NamedFunc list1_phi, NamedFu
 //}
 
 int main(int argc, char *argv[]){
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   //                                    constants
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   //can only go as low as Electron/Muon_sig
   //const std::vector<double> el_pt_bins = {7.0, 10.0, 12.0, 15.0, 20.0, 25.0, 27.0, 30.0, 35.0, 40.0, 50.0, 80.0, 120.0, 200.0};
   const std::vector<double> el_pt_bins = {7.0, 12.0, 15.0, 20.0, 25.0, 27.0, 30.0, 35.0, 40.0, 50.0, 80.0, 120.0, 200.0};
@@ -355,9 +293,9 @@ int main(int argc, char *argv[]){
   const std::vector<double> mu_pt_bins_ptcut = {5.0, 17.0, 20.0, 23.0, 25.0, 30.0, 40.0, 50.0, 60.0, 120.0, 300.0}; //for pt cut efficiencies, can only go down to 10 GeV due to cut on muon TrigObj
   const std::vector<double> mu_abseta_bins = {0.0, 0.9, 1.2, 2.1, 2.4};
 
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   //                                    initialization
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
 
   //remove 120-130 mass range
   const NamedFunc blind_sr("blind_sr",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -385,11 +323,17 @@ int main(int argc, char *argv[]){
   std::vector<PlotOpt> plt_log_shapes = script_utilities::plot_log_shapes();
   PlotOpt style2D("txt/plot_styles.txt", "Scatter");
   std::vector<PlotOpt> twodim_plotopts = {style2D().Title(TitleType::info)
-      .YAxis(YAxisType::linear).Overflow(OverflowType::overflow).LogMinimum(0.001)};
+      .YAxis(YAxisType::linear).Overflow(OverflowType::overflow)
+      .LogMinimum(0.001)};
   std::vector<PlotOpt> plt_lin_logx = {PlotOpt("txt/plot_styles.txt","CMSPaper")
       .Title(TitleType::info).Bottom(PlotOptTypes::BottomType::off)
       .XAxis(PlotOptTypes::YAxisType::log)
       .Overflow(PlotOptTypes::OverflowType::none).LegendColumns(3)};
+
+  vector<PlotOpt> ops_mc = {PlotOpt("txt/plot_styles.txt","LinLumi")
+      .Title(TitleType::private_work)}; 
+  vector<PlotOpt> ops_shapes = {PlotOpt("txt/plot_styles.txt","Shapes")
+      .Title(TitleType::private_work)}; 
 
   //set<int> years;
   //HigUtilities::parseYears(options.year_string, years);
@@ -679,13 +623,50 @@ int main(int argc, char *argv[]){
       base_folder_v7data+"MET__Run2017F__02Apr2020-v1__30000__0EE78B5A-1800-0341-A33E-29EFDCAB3FAA*",
       base_folder_v7data+"MET__Run2017F__02Apr2020-v1__30000__1450C885-647B-074B-BAEB-84763C291B92*"},"1"));
 
-  //------------------------------------------------------------------------------------
-  //                      named funcs to be moved to a common location
-  //------------------------------------------------------------------------------------
+  vector<shared_ptr<Process>> procs_sig_pinnacles = ZgSampleLoader()
+      .SetMacro("SKIM_LLG",{"mc/merged_zgmc_llg"})
+      .LoadSamples("txt/samples_zgamma.txt","All",{Process::Type::signal});
+  procs_sig_pinnacles[0]->cut_ = "1";
 
-  const NamedFunc NMuon_trig = SumNamedFunc("TrigObj_id==13");
-  const NamedFunc NElectron_trig = SumNamedFunc("TrigObj_id==11");
-  const NamedFunc NPhoton_trig = SumNamedFunc("TrigObj_id==22");
+  vector<shared_ptr<Process>> procs_sig_pinnacles_unskimmed = ZgSampleLoader()
+      .SetMacro("SKIM_LLG",{"mc/unskimmed"})
+      .LoadSamples("txt/samples_zgamma.txt","All",{Process::Type::signal});
+  procs_sig_pinnacles_unskimmed[0]->cut_ = "1";
+
+  vector<shared_ptr<Process>> procs_sig_pinnacles_compare = ZgSampleLoader()
+      .SetMacro("SKIM_LLG",{"mc/merged_zgmc_llg"})
+      .LoadSamples("txt/samples_zgamma.txt","All",{Process::Type::signal});
+  procs_sig_pinnacles_compare[0]->cut_ = "trig_double_el||trig_double_mu";
+  procs_sig_pinnacles_compare[0]->name_ = "H#rightarrowZ#gamma (Dilepton triggers)";
+  procs_sig_pinnacles_compare[0]->SetLineColor(TColor::GetColor(63,144,218));
+  vector<shared_ptr<Process>> procs_sig_pinnacles_compare2 = ZgSampleLoader()
+      .SetMacro("SKIM_LLG",{"mc/merged_zgmc_llg"})
+      .LoadSamples("txt/samples_zgamma.txt","All",{Process::Type::signal});
+  procs_sig_pinnacles_compare2[0]->cut_ = 
+      "trig_double_el||trig_double_mu||trig_single_el||trig_single_mu";
+  procs_sig_pinnacles_compare2[0]->name_ = 
+      "H#rightarrowZ#gamma (Dilepton or single lepton triggers)";
+  //procs_sig_pinnacles_compare2[0]->color_ = TColor::GetColor(189,31,1);
+  procs_sig_pinnacles_compare.insert( procs_sig_pinnacles_compare.end(), 
+      procs_sig_pinnacles_compare2.begin(),procs_sig_pinnacles_compare2.end());
+
+  vector<shared_ptr<Process>> procs_pinnacles_mc = ZgSampleLoader()
+      .SetMacro("SKIM_LLG",{"mc/merged_zgmc_llg"})
+      .LoadMCSamples("txt/samples_zgamma.txt","CondensedMC");
+  procs_pinnacles_mc.erase(procs_pinnacles_mc.begin()+2);
+  for (shared_ptr<Process> &proc : procs_pinnacles_mc) {
+    proc->cut_ = "use_event";
+    if (proc->type_ == Process::Type::signal)
+      proc->name_ = proc->name_+" (x100)";
+  }
+
+  //                      named funcs to be moved to a common location
+  //---------------------------------------------------------------------------
+
+  const NamedFunc NMuon_trig = ReduceNamedFunc("TrigObj_id==13",reduce_sum);
+  const NamedFunc NElectron_trig = ReduceNamedFunc("TrigObj_id==11",
+                                                   reduce_sum);
+  const NamedFunc NPhoton_trig = ReduceNamedFunc("TrigObj_id==22",reduce_sum);
 
   const NamedFunc Lead_Electron_abseta("Lead_Electron_abseta",[](const Baby &b) -> NamedFunc::ScalarType{
     std::vector<double> Electron_sig_ = Electron_sig.GetVector(b);
@@ -734,9 +715,9 @@ int main(int argc, char *argv[]){
     return -999;
   });
 
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   //                                     named funcs
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   
   const NamedFunc weight("weight_nf",[](const Baby &b) -> NamedFunc::ScalarType{
     double h_zg_br = 0.001533;
@@ -3251,6 +3232,17 @@ int main(int argc, char *argv[]){
       return pass_hem;
   });
 
+  NamedFunc w_sigx100("w_sigx100",[](const Baby &b) -> NamedFunc::ScalarType{
+    if(b.type() >= 200000 && b.type() < 201000)
+      return 100.0;
+    return 1.0;
+  });
+
+  const NamedFunc trig_double_photon = "HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId||HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90";
+
+  const NamedFunc sanitize_weight = NamedFunc("weight/w_lumi<10")
+      .Name("sanitize_weight");
+
   NamedFunc baseline_selection = ((ZCandidate_mass>50)&&((Lead_SignalElectron_pt>25)||(Lead_SignalMuon_pt>20))&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut&&((HiggsCandidate_mass+ZCandidate_mass)>185));
   NamedFunc baseline_selection_nopt = ((ZCandidate_mass>50)&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&delta_r_cut&&((HiggsCandidate_mass+ZCandidate_mass)>185));
   NamedFunc baseline_selection_nodr = ((ZCandidate_mass>50)&&((Lead_SignalElectron_pt>25)||(Lead_SignalMuon_pt>20))&&(Lead_SignalPhoton_pt/HiggsCandidate_mass>0.14)&&((HiggsCandidate_mass+ZCandidate_mass)>185));
@@ -3259,9 +3251,31 @@ int main(int argc, char *argv[]){
   NamedFunc highpt = ((Lead_SignalElectron_pt>38&&Sublead_SignalElectron_pt>38)||(Lead_SignalMuon_pt>29&&Sublead_SignalMuon_pt>29));
   NamedFunc dy_selection = ((ZCandidate_mass>81)&&(ZCandidate_mass<101))&&(nSignalElectron>=2||nSignalMuon>=2);
 
-  //------------------------------------------------------------------------------------
+  const NamedFunc zg_baseline_notrig = NamedFunc("(nel>=2||nmu>=2) "
+      "&& nphoton>=1 && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) "
+      "&& ll_m[0]>80 && ll_m[0]<100 && ((llphoton_m[0]+ll_m[0])>=185) "
+      "&& llphoton_m[0]>100 && llphoton_m[0]<180").Name("baseline_notrig");
+
+  const NamedFunc mc_el_pt = FilterNamedFunc("mc_pt",
+      "(mc_id==11||mc_id==-11)&&mc_status==1");
+  const NamedFunc mc_mu_pt = FilterNamedFunc("mc_pt",
+      "(mc_id==13||mc_id==-13)&&mc_status==1");
+  const NamedFunc mc_photon_pt = FilterNamedFunc("mc_pt",
+      "(mc_id==22)&&mc_status==1");
+  const NamedFunc lead_mc_el_pt = ReduceNamedFunc(mc_el_pt,reduce_max)
+                                  .Name("lead_mc_el_pt");
+  const NamedFunc sublead_mc_el_pt = ReduceNamedFunc(mc_el_pt,reduce_sublead)
+                                     .Name("sublead_mc_el_pt");
+  const NamedFunc lead_mc_mu_pt = ReduceNamedFunc(mc_mu_pt,reduce_max)
+                                  .Name("lead_mc_mu_pt");
+  const NamedFunc sublead_mc_mu_pt = ReduceNamedFunc(mc_mu_pt,reduce_sublead)
+                                     .Name("sublead_mc_mu_pt");
+  const NamedFunc lead_mc_photon_pt = ReduceNamedFunc(mc_photon_pt,reduce_max)
+                                      .Name("lead_mc_photon_pt");
+
+  //---------------------------------------------------------------------------
   //                                     make plots and pie charts
-  //------------------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   
   PlotMaker pm;
 
@@ -3284,7 +3298,197 @@ int main(int argc, char *argv[]){
   bool plot_jaebak_cutflow = false;
   bool plot_associated_acceptance = false;
   bool plot_ptg = false;
-  bool plot_data_sidebands = true;
+  bool plot_data_sidebands = false;
+  bool make_anplots_signal = true;
+  bool make_anplots_signal_background = false;
+
+  if (make_anplots_signal) {
+    //trigger efficiency plots
+    pm.Push<EfficiencyPlot>(
+        Axis(30, 0.0, 100.0, "el_pt[0]", "Lead electron p_{T} [GeV]", {}),
+        zg_baseline_notrig&&sanitize_weight&&"ll_lepid[0]==11", 
+        "trig_double_el",
+        procs_sig_pinnacles,true,ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig").YTitle("trigger").YAxisMax(1.4);
+    pm.Push<EfficiencyPlot>(
+        Axis(30, 0.0, 100.0, "el_pt[0]", "Lead electron p_{T} [GeV]", {}),
+        zg_baseline_notrig&&sanitize_weight&&"ll_lepid[0]==11", 
+        "trig_single_el||trig_double_el",
+        procs_sig_pinnacles,true,ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig").YTitle("trigger").YAxisMax(1.4);
+    pm.Push<EfficiencyPlot>(
+        Axis(30, 0.0, 100.0, "el_pt[1]", "Sublead electron p_{T} [GeV]", {}),
+        zg_baseline_notrig&&sanitize_weight&&"ll_lepid[0]==11", 
+        "trig_double_el",
+        procs_sig_pinnacles,true,ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig").YTitle("trigger").YAxisMax(1.4);
+    pm.Push<EfficiencyPlot>(
+        Axis(30, 0.0, 100.0, "el_pt[1]", "Sublead electron p_{T} [GeV]", {}),
+        zg_baseline_notrig&&sanitize_weight&&"ll_lepid[0]==11", 
+        "trig_single_el||trig_double_el",
+        procs_sig_pinnacles,true,ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig").YTitle("trigger").YAxisMax(1.4);
+    pm.Push<EfficiencyPlot>(
+        Axis(30, 0.0, 100.0, "mu_pt[0]", "Lead muon p_{T} [GeV]", {}),
+        zg_baseline_notrig&&sanitize_weight&&"ll_lepid[0]==13", 
+        "trig_double_mu",
+        procs_sig_pinnacles,true,ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig").YTitle("trigger").YAxisMax(1.4);
+    pm.Push<EfficiencyPlot>(
+        Axis(30, 0.0, 100.0, "mu_pt[0]", "Lead muon p_{T} [GeV]", {}),
+        zg_baseline_notrig&&sanitize_weight&&"ll_lepid[0]==13", 
+        "trig_single_mu||trig_double_mu",
+        procs_sig_pinnacles,true,ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig").YTitle("trigger").YAxisMax(1.4);
+    pm.Push<EfficiencyPlot>(
+        Axis(30, 0.0, 100.0, "mu_pt[1]", "Sublead muon p_{T} [GeV]", {}),
+        zg_baseline_notrig&&sanitize_weight&&"ll_lepid[0]==13", 
+        "trig_double_mu",
+        procs_sig_pinnacles,true,ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig").YTitle("trigger").YAxisMax(1.4);
+    pm.Push<EfficiencyPlot>(
+        Axis(30, 0.0, 100.0, "mu_pt[1]", "Sublead muon p_{T} [GeV]", {}),
+        zg_baseline_notrig&&sanitize_weight&&"ll_lepid[0]==13", 
+        "trig_single_mu||trig_double_mu",
+        procs_sig_pinnacles,true,ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig").YTitle("trigger").YAxisMax(1.4);
+    //plots analyzing events added by single lepton triggers for signal
+    vector<NamedFunc> channels = {Ztoee, ZtoMuMu};
+    vector<NamedFunc> lep_pt = {"el_pt","mu_pt"};
+    vector<NamedFunc> lep_eta = {"el_eta","mu_eta"};
+    vector<string> lep_name = {"Electron","Muon"};
+    vector<NamedFunc> lep_sig = {"el_sig","mu_sig"};
+    for (unsigned ich = 0; ich < channels.size(); ich++) {
+      pm.Push<Hist1D>(
+          Axis(30, 110.0, 140.0, "llphoton_m[0]","m_{ll#gamma} [GeV]"),
+          sanitize_weight&&zg_baseline_notrig&&channels[ich],
+          procs_sig_pinnacles_compare, ops_shapes).Weight("weight"*w_years)
+          .Tag("zgtrig");
+      pm.Push<Hist1D>(
+          Axis(30, 0.0, 100.0, lep_pt[ich], lep_name[ich]+" p_{T} [GeV]"),
+          sanitize_weight&&zg_baseline_notrig&&channels[ich]&&lep_sig[ich],
+          procs_sig_pinnacles_compare, ops_shapes).Weight("weight"*w_years)
+          .Tag("zgtrig");
+      pm.Push<Hist1D>(
+          Axis(50, -2.5, 2.5, lep_eta[ich], lep_name[ich]+" #eta [GeV]"),
+          sanitize_weight&&zg_baseline_notrig&&channels[ich]&&lep_sig[ich],
+          procs_sig_pinnacles_compare, ops_shapes).Weight("weight"*w_years)
+          .Tag("zgtrig");
+      pm.Push<Hist1D>(
+          Axis(30, 0.0, 100.0, "photon_pt[0]", "Photon p_{T} [GeV]"),
+          sanitize_weight&&zg_baseline_notrig&&channels[ich],
+          procs_sig_pinnacles_compare, ops_shapes).Weight("weight"*w_years)
+          .Tag("zgtrig");
+      pm.Push<Hist1D>(
+          Axis(50, -2.5, 2.5, "photon_eta[0]", "Photon #eta [GeV]"),
+          sanitize_weight&&zg_baseline_notrig&&channels[ich],
+          procs_sig_pinnacles_compare, ops_shapes).Weight("weight"*w_years)
+          .Tag("zgtrig");
+    }
+    //tables
+    pm.Push<Table>("zgtrig_basic", vector<TableRow>{
+      TableRow("Baseline (no trigger) events (Z$\\to$ ee)",
+          Ztoee&&zg_baseline_notrig,0,0,"weight"*w_years),
+      TableRow("Pass dilep trigger",
+          Ztoee&&zg_baseline_notrig&&"trig_double_el||trig_double_mu",
+          0,0,"weight"*w_years),
+      TableRow("Pass single or dilep trigger",
+          Ztoee&&zg_baseline_notrig
+          &&"trig_double_el||trig_double_mu||trig_single_el||trig_single_mu",
+          0,0,"weight"*w_years),
+      TableRow("Baseline (no trigger) events (Z$\\to \\mu\\mu$)",
+          ZtoMuMu&&zg_baseline_notrig,0,0,"weight"*w_years),
+      TableRow("Pass dilep trigger",
+          ZtoMuMu&&zg_baseline_notrig&&"trig_double_el||trig_double_mu",
+          0,0,"weight"*w_years),
+      TableRow("Pass single or dilep trigger",
+          ZtoMuMu&&zg_baseline_notrig
+          &&"trig_double_el||trig_double_mu||trig_single_el||trig_single_mu",
+          0,0,"weight"*w_years),
+    },procs_sig_pinnacles,false,true,false,false,false,true).Precision(3);
+    pm.Push<Table>("zgtrig_unweighted", vector<TableRow>{
+      TableRow("Baseline (no trigger) events (Z$\\to$ ee)",
+          Ztoee&&zg_baseline_notrig,0,0,"w_lumi"*w_years),
+      TableRow("Pass dilep trigger",
+          Ztoee&&zg_baseline_notrig&&"trig_double_el||trig_double_mu",
+          0,0,"w_lumi"*w_years),
+      TableRow("Pass single lepton trigger",
+          Ztoee&&zg_baseline_notrig&&"trig_single_el||trig_single_mu",
+          0,0,"w_lumi"*w_years),
+      TableRow("Pass single or dilep trigger",
+          Ztoee&&zg_baseline_notrig
+          &&"trig_double_el||trig_double_mu||trig_single_el||trig_single_mu",
+          0,0,"w_lumi"*w_years),
+      TableRow("Pass single or dilep trigger or lepton+photon trigger",
+          Ztoee&&zg_baseline_notrig
+          &&("trig_double_el||trig_double_mu||trig_single_el||trig_single_mu"
+          ||trig_double_photon),
+          0,0,"w_lumi"*w_years),
+      TableRow("Baseline (no trigger) events (Z$\\to \\mu\\mu$)",
+          ZtoMuMu&&zg_baseline_notrig,0,0,"w_lumi"*w_years),
+      TableRow("Pass dilep trigger",
+          ZtoMuMu&&zg_baseline_notrig&&"trig_double_el||trig_double_mu",
+          0,0,"w_lumi"*w_years),
+      TableRow("Pass single lepton trigger",
+          ZtoMuMu&&zg_baseline_notrig&&"trig_single_el||trig_single_mu",
+          0,0,"w_lumi"*w_years),
+      TableRow("Pass single or dilep trigger",
+          ZtoMuMu&&zg_baseline_notrig
+          &&("trig_double_el||trig_double_mu||trig_single_el||trig_single_mu"
+          ||trig_double_photon),
+          0,0,"w_lumi"*w_years),
+      TableRow("Pass single or dilep trigger or muon+photon trigger",
+          ZtoMuMu&&zg_baseline_notrig
+          &&("trig_double_el||trig_double_mu||trig_single_el||trig_single_mu"
+          ||NamedFunc("HLT_Mu17_Photon30_IsoCaloId")),
+          0,0,"w_lumi"*w_years),
+    },procs_sig_pinnacles,false,true,false,false,false,true).Precision(3);
+
+    pm.SetLuminosityTag("138 fb^{-1} (13 TeV) + 62 fb^{-1} (13.6 TeV)");
+  }
+
+  if (make_anplots_signal_background) {
+    //gen plots
+    pm.Push<Hist1D>(
+        Axis(30, 0.0, 140.0, lead_mc_el_pt, "Lead Electron p_{T}", {}),
+        sanitize_weight&&Ztoee,
+        procs_sig_pinnacles_unskimmed, ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig");
+    pm.Push<Hist1D>(
+        Axis(30, 0.0, 100.0, sublead_mc_el_pt, 
+             "Sublead Electron p_{T}", {}),
+        sanitize_weight&&Ztoee,
+        procs_sig_pinnacles_unskimmed, ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig");
+    pm.Push<Hist1D>(
+        Axis(30, 0.0, 140.0, lead_mc_mu_pt, "Lead Muon p_{T}", {}),
+        sanitize_weight&&ZtoMuMu,
+        procs_sig_pinnacles_unskimmed, ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig");
+    pm.Push<Hist1D>(
+        Axis(30, 0.0, 100.0, sublead_mc_mu_pt, "Sublead Muon p_{T}", {}),
+        sanitize_weight&&ZtoMuMu,
+        procs_sig_pinnacles_unskimmed, ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig");
+    pm.Push<Hist1D>(
+        Axis(30, 0.0, 100.0, lead_mc_photon_pt, "Photon p_{T}", {}),
+        sanitize_weight,
+        procs_sig_pinnacles_unskimmed, ops_mc).Weight("weight"*w_years)
+        .Tag("zgtrig");
+    //signal/background plots
+    pm.Push<Hist1D>(
+        Axis(40, 100.0, 180.0, "llphoton_m[0]","m_{ll#gamma} [GeV]"),
+        sanitize_weight&&zg_baseline_notrig&&"trig_double_el||trig_double_mu",
+        procs_pinnacles_mc, ops_mc)
+        .Weight("weight"*w_years*w_sigx100).Tag("zgtrig");
+    pm.Push<Hist1D>(
+        Axis(40, 100.0, 180.0, "llphoton_m[0]","m_{ll#gamma} [GeV]"),
+        sanitize_weight&&zg_baseline_notrig&&
+        "trig_double_el||trig_double_mu||trig_single_el||trig_single_mu",
+        procs_pinnacles_mc, ops_mc)
+        .Weight("weight"*w_years*w_sigx100).Tag("zgtrig");
+    pm.SetLuminosityTag("138 fb^{-1} (13 TeV) + 62 fb^{-1} (13.6 TeV)");
+  }
 
   if (plot_associated_acceptance) {
     //ggh
@@ -6613,7 +6817,7 @@ int main(int argc, char *argv[]){
   }
   
   pm.multithreaded_ = !options.single_thread;
-  pm.min_print_ = false; //debugging time baby
+  pm.min_print_ = true; //debugging time baby
   pm.MakePlots(1.);
 
   //------------------------------------------------------------------------------------

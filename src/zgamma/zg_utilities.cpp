@@ -1,12 +1,15 @@
 #include "zgamma/zg_utilities.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <functional>
+#include <iostream>
 #include <map>
 #include <memory>
-#include <sstream>
-#include <string>
-#include <stdlib.h>
 #include <regex>
+#include <sstream>
+#include <stdlib.h>
+#include <string>
 #include <vector>
 
 #include "RooAbsPdf.h"
@@ -17,20 +20,28 @@
 #include "RooRealVar.h"
 
 #include "core/baby.hpp"
+#include "core/fastforest.hpp"
+#include "core/named_func.hpp"
+#include "core/named_func_utilities.hpp"
 #include "core/mva_wrapper.hpp"
 #include "core/palette.hpp"
 #include "core/process.hpp"
 #include "core/sample_loader.hpp"
 #include "core/utilities.hpp"
 #include "zgamma/zg_functions.hpp"
-#include "zgamma/KinZfitter.h"
+#include "zgamma/KinZfitter.hpp"
 
 namespace ZgUtilities {
   using std::vector;
   using std::string;
+  using std::map;
   using std::to_string;
   using std::cout;
   using std::endl;
+  using std::shared_ptr;
+  using std::function;
+  using fastforest::FastForest;
+  using NamedFuncUtilities::MapNamedFunc;
   // Returns negative lepton 4-momentum
   TLorentzVector AssignL1(const Baby &b, bool gen) {
     TLorentzVector l1;
@@ -131,7 +142,7 @@ namespace ZgUtilities {
   }
 
   double AssignL1Error(const Baby &b) {
-    std::cout << " CRASH LEP" << std::endl;
+    //std::cout << " CRASH LEP" << std::endl;
     double l1Err = 0.0;
     int il(-1);
     int flav = b.ll_lepid() ->at(0);
@@ -156,7 +167,7 @@ namespace ZgUtilities {
 
   // Returns positive lepton 4-momentum error
   double AssignL2Error(const Baby &b) {
-    std::cout << " CRASH SLEP" << std::endl;
+    //std::cout << " CRASH SLEP" << std::endl;
     double l2Err = 0.0;
     int il(-1);
     int flav = b.ll_lepid() ->at(0);
@@ -470,6 +481,8 @@ namespace ZgUtilities {
   }
   
   // Cosine of angle between lepton 1 and parent Z in Higgs frame 
+  // DO NOT USE THIS FUNCTION if you have FSR photons, it only works in the
+  // limit mlep = 0
   //  Defined in Equation 13
   double get_costheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma) {
     TLorentzVector llg_p4 = lep_minus + lep_plus + gamma;
@@ -515,6 +528,68 @@ namespace ZgUtilities {
     return phi;
   }
 
+  //version of angle calculation taken directly from nano2pico
+  //works even for ml!=0 (i.e. FSR recovery)
+  vector<double> CalculateAngles(TLorentzVector lplus, TLorentzVector lminus, 
+                                 TLorentzVector ph) {
+    TLorentzVector dilep = lplus+lminus;
+    TLorentzVector llg = dilep+ph;
+  
+    // Variables used for defining kinematic angles presented in 
+    //https://arxiv.org/pdf/1108.2274.pdf
+    double M = llg.M(), mll = dilep.M();
+    double lZ = sqrt(pow(llg.Dot(dilep)/M,2)-pow(mll,2));
+    TVector3 hBoost = llg.BoostVector();
+  
+    // Calculation of cos(theta) changed since original made assumption ml=0,
+    // which is a poor approximation in some cases with hard FSR
+    TVector3 llBoost = dilep.BoostVector();
+    TLorentzVector ph_zframe = ph;
+    TLorentzVector lplus_zframe = lplus;
+    ph_zframe.Boost(-1*llBoost);
+    lplus_zframe.Boost(-1*llBoost);
+              
+    TVector3 gamma_p3 = ph_zframe.Vect();
+    TVector3 l1_p3 = lplus_zframe.Vect();
+    double costheta = l1_p3.Dot(gamma_p3)/l1_p3.Mag()/gamma_p3.Mag();
+  
+    // 4-momenta of q1/q2 (quarks from gluon-gluon fusion)
+    TLorentzVector q, qBar;
+    TVector3 hTransverseBoost = llg.BoostVector();
+    hTransverseBoost.SetZ(0);
+    TLorentzVector hH = llg;
+    hH.Boost(-1*hTransverseBoost);
+    double hPz = hH.Pz(), hE = hH.E();
+    q.SetPxPyPzE(0, 0, (hPz+hE)/2, (hE+hPz)/2);
+    qBar.SetPxPyPzE(0, 0, (hPz-hE)/2, (hE-hPz)/2);
+    q.Boost(hTransverseBoost);
+    qBar.Boost(hTransverseBoost);
+  
+    // Cosine of angle between incoming quarks and outgoing Zs in Higgs frame
+    double cosTheta = (qBar-q).Dot(dilep)/(M*lZ);
+    double sinTheta = sqrt(1 - pow(cosTheta, 2));
+  
+    // Angle phi
+    dilep.Boost(-1*hBoost);
+    TVector3 zBoost = dilep.BoostVector();
+    q.Boost(-1*hBoost);
+    lminus.Boost(-1*hBoost);
+    lplus.Boost(-1*hBoost);
+    TVector3 l1 = lminus.Vect(), l2 = lplus.Vect(), Z = dilep.Vect();
+    TVector3 qvec = q.Vect();
+    double cospsi = -1*l1.Cross(l2).Dot(qvec.Cross(Z))/l1.Cross(l2).Mag()
+                    /qvec.Cross(Z).Mag();
+    double sinpsi = -1*l1.Cross(l2).Dot(qvec)/l1.Cross(l2).Mag()/qvec.Mag()
+                    /sinTheta;
+    if (cospsi > 1) cospsi = 1;
+    else if (cospsi < -1) cospsi = -1;
+    double psi(0);
+    if(sinpsi < 0) psi = -1*acos(cospsi);
+    else           psi = acos(cospsi);
+  
+    return {cosTheta, costheta, psi};
+  }
+
   //returns working version of kinematic BDT
   std::shared_ptr<MVAWrapper> KinematicBdt() {
     std::shared_ptr<MVAWrapper> kin_bdt_reader = std::make_shared<MVAWrapper>("kinematic_bdt");
@@ -534,72 +609,239 @@ namespace ZgUtilities {
   }
 
   //returns NamedFunc that selects low BDT score category "ggF/untagged 4"
-  NamedFunc category_ggh4(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+  NamedFunc category_ggh4_old(std::shared_ptr<MVAWrapper> kinematic_bdt) {
     NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
     return (kinematic_bdt_score>-0.1&&kinematic_bdt_score<0.04);
   }
 
   //returns NamedFunc that selects medium BDT score category "ggF/untagged 3"
-  NamedFunc category_ggh3(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+  NamedFunc category_ggh3_old(std::shared_ptr<MVAWrapper> kinematic_bdt) {
     NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
     return (kinematic_bdt_score>0.04&&kinematic_bdt_score<0.16);
   }
 
   //returns NamedFunc that selects high BDT score category "ggF/untagged 2"
-  NamedFunc category_ggh2(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+  NamedFunc category_ggh2_old(std::shared_ptr<MVAWrapper> kinematic_bdt) {
     NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
     return (kinematic_bdt_score>0.16&&kinematic_bdt_score<0.26);
   }
 
   //returns NamedFunc that selects very high BDT score category "ggF/untagged 1"
-  NamedFunc category_ggh1(std::shared_ptr<MVAWrapper> kinematic_bdt) {
+  NamedFunc category_ggh1_old(std::shared_ptr<MVAWrapper> kinematic_bdt) {
     NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
     return (kinematic_bdt_score>0.26);
   }
 
+  const NamedFunc dijet_absdphi = MapNamedFunc("dijet_dphi", fabsf);
+  const NamedFunc llphoton_dijet_absdphi = MapNamedFunc(
+      "llphoton_dijet_dphi[0]", fabsf);
+
   //returns working version of dijet BDT
-  std::shared_ptr<MVAWrapper> VbfBdt() {
-    std::shared_ptr<MVAWrapper> vbf_bdt_reader = std::make_shared<MVAWrapper>("vbf_bdt");
-    vbf_bdt_reader->SetVariable("photon_mva","photon_idmva[0]");
-    vbf_bdt_reader->SetVariable("min_dR","photon_drmin[0]");
-    vbf_bdt_reader->SetVariable("max_dR","photon_drmax[0]");
-    vbf_bdt_reader->SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
-    vbf_bdt_reader->SetVariable("cosTheta","llphoton_cosTheta[0]");
-    vbf_bdt_reader->SetVariable("costheta","llphoton_costheta[0]");
-    vbf_bdt_reader->SetVariable("phi","llphoton_psi[0]");
-    vbf_bdt_reader->SetVariable("photon_res",ZgFunctions::photon_relpterr);
-    vbf_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
-    vbf_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
-    vbf_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
-    vbf_bdt_reader->SetVariable("detajj","dijet_deta");
-    vbf_bdt_reader->SetVariable("dphizgjj","llphoton_dijet_dphi[0]");
-    vbf_bdt_reader->SetVariable("zgjj_balance","llphoton_dijet_balance[0]");
-    vbf_bdt_reader->SetVariable("ptt","llphoton_pTt[0]");
-    vbf_bdt_reader->SetVariable("dphijj","dijet_dphi");
-    vbf_bdt_reader->SetVariable("zeppenfeld","photon_zeppenfeld[0]");
-    vbf_bdt_reader->SetVariable("ptj2",ZgFunctions::lead_jet_pt);
-    vbf_bdt_reader->SetVariable("ptj1",ZgFunctions::sublead_jet_pt);
-    vbf_bdt_reader->SetVariable("drgj","photon_jet_mindr[0]");
-    vbf_bdt_reader->BookMVA("/homes/oshiro/public_weights/shuffled_dijet_BDT.weights.xml");
-    return vbf_bdt_reader;
+  vector<shared_ptr<MVAWrapper>> VbfBdts() {
+    vector<shared_ptr<MVAWrapper>> vbf_bdt_readers = {
+      std::make_shared<MVAWrapper>("vbf_bdt0"),
+      std::make_shared<MVAWrapper>("vbf_bdt1"),
+      std::make_shared<MVAWrapper>("vbf_bdt2"),
+      std::make_shared<MVAWrapper>("vbf_bdt3")};
+    for (std::shared_ptr<MVAWrapper> bdt_reader : vbf_bdt_readers) {
+      bdt_reader->SetVariable("dijet_deta","dijet_deta");
+      bdt_reader->SetVariable("dijet_dphi",dijet_absdphi);
+      bdt_reader->SetVariable("j1_pt",ZgFunctions::lead_jet_pt);
+      bdt_reader->SetVariable("j2_pt",ZgFunctions::sublead_jet_pt);
+      bdt_reader->SetVariable("llphoton_dijet_balance",
+                              "llphoton_dijet_balance[0]");
+      bdt_reader->SetVariable("llphoton_dijet_dphi",llphoton_dijet_absdphi);
+      bdt_reader->SetVariable("phi","llphoton_psi[0]");
+      bdt_reader->SetVariable("min_dR","photon_drmin[0]");
+      bdt_reader->SetVariable("max_dR","photon_drmax[0]");
+      bdt_reader->SetVariable("costheta","llphoton_costheta[0]");
+      bdt_reader->SetVariable("cosTheta","llphoton_cosTheta[0]");
+      bdt_reader->SetVariable("pt_mass","llphoton_pt[0]/llphoton_m[0]");
+      bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
+      bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
+      bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
+      bdt_reader->SetVariable("photon_mva","photon_idmva[0]");
+      bdt_reader->SetVariable("photon_res",ZgFunctions::photon_relpterr);
+      bdt_reader->SetVariable("photon_zeppenfeld","photon_zeppenfeld[0]");
+      bdt_reader->SetVariable("photon_jet1_dr","photon_jet1_dr[0]");
+      bdt_reader->SetVariable("photon_jet2_dr","photon_jet2_dr[0]");
+    }
+    vbf_bdt_readers[0]->BookMVA("/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_0.weights.xml");
+    vbf_bdt_readers[1]->BookMVA("/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_1.weights.xml");
+    vbf_bdt_readers[2]->BookMVA("/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_2.weights.xml");
+    vbf_bdt_readers[3]->BookMVA("/net/cms37/data1/rui/Training/dataset_2JClassic_pinnacles_run2p3/weights/TMVAClassification_BDT_3.weights.xml");
+    return vbf_bdt_readers;
   }
 
-  //returns NamedFunc that selects high BDT score VBF category "VBF/dijet 1"
-  NamedFunc category_vbf1(std::shared_ptr<MVAWrapper> vbf_bdt) {
-    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
-    return (vbf_bdt_score>0.14);
+  //returns NamedFunc that returns VBF score
+  NamedFunc vbf_bdt_score(vector<shared_ptr<MVAWrapper>> vbf_bdts, 
+                          string variation) {
+    vector<NamedFunc> bdt_scores;
+    for (shared_ptr<MVAWrapper> vbf_bdt : vbf_bdts) {
+      bdt_scores.push_back(vbf_bdt->GetDiscriminant(variation));
+    }
+    return NamedFunc("vbf_bdtscore",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
+      int bdt_index = (((b.event()%314159)+1)%4);
+      return bdt_scores[bdt_index].GetScalar(b);
+    }).EnableCaching(true);
   }
 
-  //returns NamedFunc that selects medium BDT score VBF category "VBF/dijet 2"
-  NamedFunc category_vbf2(std::shared_ptr<MVAWrapper> vbf_bdt) {
-    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
-    return (vbf_bdt_score>0.06&&vbf_bdt_score<0.14);
+  //returns NamedFunc that selects very high BDT score VBF category
+  NamedFunc category_vbf1(const NamedFunc &bdt_scores) {
+    return NamedFunc("vbf1",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
+      float score = bdt_scores.GetScalar(b);
+      if (score > 0.489) return 1.0;
+      return 0.0;
+    });
   }
 
-  //returns NamedFunc that selects low BDT score VBF category "VBF/dijet 3"
-  NamedFunc category_vbf3(std::shared_ptr<MVAWrapper> vbf_bdt) {
-    NamedFunc vbf_bdt_score = vbf_bdt->GetDiscriminant();
-    return (vbf_bdt_score<0.06);
+  //returns NamedFunc that selects high BDT score VBF category
+  NamedFunc category_vbf2(const NamedFunc &bdt_scores) {
+    return NamedFunc("vbf2",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
+      float score = bdt_scores.GetScalar(b);
+      if (score > 0.286 && score < 0.489) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns NamedFunc that selects medium BDT score VBF category
+  NamedFunc category_vbf3(const NamedFunc &bdt_scores) {
+    return NamedFunc("vbf3",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
+      float score = bdt_scores.GetScalar(b);
+      if (score > 0.083 && score < 0.286) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns NamedFunc that selects low BDT score VBF category
+  NamedFunc category_vbf4(const NamedFunc &bdt_scores) {
+    return NamedFunc("vbf4",[bdt_scores](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      if (b.njet()<2) return -1.0;
+      float score = bdt_scores.GetScalar(b);
+      if (score < 0.083) return 1.0;
+      return 0.0;
+    });
+  }
+
+  //returns XGBoost BDTs
+  const vector<FastForest> XGBoostBDTs() {
+    vector<string> xgb_features{"f0","f1","f2","f3","f4","f5","f6","f7","f8",
+                                "f9","f10"};
+    //in order vars are photon_mva, photon_res, max_dR, min_dR, pt_mass, 
+    //cosTheta, costheta, phi, l1_rapidity, l2_rapidity, and photon_rapidity
+    cout << "Loading XGBoost BDTs from "
+         << "/homes/oshiro/public_weights/xgb_bdt_*.txt" << endl;
+    cout << "Evaluator is NOT thread safe, ensure PlotMaker is using 1 thread"
+         << endl;
+    return {fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_bdt_0.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_bdt_1.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_bdt_2.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_bdt_3.txt", xgb_features)};
+  }
+
+  //hacky machinery to cache XGBoost score since it is slow
+  bool compare_float_vectors_delta(vector<float> a, vector<float> b, 
+                                   float delta=1.0e-5) {
+    //all the BDT inputs are O(1) numbers
+    if (a.size() != b.size()) return false;
+    for (unsigned i = 0; i < a.size(); i++) {
+      if (fabs(a[i]-b[i])>delta) return false;
+    }
+    return true;
+  }
+
+  //gets XGBoost score
+  float OldGetXGBoostBDTScore(const vector<FastForest> &xgb_bdts, 
+                              const Baby &b) {
+    int bdt_idx = (b.event()%314159)%4;
+    vector<float> bdt_inputs = {
+        b.photon_idmva()->at(0),
+        static_cast<float>(ZgFunctions::photon_relpterr.GetScalar(b)),
+        b.photon_drmax()->at(0),
+        b.photon_drmin()->at(0),
+        b.llphoton_pt()->at(0)/b.llphoton_m()->at(0),
+        b.llphoton_cosTheta()->at(0),
+        b.llphoton_costheta()->at(0),
+        b.llphoton_phi()->at(0),
+        static_cast<float>(ZgFunctions::lead_lepton_eta.GetScalar(b)),
+        static_cast<float>(ZgFunctions::sublead_lepton_eta.GetScalar(b)),
+        b.photon_eta()->at(0)};
+    return xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
+  }
+
+  //Returns NamedFunc that returns XGBoost score
+  NamedFunc OldXGBoostBDTScore(const vector<FastForest> &xgb_bdts) {
+    return NamedFunc("xgb_bdtscore",[xgb_bdts](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      return OldGetXGBoostBDTScore(xgb_bdts, b);
+    }).EnableCaching(true);
+  }
+
+  //Returns NamedFunc that returns XGBoost score
+  NamedFunc XGBoostBDTScore(const vector<FastForest> &xgb_bdts, 
+                            const vector<NamedFunc> &inputs) {
+    return NamedFunc("xgb_bdtscore",[xgb_bdts, inputs](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      int bdt_idx = (b.event()%314159)%4;
+      vector<float> bdt_inputs;
+      for (const NamedFunc &nf : inputs) {
+        bdt_inputs.push_back(nf.GetScalar(b));
+      }
+      return xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
+    }).EnableCaching(true);
+  }
+
+  //returns NamedFunc that selects low BDT score category "ggF 4"
+  NamedFunc category_ggf4(const NamedFunc &bdtscore) {
+    return NamedFunc("ggf4",[bdtscore](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      float score = bdtscore.GetScalar(b);
+      if (score<0.47) return 1.0;
+      return 0.0;
+    }).EnableCaching(true);
+  }
+
+  //returns NamedFunc that selects medium BDT score category "ggF 3"
+  NamedFunc category_ggf3(const NamedFunc &bdtscore) {
+    return NamedFunc("ggf3",[bdtscore](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      float score = bdtscore.GetScalar(b);
+      if (score>0.47&&score<0.64) return 1.0;
+      return 0.0;
+    }).EnableCaching(true);
+  }
+
+  //returns NamedFunc that selects high BDT score category "ggF 2"
+  NamedFunc category_ggf2(const NamedFunc &bdtscore) {
+    return NamedFunc("ggf2",[bdtscore](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      float score = bdtscore.GetScalar(b);
+      if (score>0.64&&score<0.81) return 1.0;
+      return 0.0;
+    }).EnableCaching(true);
+  }
+
+  //returns NamedFunc that selects very high BDT score category "ggF 1"
+  NamedFunc category_ggf1(const NamedFunc &bdtscore) {
+    return NamedFunc("ggf1",[bdtscore](const Baby &b) 
+        -> NamedFunc::ScalarType{
+      float score = bdtscore.GetScalar(b);
+      if (score>0.81) return 1.0;
+      return 0.0;
+    }).EnableCaching(true);
   }
 
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
@@ -612,6 +854,14 @@ namespace ZgUtilities {
         (ZgFunctions::HLT_pass_dilepton||ZgFunctions::HLT_pass_singlelepton)&&ZgFunctions::stitch);
     zg_sample_loader.LoadNamedFunc("hzg_elchannel",ZgFunctions::Ztoee);
     zg_sample_loader.LoadNamedFunc("hzg_muchannel",ZgFunctions::ZtoMuMu);
+    zg_sample_loader.LoadNamedFunc("use_event&&(trig_single_el||trig_single_mu"
+        "||trig_double_el||trig_double_mu)&&photon_isjet",
+        ("use_event&&(trig_single_el||trig_single_mu||trig_double_el||"
+        "trig_double_mu)")&&ZgFunctions::photon_isjet);
+    zg_sample_loader.LoadNamedFunc("use_event&&(trig_single_el||trig_single_mu"
+        "||trig_double_el||trig_double_mu)&&!photon_isjet",
+        ("use_event&&(trig_single_el||trig_single_mu||trig_double_el||"
+        "trig_double_mu)")&&!ZgFunctions::photon_isjet);
     //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isjet",
     //    "use_event"&&ZgFunction::trig&&ZgFunctions::photon_isjet);
     //zg_sample_loader.LoadNamedFunc("use_event&&trig&&photon_isother",
@@ -680,12 +930,49 @@ namespace ZgUtilities {
     for(int idx_fsr=0; idx_fsr < (b.nfsrphoton()); idx_fsr++){//was +999 for before lassen_v0
       if(dR(b.fsrphoton_eta() ->at(idx_fsr),b.photon_eta() -> at(0), b.fsrphoton_phi() ->at(idx_fsr),b.photon_phi() -> at(0)) < 0.2 ){continue;}
 
-      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(b.ll_i1()->at(0)), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(b.ll_i1()->at(0)) < 0.4 ) ){
+      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(b.ll_i1()->at(0)), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(b.ll_i1()->at(0))) < 0.4 ){
         if(fsridces[0]>-1 && b.fsrphoton_droveret2() -> at(idx_fsr) > b.fsrphoton_droveret2() -> at(fsridces[0])){continue;}
         fsridces[0] = (idx_fsr);
         continue;
       }
-      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(b.ll_i2()->at(0)), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(b.ll_i2()->at(0)) < 0.4 ) ){
+      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(b.ll_i2()->at(0)), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(b.ll_i2()->at(0))) < 0.4 ){
+        if(fsridces[1]>-1 && b.fsrphoton_droveret2() -> at(idx_fsr) > b.fsrphoton_droveret2() -> at(fsridces[1])){continue;}
+        fsridces[1] = (idx_fsr);
+        continue;
+      }
+
+    }
+
+    if(fsridces[0]>-1){
+      fsr.SetPtEtaPhiM( b.fsrphoton_pt() -> at(fsridces[0]),b.fsrphoton_eta() -> at(fsridces[0]),b.fsrphoton_phi() -> at(fsridces[0]),0 );
+    }
+    if(fsridces[1]>-1){
+      fsr2.SetPtEtaPhiM( b.fsrphoton_pt() -> at(fsridces[1]),b.fsrphoton_eta() -> at(fsridces[1]),b.fsrphoton_phi() -> at(fsridces[1]),0 );
+    }
+    return_map[0] = fsr; return_map[1] = fsr2;
+    return return_map;
+  }
+
+  std::map<unsigned int, TLorentzVector> fsrphoton_ret_customll(const Baby &b,
+      int lepid, int i1, int i2){
+    TLorentzVector fsr,fsr2, l1, l2;
+    std::map<unsigned int, TLorentzVector> return_map;
+    fsr2.SetPtEtaPhiM(0.0,0.0,0.0,0.0);
+    fsr.SetPtEtaPhiM(0.0,0.0,0.0,0.0);
+    if(lepid == 11){
+      //return_map[0] = fsr; return_map[1] = fsr2;
+      return return_map;
+    }
+    vector<int> fsridces= {-1,-1};
+    for(int idx_fsr=0; idx_fsr < (b.nfsrphoton()); idx_fsr++){//was +999 for before lassen_v0
+      if(dR(b.fsrphoton_eta() ->at(idx_fsr),b.photon_eta() -> at(0), b.fsrphoton_phi() ->at(idx_fsr),b.photon_phi() -> at(0)) < 0.2 ){continue;}
+
+      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(i1), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(i1)) < 0.4 ) {
+        if(fsridces[0]>-1 && b.fsrphoton_droveret2() -> at(idx_fsr) > b.fsrphoton_droveret2() -> at(fsridces[0])){continue;}
+        fsridces[0] = (idx_fsr);
+        continue;
+      }
+      if( dR(b.fsrphoton_eta() ->at(idx_fsr),b.mu_eta() -> at(i2), b.fsrphoton_phi() ->at(idx_fsr),b.mu_phi() -> at(i2)) < 0.4 ){
         if(fsridces[1]>-1 && b.fsrphoton_droveret2() -> at(idx_fsr) > b.fsrphoton_droveret2() -> at(fsridces[1])){continue;}
         fsridces[1] = (idx_fsr);
         continue;
@@ -705,8 +992,7 @@ namespace ZgUtilities {
 
   double KinRefit(const Baby &b) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData);
+    kinZfitter = new KinZfitter();
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -716,7 +1002,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0),b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     double massZ1REFIT = kinZfitter->GetRefitMZ1();
     delete kinZfitter;
@@ -725,8 +1011,7 @@ namespace ZgUtilities {
 
   double KinRefit(const Baby &b, TString txtFile) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -736,7 +1021,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0),b.SampleTypeString()  );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
 
     double massZ1REFIT = kinZfitter->GetRefitMZ1();
@@ -746,8 +1031,7 @@ namespace ZgUtilities {
 
   std::vector<TLorentzVector> RefitP4(const Baby &b, TString txtFile) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -757,7 +1041,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0) ,b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     delete kinZfitter;
@@ -766,8 +1050,7 @@ namespace ZgUtilities {
 
   double difference_check(const Baby &b, TString txtFile){
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -777,7 +1060,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0) ,b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     delete kinZfitter;
@@ -786,8 +1069,7 @@ namespace ZgUtilities {
 
   double difference_check_lly(const Baby &b, TString txtFile){
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignL1(b);
@@ -798,7 +1080,7 @@ namespace ZgUtilities {
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0) ,b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     TLorentzVector ph = AssignGamma(b);
@@ -897,8 +1179,7 @@ namespace ZgUtilities {
 
   double KinRefitCorrected(const Baby &b, TString txtFile) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
 
@@ -909,7 +1190,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignCorrL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0),b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     double massZ1REFIT = kinZfitter->GetRefitMZ1();
     delete kinZfitter;
@@ -918,8 +1199,7 @@ namespace ZgUtilities {
 
   std::vector<TLorentzVector> RefitP4Corr(const Baby &b, TString txtFile) {
     KinZfitter *kinZfitter;
-    bool isData = false;
-    kinZfitter = new KinZfitter(isData,txtFile);
+    kinZfitter = new KinZfitter(txtFile);
 
     std::map<unsigned int, TLorentzVector> selectedLeptons;
     selectedLeptons[0] = AssignCorrL1(b);
@@ -929,7 +1209,7 @@ namespace ZgUtilities {
     errorLeptons[1] = AssignCorrL2Error(b);
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
-    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons,b.ll_lepid()->at(0) ,b.SampleTypeString() );
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kinZfitter->KinRefitZ1();
     std::vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
     delete kinZfitter;
@@ -941,6 +1221,50 @@ namespace ZgUtilities {
     for (std::shared_ptr<Process> process : processes) {
       process->type_ = Process::Type::background;
     }
+  }
+
+  //returns lepton (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) with custom refit
+  vector<double> get_lep_custom_refit(const Baby &b, 
+      shared_ptr<KinZfitter> kinZfitter, NamedFunc el_pt, NamedFunc mu_pt, 
+      NamedFunc ll_lepid, NamedFunc ll_i1, NamedFunc ll_i2) {
+
+    std::map<unsigned int, TLorentzVector> selectedLeptons;
+    selectedLeptons[0] = TLorentzVector();
+    selectedLeptons[1] = TLorentzVector();
+    int l1_idx = static_cast<int>(ll_i1.GetScalar(b));
+    int l2_idx = static_cast<int>(ll_i2.GetScalar(b));
+    int lepid = static_cast<int>(ll_lepid.GetScalar(b));
+    map<unsigned int, double> errorLeptons;
+    if (lepid == 11) {
+      vector<double> el_pt0 = el_pt.GetVector(b);
+      selectedLeptons[0].SetPtEtaPhiM(el_pt0[l1_idx], b.el_eta()->at(l1_idx),
+                                      b.el_phi()->at(l1_idx), 0.000511);
+      selectedLeptons[1].SetPtEtaPhiM(el_pt0[l2_idx], b.el_eta()->at(l2_idx),
+                                      b.el_phi()->at(l2_idx), 0.000511);
+      errorLeptons[0] = b.el_energyErr()->at(l1_idx) * selectedLeptons[0].Pt() 
+                        / selectedLeptons[0].P();
+      errorLeptons[1] = b.el_energyErr()->at(l2_idx) * selectedLeptons[1].Pt() 
+                        / selectedLeptons[1].P();
+    }
+    else {
+      vector<double> mu_pt0 = mu_pt.GetVector(b);
+      selectedLeptons[0].SetPtEtaPhiM(mu_pt0[l1_idx], b.mu_eta()->at(l1_idx),
+                                      b.mu_phi()->at(l1_idx), 0.105);
+      selectedLeptons[1].SetPtEtaPhiM(mu_pt0[l2_idx], b.mu_eta()->at(l2_idx),
+                                      b.mu_phi()->at(l2_idx), 0.105);
+      errorLeptons[0] = b.mu_ptErr()->at(l1_idx);
+      errorLeptons[1] = b.mu_ptErr()->at(l2_idx);
+    }
+    map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret_customll(
+        b, lepid, l1_idx, l2_idx);
+
+    kinZfitter->Setup(selectedLeptons, selectedFsrMap, errorLeptons);
+    kinZfitter->KinRefitZ1();
+    vector<TLorentzVector> reFit = kinZfitter->GetRefitP4s();
+    vector<double> refit_prop = {reFit[0].Pt(), reFit[0].Eta(), reFit[0].Phi(),
+                                 reFit[0].M(), reFit[1].Pt(), reFit[1].Eta(),
+                                 reFit[1].Phi(), reFit[1].M()};
+    return refit_prop;
   }
 
 }
