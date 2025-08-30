@@ -11,8 +11,9 @@
 using namespace std;
 
 namespace weights{
-  extern const NamedFunc w_run2;
-  extern const NamedFunc w_lumi;
+  extern const NamedFunc w_run2_datavmc;
+  extern const NamedFunc w_lumi_hb;
+  extern const NamedFunc w_lumi_gmsb;
 }
 
 namespace triggers{
@@ -20,6 +21,7 @@ namespace triggers{
   extern const NamedFunc single_muon_trig;
   extern const NamedFunc ptmiss_htmiss_trig;
   extern const NamedFunc jet_ht_trig;
+  extern const NamedFunc diphoton_trig;
 }
 
 namespace filters{

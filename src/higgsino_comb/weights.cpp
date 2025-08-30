@@ -22,7 +22,7 @@ using namespace std;
 
 namespace weights{
 
-  const NamedFunc w_run2("w_run2", [](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc w_run2_datavmc("w_run2_datavmc", [](const Baby &b) -> NamedFunc::ScalarType{
     double w_year = 1;
     if(b.SampleTypeString().Contains("-")) w_year = 1;
     else{
@@ -34,7 +34,7 @@ namespace weights{
       if (file.find("DiPhotonJetsBox") != file.npos) isdiph = true;
       if (file.find("QCD_Pt-40") != file.npos) isQCD2 = true;
       if (file.find("TTWJetsToLNu") != file.npos) isttWToLNu = true;
-      if (file.find("TChiHH") != file.npos) isSMS = true;
+      if (file.find("TChiHH") != file.npos || file.find("TChiHZ") != file.npos) isSMS = true;
       if (b.SampleTypeString()=="2016") {
           w_year = 19.5;
       } else if (b.SampleTypeString()=="2016APV"){
@@ -53,7 +53,7 @@ namespace weights{
     return w_year;
   });
 
-  const NamedFunc w_lumi("w_lumi", [](const Baby &b) -> NamedFunc::ScalarType{
+  const NamedFunc w_lumi_hb("w_lumi_hb", [](const Baby &b) -> NamedFunc::ScalarType{
     double w_year = 1;
     if(b.SampleTypeString().Contains("-")) w_year = 1;
     else{
@@ -65,7 +65,7 @@ namespace weights{
       if (file.find("DiPhotonJetsBox") != file.npos) isdiph = true;
       if (file.find("QCD_Pt-40") != file.npos) isQCD2 = true;
       if (file.find("TTWJetsToLNu") != file.npos) isttWToLNu = true;
-      if (file.find("TChiHH") != file.npos) isSMS = true;
+      if (file.find("TChiHH") != file.npos || file.find("TChiHZ") != file.npos) isSMS = true;
       if (b.SampleTypeString()=="2016") {
           w_year = 19.5;
       } else if (b.SampleTypeString()=="2016APV"){
@@ -80,7 +80,39 @@ namespace weights{
       if(isdiph) w_year *= b.mc_weight()>0 ? b.mc_weight():-b.mc_weight(); /*w_year = w_year*b.mc_weight();*/ //w_lumi already knows the sign
       if(isQCD2) w_year *= -0.1131001131; //due to it being unable to find cross section in nano2pico
       if (isttWToLNu) w_year *= 0.2163/66680; // remove after 4b background has been processed again
-      w_year *= 200/137.61; // scale for 200fb-1
+      //w_year *= 200/137.61; // scale for 200fb-1
+    }
+    return w_year;
+  });
+
+  const NamedFunc w_lumi_gmsb("w_lumi_gmsb", [](const Baby &b) -> NamedFunc::ScalarType{
+    double w_year = 1;
+    if(b.SampleTypeString().Contains("-")) w_year = 1;
+    else{
+      bool isdiph = false;
+      bool isQCD2 = false;
+      bool isttWToLNu = false;
+      bool isSMS = false;
+      std::string file = *b.FileNames().begin();
+      if (file.find("DiPhotonJetsBox") != file.npos) isdiph = true;
+      if (file.find("QCD_Pt-40") != file.npos) isQCD2 = true;
+      if (file.find("TTWJetsToLNu") != file.npos) isttWToLNu = true;
+      if (file.find("TChiHH") != file.npos || file.find("TChiHZ") != file.npos) isSMS = true;
+      if (b.SampleTypeString()=="2016") {
+          w_year = 19.5;
+      } else if (b.SampleTypeString()=="2016APV"){
+          w_year = 16.8;
+      } else if (b.SampleTypeString()=="2017"){
+          w_year = 41.48;
+      } else if (b.SampleTypeString()=="2018"){
+          w_year = 59.83;
+      }
+      if (isSMS) w_year = 137.61; //since we have only 2016 v7 MC
+      w_year = w_year*b.w_lumi();//*b.w_trig();
+      if(isdiph) w_year *= b.mc_weight()>0 ? b.mc_weight():-b.mc_weight(); /*w_year = w_year*b.mc_weight();*/ //w_lumi already knows the sign
+      if(isQCD2) w_year *= -0.1131001131; //due to it being unable to find cross section in nano2pico
+      if (isttWToLNu) w_year *= 0.2163/66680; // remove after 4b background has been processed again
+      //w_year *= 200/137.61; // scale for 200fb-1
     }
     return w_year;
   });
@@ -106,6 +138,17 @@ namespace triggers{
   const NamedFunc jet_ht_trig("jet_ht_trig", [](const Baby &b) -> NamedFunc::ScalarType{
     bool trig = b.HLT_PFJet500() || b.HLT_PFHT125() || b.HLT_PFHT200() || b.HLT_PFHT300() || b.HLT_PFHT400() || b.HLT_PFHT475() || b.HLT_PFHT600() || b.HLT_PFHT650() || b.HLT_PFHT800() || b.HLT_PFHT900() || b.HLT_PFHT180() || b.HLT_PFHT370() || b.HLT_PFHT430() || b.HLT_PFHT510() || b.HLT_PFHT590() || b.HLT_PFHT680() || b.HLT_PFHT780() || b.HLT_PFHT890() || b.HLT_PFHT1050() || b.HLT_PFHT250() || b.HLT_PFHT350();
     return trig;
+  });
+
+  const NamedFunc diphoton_trig("diphoton_trig",[](const Baby &b) -> NamedFunc::ScalarType{
+
+      bool trig_year = false;
+      if (b.SampleTypeString().Contains("2016")|| b.SampleTypeString().Contains("2016APV")) {
+          trig_year = b.HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90();
+      } else if (b.SampleTypeString().Contains("2017") || b.SampleTypeString().Contains("2018")){
+          trig_year = b.HLT_Diphoton30_22_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90();
+      }
+      return trig_year;
   });
 
 }
@@ -146,5 +189,6 @@ namespace filters{
     return true;
   });
  
+
 
 }

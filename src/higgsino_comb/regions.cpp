@@ -17,7 +17,7 @@
 #include "higgsino_comb/regions.hpp"
 
 using namespace std;
-
+using namespace vardef;
 
   // function to add a list of cuts
   const string add_cuts(vector<pair<string, NamedFunc>> cut_list, vector<string> added_cuts){ 
@@ -165,7 +165,6 @@ namespace regions_4b {
 //    {"mj_pnet", "fjet_pnet_m[0]>60 && fjet_pnet_m[0]<260 && fjet_pnet_m[1]>60 && fjet_pnet_m[1]<260"}
   };
 
-
   const NamedFunc res_baseline = sig_decay_4b && get_cuts(cuts_4b_res, "") && dphi_res;
   const NamedFunc res_nm_met = sig_decay_4b && get_cuts(cuts_4b_res, "met") && dphi_res;
   const NamedFunc res_nm_njet = sig_decay_4b && "njet>=4" && get_cuts(cuts_4b_res, "njet") && dphi_res;
@@ -195,3 +194,122 @@ namespace regions_4b {
 
 }
 
+
+// specific regions for bbgg analysis
+namespace regions_bbgg {
+
+  const NamedFunc sig_decay_bbgg("sig_decay_bbgg",[](const Baby &b) -> NamedFunc::ScalarType{
+    
+    bool bbgg = false;
+    std::string file = *b.FileNames().begin();
+
+    if (file.find("TChiHH") != file.npos) {
+      for (size_t iIdx=0; iIdx < b.mc_id()->size(); ++iIdx) {
+        if((b.mc_id()->at(iIdx) == 5 || b.mc_id()->at(iIdx) == -5) && b.mc_mom()->at(iIdx) == 25) {
+          bbgg = true;
+          break;
+        }
+      }
+    } //if sig TChiHH
+    else if (file.find("TChiHZ") != file.npos) {
+      for (size_t iIdx=0; iIdx < b.mc_id()->size(); ++iIdx) {
+        if((b.mc_id()->at(iIdx) == 5 || b.mc_id()->at(iIdx) == -5) && b.mc_mom()->at(iIdx) == 23) {
+          bbgg = true;
+          break;
+        }
+      }
+    } //if sig TChiHZ
+    else{
+      bbgg = true;
+    } //if bkg
+
+    return bbgg;
+
+  });
+
+  map<int, vector<float>> btag_df_wpts{
+    {2016, vector<float>({0.0614, 0.3093, 0.7221})},
+    {2017, vector<float>({0.0521, 0.3033, 0.7489})},
+    {2018, vector<float>({0.0494, 0.2770, 0.7264})},
+    {2022, vector<float>({0.0494, 0.2770, 0.7264})},
+    {2023, vector<float>({0.0494, 0.2770, 0.7264})}
+  };
+
+  const NamedFunc DeepFlav_leadjet("DeepFlav_leadjet",[](const Baby &b) -> NamedFunc::ScalarType{
+    
+    std::string year_string = "";
+
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")) year_string = "2016";
+    if (b.SampleTypeString().Contains("2017")) year_string = "2017";
+    if (b.SampleTypeString().Contains("2018")) year_string = "2018";
+
+    bool deepflavid = false;
+    double DeepFlavScore = b.jet_deepflav()->at(b.bb_ileadscorejet()->at(0));
+
+    if (DeepFlavScore >= btag_df_wpts[stoi(year_string)][1]) deepflavid = true; //med
+
+    return deepflavid;
+  });
+
+  const NamedFunc DeepFlav_subleadjet("DeepFlav_subleadjet",[](const Baby &b) -> NamedFunc::ScalarType{
+    
+    std::string year_string = "";
+
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")) year_string = "2016";
+    if (b.SampleTypeString().Contains("2017")) year_string = "2017";
+    if (b.SampleTypeString().Contains("2018")) year_string = "2018";
+
+    bool deepflavid = false;
+    double DeepFlavScore = b.jet_deepflav()->at(b.bb_isubscorejet()->at(0));
+
+    if (DeepFlavScore >= btag_df_wpts[stoi(year_string)][1]) deepflavid = true; //med
+
+    return deepflavid;
+  });
+
+  vector<pair<string, NamedFunc>> cuts_bbgg_hh = {
+    {"nvl",     "nvmu == 0 && nvel == 0"},
+    {"njet",    "njet>=2 && njet<=3"},
+    {"mbb",    "bb_m <= 140 && bb_m >= 100"},
+    {"ggdr",    "photonphoton_dr < 2.5"},
+    {"ggpt",    "photonphoton_pt > 75"},
+    {"ggm",    "photonphoton_m >= 100 && photonphoton_m <= 200"},
+    {"photonptthresh", "photon_pt[0] > 35 && photon_pt[1] > 25"},
+    {"photonid80_lead",    "photon_id80[0]"},
+    {"photonid80_sublead", "photon_id80[1]"},
+
+  };
+
+  vector<pair<string, NamedFunc>> cuts_bbgg_zh = {
+    {"nvl",     "nvmu == 0 && nvel == 0"},
+    {"njet",    "njet>=2 && njet<=3"},
+    {"mbb",    "bb_m >= 60 && bb_m <= 100"},
+    {"ggdr",    "photonphoton_dr < 2.5"},
+    {"ggpt",    "photonphoton_pt > 75"},
+    {"ggm",    "photonphoton_m >= 100 && photonphoton_m <= 200"},
+    {"photonptthresh", "photon_pt[0] > 35 && photon_pt[1] > 25"},
+    {"photonid80_lead",    "photon_id80[0]"},
+    {"photonid80_sublead", "photon_id80[1]"},
+  };
+  
+  const NamedFunc bbgg_hh_baseline = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_hh_nm_nvl = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "nvl") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_hh_nm_njet = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "njet") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_hh_nm_mbb = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "mbb") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_hh_nm_ggdr = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "ggdr") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_hh_nm_ggpt = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "ggpt") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_hh_nm_ggm = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "ggm") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_hh_nm_photonidlead = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "photonid80_lead") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_hh_nm_photonidsublead = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "photonid80_sublead") && DeepFlav_leadjet && DeepFlav_subleadjet;
+
+  const NamedFunc bbgg_zh_baseline = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_zh_nm_nvl = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "nvl") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_zh_nm_njet = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "njet") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_zh_nm_mbb = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "mbb") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_zh_nm_ggdr = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "ggdr") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_zh_nm_ggpt = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "ggpt") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_zh_nm_ggm = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "ggm") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_zh_nm_photonidlead = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "photonid80_lead") && DeepFlav_leadjet && DeepFlav_subleadjet;
+  const NamedFunc bbgg_zh_nm_photonidsublead = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "photonid80_sublead") && DeepFlav_leadjet && DeepFlav_subleadjet;
+
+}

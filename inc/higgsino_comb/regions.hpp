@@ -50,5 +50,37 @@ namespace regions_4b{
 
 }
 
+
+namespace regions_bbgg{
+ 
+ extern const NamedFunc sig_decay_bbgg;
+ extern const NamedFunc dphi_res;
+
+ extern vector<pair<string, NamedFunc>> cuts_bbgg_hh;
+ extern vector<pair<string, NamedFunc>> cuts_bbgg_zh;
+
+ extern const NamedFunc bbgg_hh_baseline;
+ extern const NamedFunc bbgg_hh_nm_nvl;
+ extern const NamedFunc bbgg_hh_nm_njet;
+ extern const NamedFunc bbgg_hh_nm_mbb;
+ extern const NamedFunc bbgg_hh_nm_ggdr;
+ extern const NamedFunc bbgg_hh_nm_ggpt;
+ extern const NamedFunc bbgg_hh_nm_ggm;
+ extern const NamedFunc bbgg_hh_nm_photonidlead;
+ extern const NamedFunc bbgg_hh_nm_photonidsublead;
+
+ extern const NamedFunc bbgg_zh_baseline;
+ extern const NamedFunc bbgg_zh_nm_nvl;
+ extern const NamedFunc bbgg_zh_nm_njet;
+ extern const NamedFunc bbgg_zh_nm_mbb;
+ extern const NamedFunc bbgg_zh_nm_ggdr;
+ extern const NamedFunc bbgg_zh_nm_ggpt;
+ extern const NamedFunc bbgg_zh_nm_ggm;
+ extern const NamedFunc bbgg_zh_nm_photonidlead;
+ extern const NamedFunc bbgg_zh_nm_photonidsublead;
+ extern const NamedFunc DeepFlav_leadjet;
+ extern const NamedFunc DeepFlav_subleadjet;
+}
+
 #endif
 
