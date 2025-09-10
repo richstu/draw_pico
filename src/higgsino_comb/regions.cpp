@@ -239,10 +239,11 @@ namespace regions_bbgg {
     {2023, vector<float>({0.0494, 0.2770, 0.7264})}
   };
 
+  //COMPACTIFY THESE!
   const NamedFunc DeepFlav_leadjet("DeepFlav_leadjet",[](const Baby &b) -> NamedFunc::ScalarType{
     
     std::string year_string = "";
-
+    //CHANGE THESE FOR 2023 AND 2022 YEARS
     if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")) year_string = "2016";
     if (b.SampleTypeString().Contains("2017")) year_string = "2017";
     if (b.SampleTypeString().Contains("2018")) year_string = "2018";
@@ -255,10 +256,42 @@ namespace regions_bbgg {
     return deepflavid;
   });
 
+  const NamedFunc DeepFlav_leadjet_loose("DeepFlav_leadjet_loose",[](const Baby &b) -> NamedFunc::ScalarType{
+    
+    std::string year_string = "";
+    //CHANGE THESE FOR 2023 AND 2022 YEARS
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")) year_string = "2016";
+    if (b.SampleTypeString().Contains("2017")) year_string = "2017";
+    if (b.SampleTypeString().Contains("2018")) year_string = "2018";
+
+    bool deepflavid = false;
+    double DeepFlavScore = b.jet_deepflav()->at(b.bb_ileadscorejet()->at(0));
+
+    if (DeepFlavScore >= btag_df_wpts[stoi(year_string)][0]) deepflavid = true; //med
+
+    return deepflavid;
+  });
+
+  const NamedFunc DeepFlav_leadjet_tight("DeepFlav_leadjet_tight",[](const Baby &b) -> NamedFunc::ScalarType{
+    
+    std::string year_string = "";
+    //CHANGE THESE FOR 2023 AND 2022 YEARS
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")) year_string = "2016";
+    if (b.SampleTypeString().Contains("2017")) year_string = "2017";
+    if (b.SampleTypeString().Contains("2018")) year_string = "2018";
+
+    bool deepflavid = false;
+    double DeepFlavScore = b.jet_deepflav()->at(b.bb_ileadscorejet()->at(0));
+
+    if (DeepFlavScore >= btag_df_wpts[stoi(year_string)][2]) deepflavid = true; //med
+
+    return deepflavid;
+  });
+
   const NamedFunc DeepFlav_subleadjet("DeepFlav_subleadjet",[](const Baby &b) -> NamedFunc::ScalarType{
     
     std::string year_string = "";
-
+    //CHANGE THESE FOR 2023 AND 2022 YEARS
     if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")) year_string = "2016";
     if (b.SampleTypeString().Contains("2017")) year_string = "2017";
     if (b.SampleTypeString().Contains("2018")) year_string = "2018";
@@ -267,6 +300,38 @@ namespace regions_bbgg {
     double DeepFlavScore = b.jet_deepflav()->at(b.bb_isubscorejet()->at(0));
 
     if (DeepFlavScore >= btag_df_wpts[stoi(year_string)][1]) deepflavid = true; //med
+
+    return deepflavid;
+  });
+
+  const NamedFunc DeepFlav_subleadjet_loose("DeepFlav_subleadjet_loose",[](const Baby &b) -> NamedFunc::ScalarType{
+    
+    std::string year_string = "";
+    //CHANGE THESE FOR 2023 AND 2022 YEARS
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")) year_string = "2016";
+    if (b.SampleTypeString().Contains("2017")) year_string = "2017";
+    if (b.SampleTypeString().Contains("2018")) year_string = "2018";
+
+    bool deepflavid = false;
+    double DeepFlavScore = b.jet_deepflav()->at(b.bb_isubscorejet()->at(0));
+
+    if (DeepFlavScore >= btag_df_wpts[stoi(year_string)][0]) deepflavid = true; //med
+
+    return deepflavid;
+  });
+
+  const NamedFunc DeepFlav_subleadjet_tight("DeepFlav_subleadjet_tight",[](const Baby &b) -> NamedFunc::ScalarType{
+    
+    std::string year_string = "";
+    //CHANGE THESE FOR 2023 AND 2022 YEARS
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")) year_string = "2016";
+    if (b.SampleTypeString().Contains("2017")) year_string = "2017";
+    if (b.SampleTypeString().Contains("2018")) year_string = "2018";
+
+    bool deepflavid = false;
+    double DeepFlavScore = b.jet_deepflav()->at(b.bb_isubscorejet()->at(0));
+
+    if (DeepFlavScore >= btag_df_wpts[stoi(year_string)][2]) deepflavid = true; //med
 
     return deepflavid;
   });
@@ -295,7 +360,41 @@ namespace regions_bbgg {
     {"photonid80_lead",    "photon_id80[0]"},
     {"photonid80_sublead", "photon_id80[1]"},
   };
-  
+ 
+  vector<pair<string, NamedFunc>> cuts_bbgg_cr_ggjets = {
+    {"nvl",     "nvmu == 0 && nvel == 0"},
+    {"njet",    "njet>=4"},
+    {"mbb",    "bb_m < 60 || bb_m > 140"},
+    {"ggdr",    "photonphoton_dr < 2.5"},
+    {"ggpt",    "photonphoton_pt > 75"},
+    {"ggm",    "photonphoton_m >= 100 && photonphoton_m <= 200"},
+    {"photonptthresh", "photon_pt[0] > 35 && photon_pt[1] > 25"},
+    {"photonid80_lead",    "photon_id80[0]"},
+    {"photonid80_sublead", "photon_id80[1]"},
+  };
+
+  vector<pair<string, NamedFunc>> cuts_bbgg_cr_ttbar = {
+    {"nvl",     "nvmu > 0 && nvel > 0"},
+    {"njet",    "njet>=2 && njet<=3"},
+    {"mbb",    "bb_m >= 60 && bb_m <= 140"},
+    {"ggdr",    "photonphoton_dr > 2.5"},
+    {"ggpt",    "photonphoton_pt > 75"},
+    {"ggm",    "photonphoton_m >= 100 && photonphoton_m <= 200"},
+    {"photonptthresh", "photon_pt[0] > 35 && photon_pt[1] > 25"},
+  };
+
+  vector<pair<string, NamedFunc>> cuts_bbgg_cr_ggbbjets = {
+    {"nvl",     "nvmu == 0 && nvel == 0"},
+    {"njet",    "njet>=2 && njet<=3"},
+    {"mbb",    "bb_m < 60 || bb_m > 140"},
+    {"ggdr",    "photonphoton_dr > 2.5"},
+    {"ggpt",    "photonphoton_pt < 75"},
+    {"ggm",    "photonphoton_m >= 100 && photonphoton_m <= 200"},
+    {"photonptthresh", "photon_pt[0] > 35 && photon_pt[1] > 25"},
+    {"photonid80_lead",    "photon_id80[0]"},
+    {"photonid80_sublead", "photon_id80[1]"},
+  };
+
   const NamedFunc bbgg_hh_baseline = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "") && DeepFlav_leadjet && DeepFlav_subleadjet;
   const NamedFunc bbgg_hh_nm_nvl = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "nvl") && DeepFlav_leadjet && DeepFlav_subleadjet;
   const NamedFunc bbgg_hh_nm_njet = sig_decay_bbgg && get_cuts(cuts_bbgg_hh, "njet") && DeepFlav_leadjet && DeepFlav_subleadjet;
@@ -316,4 +415,8 @@ namespace regions_bbgg {
   const NamedFunc bbgg_zh_nm_photonidlead = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "photonid80_lead") && DeepFlav_leadjet && DeepFlav_subleadjet;
   const NamedFunc bbgg_zh_nm_photonidsublead = sig_decay_bbgg && get_cuts(cuts_bbgg_zh, "photonid80_sublead") && DeepFlav_leadjet && DeepFlav_subleadjet;
 
+  const NamedFunc cr_ggjets = get_cuts(cuts_bbgg_cr_ggjets, "") && DeepFlav_leadjet_loose && DeepFlav_subleadjet_loose;
+  const NamedFunc cr_ttbar = get_cuts(cuts_bbgg_cr_ttbar, "");
+  const NamedFunc cr_ggbbjets = get_cuts(cuts_bbgg_cr_ggbbjets, "") && DeepFlav_leadjet_tight && DeepFlav_subleadjet_tight;
 }
+
