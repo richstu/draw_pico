@@ -119,13 +119,15 @@ namespace ZgFunctions {
     else if (b.SampleTypeString()=="2018")
       return 59.83;
     else if (b.SampleTypeString()=="2022")
-      return 7.89;
+      return 7.9804;
     else if (b.SampleTypeString()=="2022EE")
-      return 26.67;
+      return 26.6717;
     else if (b.SampleTypeString()=="2023")
-      return 17.68;
-    //else if (b.SampleTypeString()=="2023BPix")
-    return 9.53;
+      return 17.794;
+    else if (b.SampleTypeString()=="2023BPix")
+      return 9.451;
+    else
+      return 1.0;
   });
 
   //Run 3 weight-up
@@ -409,6 +411,10 @@ namespace ZgFunctions {
   const NamedFunc trig = NamedFunc("trig_single_el||trig_single_mu||trig_double_el||trig_double_mu")
                          .Name("trig");
 
+  NamedFunc add_cut(NamedFunc & current_cut, NamedFunc additional_cut) {
+    current_cut = current_cut && additional_cut;
+    return current_cut;
+  }
 
   //maximum lepton mini isolation
   const NamedFunc max_lep_miniso("max_lep_miniso",[](const Baby &b) -> NamedFunc::ScalarType{
