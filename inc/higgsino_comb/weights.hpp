@@ -20,7 +20,6 @@ namespace triggers{
   extern const NamedFunc single_ele_trig;
   extern const NamedFunc single_muon_trig;
   extern const NamedFunc ptmiss_htmiss_trig;
-  extern const NamedFunc jet_ht_trig;
   extern const NamedFunc diphoton_trig;
 }
 

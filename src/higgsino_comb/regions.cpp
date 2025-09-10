@@ -97,14 +97,16 @@ namespace regions_4b {
     return true;
   });
 
+  const NamedFunc nb4 = "nbdft>=2 && nbdfm>=3 && nbdfl>=4";
 
   vector<pair<string, NamedFunc>> cuts_4b_res = {
+    {"met", 	  "met>150"},
     {"nvl", 	  "nvlep==0"},
     {"ntk", 	  "ntk==0"},
-    {"met", 	  "met>150"},
     {"njet", 	  "(njet==4 || njet==5)"},
     {"nb", 	  "( (nbdft==2 && nbdfm==2) || (nbdft>=2 && nbdfm==3 && nbdfl==3) || (nbdft>=2 && nbdfm>=3 && nbdfl>=4) )"},
     {"fakemet",   "(met/mht)<2 && (met/met_calo)<2"},
+    {"nphoton",   "nphoton==0"},
     {"hig_am", 	  "hig_df_cand_am[0]<200"},
     {"hig_dm", 	  "hig_df_cand_dm[0]<40"},
     {"hig_drmax", "hig_df_cand_drmax[0]<2.2"},
@@ -166,10 +168,12 @@ namespace regions_4b {
   };
 
   const NamedFunc res_baseline = sig_decay_4b && get_cuts(cuts_4b_res, "") && dphi_res;
+  const NamedFunc res_nm_nvl = sig_decay_4b && get_cuts(cuts_4b_res, "nvl") && dphi_res;
   const NamedFunc res_nm_met = sig_decay_4b && get_cuts(cuts_4b_res, "met") && dphi_res;
   const NamedFunc res_nm_njet = sig_decay_4b && "njet>=4" && get_cuts(cuts_4b_res, "njet") && dphi_res;
   const NamedFunc res_nm_nb = sig_decay_4b && get_cuts(cuts_4b_res, "nb") && dphi_res;
   const NamedFunc res_nm_fakemet = sig_decay_4b && get_cuts(cuts_4b_res, "fakemet");
+  const NamedFunc res_nm_nphoton = sig_decay_4b && get_cuts(cuts_4b_res, "nphoton") && dphi_res;
   const NamedFunc res_nm_higam = sig_decay_4b && get_cuts(cuts_4b_res, "hig_am") && dphi_res;
   const NamedFunc res_nm_higdm = sig_decay_4b && get_cuts(cuts_4b_res, "hig_dm") && dphi_res;
   const NamedFunc res_nm_higdrmax = sig_decay_4b && get_cuts(cuts_4b_res, "hig_drmax") && dphi_res;

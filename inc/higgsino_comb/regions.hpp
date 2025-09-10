@@ -14,6 +14,7 @@ namespace regions_4b{
  
  extern const NamedFunc sig_decay_4b;
  extern const NamedFunc dphi_res;
+ extern const NamedFunc nb4;
 
  extern vector<pair<string, NamedFunc>> cuts_4b_res;
  extern vector<pair<string, NamedFunc>> cuts_4b_CR1;
@@ -22,10 +23,12 @@ namespace regions_4b{
  extern vector<pair<string, NamedFunc>> cuts_4b_CR1b;
 
  extern const NamedFunc res_baseline;
+ extern const NamedFunc res_nm_nvl;
  extern const NamedFunc res_nm_met;
  extern const NamedFunc res_nm_njet;
  extern const NamedFunc res_nm_nb;
  extern const NamedFunc res_nm_fakemet;
+ extern const NamedFunc res_nm_nphoton;
  extern const NamedFunc res_nm_higam;
  extern const NamedFunc res_nm_higdm;
  extern const NamedFunc res_nm_higdrmax;
@@ -47,6 +50,13 @@ namespace regions_4b{
  extern const NamedFunc CR3;
  extern const NamedFunc CR1b_el;
  extern const NamedFunc CR1b_mu;
+
+ struct Plotter {
+    NamedFunc params;
+    string axes_name;
+    vector<int> axes_limits;
+    const set<double> vert_lines;
+    };
 
 }
 
