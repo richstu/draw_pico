@@ -1,14 +1,14 @@
 {
-  "production_name":                   "datamcAN_cutflows",
+  "production_name":                   "datamcbyyear_cutflows",
   "path_to_production_base":           "/net/cms11/cms11r0/pico/",
-  "production_tag":                    "htozgamma_pinnacles_v0",
+  "production_tag":                    "htozgamma_redwood_v0",
   "set_of_cutflows":[
 
 {
-      "short_name":                    "R2_sig",
+      "short_name":                    "R2sig",
       "NanoAOD_tag":                   "NanoAODv9",
       "years":                         ["2016APV","2016","2017","2018"],
-      "bool_combine_years":            true,
+      "bool_combine_years":            false,
       "bool_combine_samples":          false,
       "skim_type":                     "unskimmed",
       "sample_type":                   "sig",
@@ -26,7 +26,7 @@
         "*ZH_HToZG_ZToAll_ZToLL_M-125_TuneCP5_13TeV*.root",
         "*ttHToZG_ZToLL_M-125_TuneCP5_13TeV*.root"
       ],
-      "weight":                        "weight",
+      "weight":                        "1",
       "mlly_window":                   "full",
       "lepton_type":                   ["lepton"],
       "bool_print_unc":                true,
@@ -37,10 +37,10 @@
   },
 
 {
-      "short_name":                    "R3_sig",
+      "short_name":                    "R3sig",
       "NanoAOD_tag":                   "NanoAODv12",
       "years":                         ["2022","2022EE","2023","2023BPix"],
-      "bool_combine_years":            true,
+      "bool_combine_years":            false,
       "bool_combine_samples":          false,
       "skim_type":                     "unskimmed",
       "sample_type":                   "sig",
@@ -58,7 +58,7 @@
         "*ZH_ZtoAll_HtoZGto2LG_M-125_TuneCP5_13p6TeV*.root",
         "*ttHtoZG_Zto2L_M-125_TuneCP5_13p6TeV*.root"
       ],
-      "weight":                        "weight",
+      "weight":                        "1",
       "mlly_window":                   "full",
       "lepton_type":                   ["lepton"],
       "bool_print_unc":                true,
@@ -69,28 +69,22 @@
   },
 
 {
-      "short_name":                    "R2_bkg",
+      "short_name":                    "R2bkg",
       "NanoAOD_tag":                   "NanoAODv9",
       "years":                         ["2016APV","2016","2017","2018"],
-      "bool_combine_years":            true,
+      "bool_combine_years":            false,
       "bool_combine_samples":          false,
       "skim_type":                     "unskimmed",
       "sample_type":                   "bkg",
       "sample_names":[
          "DYJets",
-         "SMZy",
-         "EWKZy",
-         "ZG2J",
-         "ggF_Hmumu"
+         "SMZy"
       ],
       "samples":[
         "*DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8*.root",
-        "*ZGToLLG_01J_5f_lowMLL_lowGPt_TuneCP5_13TeV*.root",
-        "*EWKZ2Jets_ZToLL_M-50_TuneCP5_withDipoleRecoil_13TeV*.root",
-        "*ZGamma2JToGamma2L2J_EWK_MLL-50_MJJ-120_TuneCP5_13TeV*.root",
-        "*GluGluHToMuMu_M125_TuneCP5_13TeV*.root"
+        "*ZGToLLG_01J_5f_lowMLL_lowGPt_TuneCP5_13TeV*.root"
       ],
-      "weight":                        "weight",
+      "weight":                        "1",
       "mlly_window":                   "full",
       "lepton_type":                   ["lepton"],
       "bool_print_unc":                true,
@@ -101,28 +95,22 @@
   },
 
 {
-      "short_name":                    "R3_bkg",
+      "short_name":                    "R3bkg",
       "NanoAOD_tag":                   "NanoAODv12",
       "years":                         ["2022","2022EE","2023","2023BPix"],
-      "bool_combine_years":            true,
+      "bool_combine_years":            false,
       "bool_combine_samples":          false,
       "skim_type":                     "unskimmed",
       "sample_type":                   "bkg",
       "sample_names":[
          "DYJets",
-         "SMZy",
-         "EWKZy",
-         "ZG2J",
-         "ggF_Hmumu"
+         "SMZy"
       ],
       "samples":[
         "*DYGto2LG-1Jets_MLL-50_PTG-*_TuneCP5_13p6TeV*.root",
-        "*DYto2L-2Jets_MLL-50_TuneCP5_13p6TeV*.root",
-        "*EWKZ2Jets_ZToLL_M-50_TuneCP5_withDipoleRecoil_13TeV*.root",
-        "*ZGamma2JToGamma2L2J_EWK_MLL-50_MJJ-120_TuneCP5_13TeV*.root",
-        "*GluGluHToMuMu_M125_TuneCP5_13TeV*.root"
+        "*DYto2L-2Jets_MLL-50_TuneCP5_13p6TeV*.root"
       ],
-      "weight":                        "weight",
+      "weight":                        "1",
       "mlly_window":                   "full",
       "lepton_type":                   ["lepton"],
       "bool_print_unc":                true,
@@ -136,7 +124,7 @@
       "short_name":                    "R2data",
       "NanoAOD_tag":                   "NanoAODv9",
       "years":                         ["2016APV","2016","2017","2018"],
-      "bool_combine_years":            true,
+      "bool_combine_years":            false,
       "bool_combine_samples":          true,
       "skim_type":                     "unskimmed",
       "sample_type":                   "data",
@@ -174,7 +162,7 @@
       "short_name":                    "R3data",
       "NanoAOD_tag":                   "NanoAODv12",
       "years":                         ["2022","2022EE","2023","2023BPix"],
-      "bool_combine_years":            true,
+      "bool_combine_years":            false,
       "bool_combine_samples":          true,
       "skim_type":                     "unskimmed",
       "sample_type":                   "data",
@@ -205,70 +193,6 @@
       "bool_do_eff":                   false,
       "bool_rel_prev":                 false,
       "decimal_precision":             0
-
-  },
-
-{
-      "short_name":                    "R2_sig_eff",
-      "NanoAOD_tag":                   "NanoAODv9",
-      "years":                         ["2016APV","2016","2017","2018"],
-      "bool_combine_years":            true,
-      "bool_combine_samples":          true,
-      "skim_type":                     "unskimmed",
-      "sample_type":                   "sig",
-      "sample_names":[
-         "ggF",
-         "VBF",
-         "WH",
-         "ZH",
-         "ttH"
-      ],
-      "samples":[
-        "*GluGluHToZG_ZToLL_M-125_TuneCP5_13TeV*.root",
-        "*VBFHToZG_ZToLL_M-125_TuneCP5_withDipoleRecoil*.root",
-        "*W*H_HToZG_WToAll_ZToLL_M-125_TuneCP5_13TeV*.root",
-        "*ZH_HToZG_ZToAll_ZToLL_M-125_TuneCP5_13TeV*.root",
-        "*ttHToZG_ZToLL_M-125_TuneCP5_13TeV*.root"
-      ],
-      "weight":                        "weight",
-      "mlly_window":                   "full",
-      "lepton_type":                   ["lepton"],
-      "bool_print_unc":                true,
-      "bool_do_eff":                   true,
-      "bool_rel_prev":                 false,
-      "decimal_precision":             3
-
-  },
-
-{
-      "short_name":                    "R3_sig_eff",
-      "NanoAOD_tag":                   "NanoAODv12",
-      "years":                         ["2022","2022EE","2023","2023BPix"],
-      "bool_combine_years":            true,
-      "bool_combine_samples":          true,
-      "skim_type":                     "unskimmed",
-      "sample_type":                   "sig",
-      "sample_names":[
-         "ggF",
-         "VBF",
-         "WH",
-         "ZH",
-         "ttH"
-      ],
-      "samples":[
-        "*GluGluHtoZG_Zto2L_M-125_TuneCP5_13p6TeV*.root",
-        "*VBFHtoZG_Zto2L_M-125_TuneCP5_withDipoleRecoil_13p6TeV*.root",
-        "*W*H_HtoZG_WtoAll_Zto2L_M-125_TuneCP5_13p6TeV*.root",
-        "*ZH_ZtoAll_HtoZGto2LG_M-125_TuneCP5_13p6TeV*.root",
-        "*ttHtoZG_Zto2L_M-125_TuneCP5_13p6TeV*.root"
-      ],
-      "weight":                        "weight",
-      "mlly_window":                   "full",
-      "lepton_type":                   ["lepton"],
-      "bool_print_unc":                true,
-      "bool_do_eff":                   true,
-      "bool_rel_prev":                 false,
-      "decimal_precision":             3
 
   }
 

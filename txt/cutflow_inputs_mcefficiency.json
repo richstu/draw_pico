@@ -1,7 +1,7 @@
 {
   "production_name":                   "efficiency_cutflows",
   "path_to_production_base":           "/net/cms11/cms11r0/pico/",
-  "production_tag":                    "htozgamma_pinnacles_v0",
+  "production_tag":                    "htozgamma_redwood_v0",
   "set_of_cutflows":[
 
 {
