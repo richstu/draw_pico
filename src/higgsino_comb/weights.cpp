@@ -29,11 +29,13 @@ namespace weights{
       bool isdiph = false;
       bool isQCD2 = false;
       bool isttWToLNu = false;
+      bool isDYJetsHT = false;
       bool isSMS = false;
       std::string file = *b.FileNames().begin();
       if (file.find("DiPhotonJetsBox") != file.npos) isdiph = true;
       if (file.find("QCD_Pt-40") != file.npos) isQCD2 = true;
       if (file.find("TTWJetsToLNu") != file.npos) isttWToLNu = true;
+      if (file.find("DYJetsToLL_M-50_HT") != file.npos) isDYJetsHT = true;
       if (file.find("TChiHH") != file.npos || file.find("TChiHZ") != file.npos) isSMS = true;
       if (b.SampleTypeString()=="2016") {
           w_year = 19.5;
@@ -49,6 +51,7 @@ namespace weights{
       if(isdiph) w_year *= b.mc_weight()>0 ? b.mc_weight():-b.mc_weight(); /*w_year = w_year*b.mc_weight();*/ //w_lumi already knows the sign
       if(isQCD2) w_year *= -0.1131001131; //due to it being unable to find cross section in nano2pico
       if (isttWToLNu) w_year *= 0.2163/66680; // remove after 4b background has been processed again
+      if (isDYJetsHT) w_year *= 6077.22/5398.0; // NNLO/LO ratio for DYJets HT-binned samples
     }
     return w_year;
   });
@@ -60,11 +63,13 @@ namespace weights{
       bool isdiph = false;
       bool isQCD2 = false;
       bool isttWToLNu = false;
+      bool isDYJetsHT = false;
       bool isSMS = false;
       std::string file = *b.FileNames().begin();
       if (file.find("DiPhotonJetsBox") != file.npos) isdiph = true;
       if (file.find("QCD_Pt-40") != file.npos) isQCD2 = true;
       if (file.find("TTWJetsToLNu") != file.npos) isttWToLNu = true;
+      if (file.find("DYJetsToLL_M-50_HT") != file.npos) isDYJetsHT = true;
       if (file.find("TChiHH") != file.npos || file.find("TChiHZ") != file.npos) isSMS = true;
       if (b.SampleTypeString()=="2016") {
           w_year = 19.5;
@@ -80,6 +85,7 @@ namespace weights{
       if(isdiph) w_year *= b.mc_weight()>0 ? b.mc_weight():-b.mc_weight(); /*w_year = w_year*b.mc_weight();*/ //w_lumi already knows the sign
       if(isQCD2) w_year *= -0.1131001131; //due to it being unable to find cross section in nano2pico
       if (isttWToLNu) w_year *= 0.2163/66680; // remove after 4b background has been processed again
+      if (isDYJetsHT) w_year *= 6077.22/5398.0; // NNLO/LO ratio for DYJets HT-binned samples
       //w_year *= 200/137.61; // scale for 200fb-1
     }
     return w_year;
@@ -92,11 +98,13 @@ namespace weights{
       bool isdiph = false;
       bool isQCD2 = false;
       bool isttWToLNu = false;
+      bool isDYJetsHT = false;
       bool isSMS = false;
       std::string file = *b.FileNames().begin();
       if (file.find("DiPhotonJetsBox") != file.npos) isdiph = true;
       if (file.find("QCD_Pt-40") != file.npos) isQCD2 = true;
       if (file.find("TTWJetsToLNu") != file.npos) isttWToLNu = true;
+      if (file.find("DYJetsToLL_M-50_HT") != file.npos) isDYJetsHT = true;
       if (file.find("TChiHH") != file.npos || file.find("TChiHZ") != file.npos) isSMS = true;
       if (b.SampleTypeString()=="2016") {
           w_year = 19.5;
@@ -112,6 +120,7 @@ namespace weights{
       if(isdiph) w_year *= b.mc_weight()>0 ? b.mc_weight():-b.mc_weight(); /*w_year = w_year*b.mc_weight();*/ //w_lumi already knows the sign
       if(isQCD2) w_year *= -0.1131001131; //due to it being unable to find cross section in nano2pico
       if (isttWToLNu) w_year *= 0.2163/66680; // remove after 4b background has been processed again
+      if (isDYJetsHT) w_year *= 6077.22/5398.0; // NNLO/LO ratio for DYJets HT-binned samples
       //w_year *= 200/137.61; // scale for 200fb-1
     }
     return w_year;
@@ -121,24 +130,37 @@ namespace weights{
 
 namespace triggers{
   const NamedFunc single_ele_trig("single_ele_trig", [](const Baby &b) -> NamedFunc::ScalarType{
-    bool trig = b.HLT_Ele25_WPTight_Gsf() || b.HLT_Ele27_WPTight_Gsf() || b.HLT_Ele32_WPTight_Gsf() || b.HLT_Ele35_WPTight_Gsf() || b.HLT_Ele32_WPTight_Gsf_L1DoubleEG() || b.HLT_Ele20_WPLoose_Gsf() || b.HLT_Ele45_WPLoose_Gsf() || b.HLT_Ele105_CaloIdVT_GsfTrkIdT() || b.HLT_Ele115_CaloIdVT_GsfTrkIdT() || b.HLT_Ele135_CaloIdVT_GsfTrkIdT() || b.HLT_Ele145_CaloIdVT_GsfTrkIdT() || b.HLT_Ele25_eta2p1_WPTight_Gsf() || b.HLT_Ele27_eta2p1_WPTight_Gsf() || b.HLT_Ele20_eta2p1_WPLoose_Gsf() || b.HLT_Ele25_eta2p1_WPLoose_Gsf() || b.HLT_Ele27_eta2p1_WPLoose_Gsf() || b.HLT_Ele15_IsoVVVL_PFHT350() || b.HLT_Ele15_IsoVVVL_PFHT400() || b.HLT_Ele15_IsoVVVL_PFHT450() || b.HLT_Ele15_IsoVVVL_PFHT600();
+    bool trig = false;
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV")){
+        trig = b.HLT_Ele27_WPTight_Gsf();
+    } else if (b.SampleTypeString().Contains("2017")){
+        trig = b.HLT_Ele32_WPTight_Gsf_L1DoubleEG();
+    } else if (b.SampleTypeString().Contains("2018")){
+        trig = b.HLT_Ele32_WPTight_Gsf();
+    }
     return trig;
   });
 
   const NamedFunc single_muon_trig("single_muon_trig", [](const Baby &b) -> NamedFunc::ScalarType{
-    bool trig = b.HLT_IsoMu20() || b.HLT_IsoMu22() || b.HLT_IsoMu24() || b.HLT_IsoMu27() || b.HLT_IsoTkMu20() || b.HLT_IsoTkMu22() || b.HLT_IsoTkMu24() || b.HLT_Mu50() || b.HLT_Mu55() || b.HLT_TkMu50() || b.HLT_IsoMu22_eta2p1() || b.HLT_IsoMu24_eta2p1() ||b.HLT_Mu45_eta2p1() || b.HLT_Mu15_IsoVVVL_PFHT350() || b.HLT_Mu15_IsoVVVL_PFHT400() || b.HLT_Mu15_IsoVVVL_PFHT450()|| b.HLT_Mu15_IsoVVVL_PFHT600() || b.HLT_Mu50_IsoVVVL_PFHT400();
+    bool trig = false;
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV") || b.SampleTypeString().Contains("2018")){
+        trig = b.HLT_IsoMu24();
+    } else if (b.SampleTypeString().Contains("2017")){
+        trig = b.HLT_IsoMu27();
+    }   
     return trig;
   });
 
   const NamedFunc ptmiss_htmiss_trig("ptmiss_htmiss_trig", [](const Baby &b) -> NamedFunc::ScalarType{
-    bool trig = b.HLT_PFMET90_PFMHT90_IDTight() || b.HLT_PFMET100_PFMHT100_IDTight() || b.HLT_PFMET110_PFMHT110_IDTight() || b.HLT_PFMET120_PFMHT120_IDTight() || b.HLT_PFMET130_PFMHT130_IDTight() || b.HLT_PFMET140_PFMHT140_IDTight() || b.HLT_PFMETNoMu90_PFMHTNoMu90_IDTight() || b.HLT_PFMETNoMu100_PFMHTNoMu100_IDTight() || b.HLT_PFMETNoMu110_PFMHTNoMu110_IDTight() || b.HLT_PFMETNoMu120_PFMHTNoMu120_IDTight() || b.HLT_PFMETNoMu130_PFMHTNoMu130_IDTight() || b.HLT_PFMETNoMu140_PFMHTNoMu140_IDTight() || b.HLT_PFMET100_PFMHT100_IDTight_PFHT60() || b.HLT_PFMET110_PFMHT110_IDTight_PFHT60() || b.HLT_PFMET120_PFMHT120_IDTight_PFHT60() || b.HLT_PFMET130_PFMHT130_IDTight_PFHT60() || b.HLT_PFMET140_PFMHT140_IDTight_PFHT60() || b.HLT_PFMETNoMu100_PFMHTNoMu100_IDTight_PFHT60() || b.HLT_PFMETNoMu110_PFMHTNoMu110_IDTight_PFHT60() || b.HLT_PFMETNoMu120_PFMHTNoMu120_IDTight_PFHT60() || b.HLT_PFMETNoMu130_PFMHTNoMu130_IDTight_PFHT60() || b.HLT_PFMETNoMu140_PFMHTNoMu140_IDTight_PFHT60() || b.HLT_PFMET120_PFMHT120_IDTight_HFCleaned() || b.HLT_PFMETNoMu120_PFMHTNoMu120_IDTight_HFCleaned() || b.HLT_PFMET120_PFMHT120_IDTight_PFHT60_HFCleaned();
+    bool trig = false;
+    if (b.SampleTypeString().Contains("2016") || b.SampleTypeString().Contains("2016APV") || b.SampleTypeString().Contains("2018")){
+        trig = b.HLT_PFMET120_PFMHT120_IDTight(); 
+    } else if (b.SampleTypeString().Contains("2017")){
+        trig = b.HLT_PFMET140_PFMHT140_IDTight();
+    }   
     return trig;
   });
 
-  const NamedFunc jet_ht_trig("jet_ht_trig", [](const Baby &b) -> NamedFunc::ScalarType{
-    bool trig = b.HLT_PFJet500() || b.HLT_PFHT125() || b.HLT_PFHT200() || b.HLT_PFHT300() || b.HLT_PFHT400() || b.HLT_PFHT475() || b.HLT_PFHT600() || b.HLT_PFHT650() || b.HLT_PFHT800() || b.HLT_PFHT900() || b.HLT_PFHT180() || b.HLT_PFHT370() || b.HLT_PFHT430() || b.HLT_PFHT510() || b.HLT_PFHT590() || b.HLT_PFHT680() || b.HLT_PFHT780() || b.HLT_PFHT890() || b.HLT_PFHT1050() || b.HLT_PFHT250() || b.HLT_PFHT350();
-    return trig;
-  });
 
   const NamedFunc diphoton_trig("diphoton_trig",[](const Baby &b) -> NamedFunc::ScalarType{
 
@@ -188,7 +210,6 @@ namespace filters{
     if (!pass_hemveto.GetScalar(b)) return false;
     return true;
   });
- 
 
 
 }
