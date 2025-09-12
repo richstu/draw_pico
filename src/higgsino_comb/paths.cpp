@@ -89,11 +89,11 @@ namespace paths_4b{
     //map between the search string after the basepath (basepath + "*" + searchstring + "*") and proc info
 
     std::map<std::string, ProcInfo> signal_info = {
-      { "SMS-TChiHH_mChi-200_mLSP-0",          { sig_path, "TChiHH-200-1-HH",  "#FF0000", "1", Process::Type::signal} },
-      { "SMS-TChiHH_mChi-300_mLSP-0",          { sig_path, "TChiHH-300-1-HH",  "#0000FF", "1", Process::Type::signal} },
-      { "SMS-TChiHH_mChi-500_mLSP-0",          { sig_path, "TChiHH-500-1-HH",  "#00FF00", "1", Process::Type::signal} },
-      { "SMS-TChiHH_mChi-800_mLSP-0",          { sig_path, "TChiHH-800-1-HH",  "#C849A9", "1", Process::Type::signal} },
-      { "SMS-TChiHH_mChi-1000_mLSP-0",         { sig_path, "TChiHH-1000-1-HH", "#FF5E02", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-200_mLSP-0",          { sig_path, "TChiHH-200-1",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-300_mLSP-0",          { sig_path, "TChiHH-300-1",  "#0000FF", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-500_mLSP-0",          { sig_path, "TChiHH-500-1",  "#00FF00", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-800_mLSP-0",          { sig_path, "TChiHH-800-1",  "#C849A9", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-0",         { sig_path, "TChiHH-1000-1", "#FF5E02", "1", Process::Type::signal} },
     };
    
     std::map<std::vector<std::string>, paths_4b::ProcInfo> sample_info_met150 = { 
@@ -104,101 +104,128 @@ namespace paths_4b{
         { {"ST_"},                               					      		{ bkg_met150, "Single top", "#A96B59", "stitch",        Process::Type::background} },
         { {"GJets_DR-0p4_HT", "WminusH_HToBB", "WplusH_HToBB", "WWTo2L2Nu", "WWTo1L1Nu2Q", "WZTo1L1Nu2Q", "WZTo1L3Nu", "WZTo2Q2L", "WZTo3LNu", "ZH_HToBB_ZToNuNu", "ZZ_TuneCP5"},                 							  	    { bkg_met150, "Others",     "#717581", "stitch",        Process::Type::background} },
         { {"*"}, 				   				              		{ data_met150,"Data", 	    "#000000", "stitch", 	      Process::Type::data} },
-
-//        { "TTGJets",                   	       { bkg_met150,  "TT+X",	    "#832DB6", "stitch_photon", Process::Type::background} },
-//        { "TTZToLLNuNu",                       { bkg_met150,  "TT+X",	    "#832DB6", "stitch_photon", Process::Type::background} },
-//        { "TTZToQQ",                   	       { bkg_met150,  "TT+X",	    "#832DB6", "stitch_photon", Process::Type::background} },
-//        { "TTWJetsToLNu",                      { bkg_met150,  "TT+X",	    "#832DB6", "stitch_photon", Process::Type::background} },
-//        { "TTWJetsToQQ",                       { bkg_met150,  "TT+X",	    "#832DB6", "stitch_photon", Process::Type::background} },
-//        { "TTTT",                              { bkg_met150,  "TT+X", 	    "#832DB6", "stitch_photon", Process::Type::background} },
-//        { "ttHTobb",                           { bkg_met150,  "TT+X", 	    "#832DB6", "stitch_photon", Process::Type::background} },
-//        { "DYJetsToLL",                        { bkg_met150,  "Z+Jets",     "#E76300", "stitch",        Process::Type::background} },
-//        { "WminusH_HToBB",                     { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "WplusH_HToBB",                      { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "WWTo2L2Nu",                         { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "WWTo1L1Nu2Q",                       { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "WZTo1L1Nu2Q",                       { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "WZTo1L3Nu",                         { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "WZTo2Q2L",                          { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "WZTo3LNu",                          { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "ZH_HToBB_ZToNuNu",                  { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-//        { "ZZ_TuneCP5",                        { bkg_met150,  "Others",     "#717581", "stitch",        Process::Type::background} },
-
-
-
     };
    
-
-    std::map<std::string, paths_4b::ProcInfo> sample_info_1lep = { 
-        { "TTJets_",                           { bkg_1lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTGJets",                   	       { bkg_1lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTZToLLNuNu",                       { bkg_1lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTZToQQ",                   	       { bkg_1lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTWJetsToLNu",                      { bkg_1lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTWJetsToQQ",                       { bkg_1lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTTT",                              { bkg_1lep,  "TT+X", 	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "ttHTobb",                           { bkg_1lep,  "TT+X", 	  "#832DB6", "stitch_photon", Process::Type::background} },
-
-        { "_WJetsToLNu",                       { bkg_1lep,  "W+Jets",     "#3F90DA", "stitch",        Process::Type::background} },
-
-        { "ZJetsToNuNu",                       { bkg_1lep,  "Z+Jets",     "#E76300", "stitch",        Process::Type::background} },
-        { "DYJetsToLL",                        { bkg_1lep,  "Z+Jets",     "#E76300", "stitch",        Process::Type::background} },
-
-        { "QCD_HT",                            { bkg_1lep,  "QCD",        "#B9AC70", "stitch",        Process::Type::background} },
-
-        { "ST_",                               { bkg_1lep,  "Single top", "#A96B59", "stitch",        Process::Type::background} },
-  
-        { "GJets_DR-0p4_HT",                   { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WminusH_HToBB",                     { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WplusH_HToBB",                      { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WWTo2L2Nu",                         { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WWTo1L1Nu2Q",                       { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WZTo1L1Nu2Q",                       { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WZTo1L3Nu",                         { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WZTo2Q2L",                          { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WZTo3LNu",                          { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "ZH_HToBB_ZToNuNu",                  { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "ZZ_TuneCP5",                        { bkg_1lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-
-        { "*", 				       { data_1lep, "Data", 	  "#000000", "stitch",        Process::Type::data} },
-
+    std::map<std::vector<std::string>, paths_4b::ProcInfo> sample_info_1lep = { 
+        { {"TTJets_","TTGJets","TTZToLLNuNu","TTZToQQ","TTWJetsToLNu","TTWJetsToQQ","TTTT","ttHTobb"},  { bkg_1lep, "TT+X",       "#832DB6", "stitch_photon", Process::Type::background} },
+        { {"_WJetsToLNu"},                       					      		{ bkg_1lep, "W+Jets",     "#3F90DA", "stitch",        Process::Type::background} },
+        { {"ZJetsToNuNu","DYJetsToLL"},                    				      		{ bkg_1lep, "Z+Jets",     "#E76300", "stitch",        Process::Type::background} },
+        { {"QCD_HT"},                          						      		{ bkg_1lep, "QCD",        "#B9AC70", "stitch",        Process::Type::background} },
+        { {"ST_"},                               					      		{ bkg_1lep, "Single top", "#A96B59", "stitch",        Process::Type::background} },
+        { {"GJets_DR-0p4_HT", "WminusH_HToBB", "WplusH_HToBB", "WWTo2L2Nu", "WWTo1L1Nu2Q", "WZTo1L1Nu2Q", "WZTo1L3Nu", "WZTo2Q2L", "WZTo3LNu", "ZH_HToBB_ZToNuNu", "ZZ_TuneCP5"},                 							  	    { bkg_1lep, "Others",     "#717581", "stitch",        Process::Type::background} },
+        { {"*"}, 				   				              		{ data_1lep,"Data", 	  "#000000", "stitch", 	      Process::Type::data} },
     };
 
-    std::map<std::string, paths_4b::ProcInfo> sample_info_2lep = { 
-        { "TTJets_",                           { bkg_2lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTGJets",                   	       { bkg_2lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTZToLLNuNu",                       { bkg_2lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTZToQQ",                   	       { bkg_2lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTWJetsToLNu",                      { bkg_2lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTWJetsToQQ",                       { bkg_2lep,  "TT+X",	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "TTTT",                              { bkg_2lep,  "TT+X", 	  "#832DB6", "stitch_photon", Process::Type::background} },
-        { "ttHTobb",                           { bkg_2lep,  "TT+X", 	  "#832DB6", "stitch_photon", Process::Type::background} },
-
-        { "_WJetsToLNu",                       { bkg_2lep,  "W+Jets",     "#3F90DA", "stitch",        Process::Type::background} },
-
-        { "ZJetsToNuNu",                       { bkg_2lep,  "Z+Jets",     "#E76300", "stitch",        Process::Type::background} },
-        { "DYJetsToLL",                        { bkg_2lep,  "Z+Jets",     "#E76300", "stitch",        Process::Type::background} },
-
-        { "QCD_HT",                            { bkg_2lep,  "QCD",        "#B9AC70", "stitch",        Process::Type::background} },
-
-        { "ST_",                               { bkg_2lep,  "Single top", "#A96B59", "stitch",        Process::Type::background} },
-  
-        { "GJets_DR-0p4_HT",                   { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WminusH_HToBB",                     { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WplusH_HToBB",                      { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WWTo2L2Nu",                         { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WWTo1L1Nu2Q",                       { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WZTo1L1Nu2Q",                       { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WZTo1L3Nu",                         { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WZTo2Q2L",                          { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "WZTo3LNu",                          { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "ZH_HToBB_ZToNuNu",                  { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-        { "ZZ_TuneCP5",                        { bkg_2lep,  "Others",     "#717581", "stitch",        Process::Type::background} },
-
-        { "*", 				       { data_2lep, "Data", 	  "#000000", "stitch",        Process::Type::data} },
-
+    std::map<std::vector<std::string>, paths_4b::ProcInfo> sample_info_2lep = { 
+        { {"TTJets_","TTGJets","TTZToLLNuNu","TTZToQQ","TTWJetsToLNu","TTWJetsToQQ","TTTT","ttHTobb"},  { bkg_2lep, "TT+X",       "#832DB6", "stitch_photon", Process::Type::background} },
+        { {"_WJetsToLNu"},                       					      		{ bkg_2lep, "W+Jets",     "#3F90DA", "stitch",        Process::Type::background} },
+        { {"ZJetsToNuNu","DYJetsToLL"},                    				      		{ bkg_2lep, "Z+Jets",     "#E76300", "stitch",        Process::Type::background} },
+        { {"QCD_HT"},                          						      		{ bkg_2lep, "QCD",        "#B9AC70", "stitch",        Process::Type::background} },
+        { {"ST_"},                               					      		{ bkg_2lep, "Single top", "#A96B59", "stitch",        Process::Type::background} },
+        { {"GJets_DR-0p4_HT", "WminusH_HToBB", "WplusH_HToBB", "WWTo2L2Nu", "WWTo1L1Nu2Q", "WZTo1L1Nu2Q", "WZTo1L3Nu", "WZTo2Q2L", "WZTo3LNu", "ZH_HToBB_ZToNuNu", "ZZ_TuneCP5"},                 							  	    { bkg_2lep, "Others",     "#717581", "stitch",        Process::Type::background} },
+        { {"*"}, 				   				              		{ data_2lep,"Data", 	  "#000000", "stitch", 	      Process::Type::data} },
     };
 
+
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs1 = {
+      { "SMS-TChiHH_mChi-150_mLSP-0",            { sig_path, "TChiHH-150-1",    "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-200_mLSP-0",            { sig_path, "TChiHH-200-1",    "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-300_mLSP-0",            { sig_path, "TChiHH-300-1",    "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-300_mLSP-100",          { sig_path, "TChiHH-300-100",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-400_mLSP-0",            { sig_path, "TChiHH-400-1",    "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-400_mLSP-100",          { sig_path, "TChiHH-400-100",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-400_mLSP-200",          { sig_path, "TChiHH-400-200",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-500_mLSP-0",            { sig_path, "TChiHH-500-1",    "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs2 = {
+      { "SMS-TChiHH_mChi-500_mLSP-100",          { sig_path, "TChiHH-500-100",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-500_mLSP-200",          { sig_path, "TChiHH-500-200",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-500_mLSP-300",          { sig_path, "TChiHH-500-300",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-600_mLSP-0",            { sig_path, "TChiHH-600-1",    "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-600_mLSP-100",          { sig_path, "TChiHH-600-100",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-600_mLSP-200",          { sig_path, "TChiHH-600-200",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-600_mLSP-300",          { sig_path, "TChiHH-600-300",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-600_mLSP-400",          { sig_path, "TChiHH-600-400",  "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs3 = {
+      { "SMS-TChiHH_mChi-700_mLSP-0",            { sig_path, "TChiHH-700-1",    "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-700_mLSP-100",          { sig_path, "TChiHH-700-100",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-700_mLSP-200",          { sig_path, "TChiHH-700-200",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-700_mLSP-300",          { sig_path, "TChiHH-700-300",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-700_mLSP-400",          { sig_path, "TChiHH-700-400",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-700_mLSP-500",          { sig_path, "TChiHH-700-500",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-800_mLSP-0",            { sig_path, "TChiHH-800-1",    "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-800_mLSP-100",          { sig_path, "TChiHH-800-100",  "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs4 = {
+      { "SMS-TChiHH_mChi-800_mLSP-200",          { sig_path, "TChiHH-800-200",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-800_mLSP-300",          { sig_path, "TChiHH-800-300",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-800_mLSP-400",          { sig_path, "TChiHH-800-400",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-800_mLSP-500",          { sig_path, "TChiHH-800-500",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-800_mLSP-600",          { sig_path, "TChiHH-800-600",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-900_mLSP-0",            { sig_path, "TChiHH-900-1",    "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-900_mLSP-100",          { sig_path, "TChiHH-900-100",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-900_mLSP-200",          { sig_path, "TChiHH-900-200",  "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs5 = {
+      { "SMS-TChiHH_mChi-900_mLSP-300",          { sig_path, "TChiHH-900-300",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-900_mLSP-400",          { sig_path, "TChiHH-900-400",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-900_mLSP-500",          { sig_path, "TChiHH-900-500",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-900_mLSP-600",          { sig_path, "TChiHH-900-600",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-900_mLSP-700",          { sig_path, "TChiHH-900-700",  "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-0",           { sig_path, "TChiHH-1000-1",   "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-100",         { sig_path, "TChiHH-1000-100", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-200",         { sig_path, "TChiHH-1000-200", "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs6 = {
+      { "SMS-TChiHH_mChi-1000_mLSP-300",         { sig_path, "TChiHH-1000-300", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-400",         { sig_path, "TChiHH-1000-400", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-500",         { sig_path, "TChiHH-1000-500", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-600",         { sig_path, "TChiHH-1000-600", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-700",         { sig_path, "TChiHH-1000-700", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1000_mLSP-800",         { sig_path, "TChiHH-1000-800", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-0",           { sig_path, "TChiHH-1100-0",   "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-100",         { sig_path, "TChiHH-1100-100", "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs7 = {
+      { "SMS-TChiHH_mChi-1100_mLSP-200",         { sig_path, "TChiHH-1100-200", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-300",         { sig_path, "TChiHH-1100-300", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-400",         { sig_path, "TChiHH-1100-400", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-500",         { sig_path, "TChiHH-1100-500", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-600",         { sig_path, "TChiHH-1100-600", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-700",         { sig_path, "TChiHH-1100-700", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-800",         { sig_path, "TChiHH-1100-800", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1100_mLSP-900",         { sig_path, "TChiHH-1100-900", "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs8 = {
+      { "SMS-TChiHH_mChi-1200_mLSP-0",           { sig_path, "TChiHH-1200-1",   "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-100",         { sig_path, "TChiHH-1200-100", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-200",         { sig_path, "TChiHH-1200-200", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-300",         { sig_path, "TChiHH-1200-300", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-400",         { sig_path, "TChiHH-1200-400", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-500",         { sig_path, "TChiHH-1200-500", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-600",         { sig_path, "TChiHH-1200-600", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-700",         { sig_path, "TChiHH-1200-700", "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs9 = {
+      { "SMS-TChiHH_mChi-1200_mLSP-800",         { sig_path, "TChiHH-1200-800", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-900",         { sig_path, "TChiHH-1200-900", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1200_mLSP-1000",        { sig_path, "TChiHH-1200-1000","#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-0",           { sig_path, "TChiHH-1300-1",   "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-100",         { sig_path, "TChiHH-1300-100", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-200",         { sig_path, "TChiHH-1300-200", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-300",         { sig_path, "TChiHH-1300-300", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-400",         { sig_path, "TChiHH-1300-400", "#FF0000", "1", Process::Type::signal} },
+    };
+    std::map<std::string, paths_4b::ProcInfo> signal_info_procs10 = {
+      { "SMS-TChiHH_mChi-1300_mLSP-500",         { sig_path, "TChiHH-1300-500", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-600",         { sig_path, "TChiHH-1300-600", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-700",         { sig_path, "TChiHH-1300-700", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-800",         { sig_path, "TChiHH-1300-800", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-900",         { sig_path, "TChiHH-1300-900", "#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-1000",        { sig_path, "TChiHH-1300-1000","#FF0000", "1", Process::Type::signal} },
+      { "SMS-TChiHH_mChi-1300_mLSP-1100",        { sig_path, "TChiHH-1300-1100","#FF0000", "1", Process::Type::signal} },
+    };
 
 
 }

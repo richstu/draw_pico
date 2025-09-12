@@ -51,8 +51,18 @@ namespace paths_4b{
      };
   extern map<string, ProcInfo> signal_info;
   extern map<vector<string>, ProcInfo> sample_info_met150;
-  extern map<string, ProcInfo> sample_info_1lep;
-  extern map<string, ProcInfo> sample_info_2lep;
+  extern map<vector<string>, ProcInfo> sample_info_1lep;
+  extern map<vector<string>, ProcInfo> sample_info_2lep;
+  extern map<string, ProcInfo> signal_info_procs1;
+  extern map<string, ProcInfo> signal_info_procs2;
+  extern map<string, ProcInfo> signal_info_procs3;
+  extern map<string, ProcInfo> signal_info_procs4;
+  extern map<string, ProcInfo> signal_info_procs5;
+  extern map<string, ProcInfo> signal_info_procs6;
+  extern map<string, ProcInfo> signal_info_procs7;
+  extern map<string, ProcInfo> signal_info_procs8;
+  extern map<string, ProcInfo> signal_info_procs9;
+  extern map<string, ProcInfo> signal_info_procs10;
 
 }
 
