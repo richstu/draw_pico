@@ -90,6 +90,26 @@ BottomType:
 - sorb: signal efficiency/Sqrt(background efficiency) after applying lower bound cut at any point along the y axis. This is plotted on the bottom. Works best with signal\_overlay stack type, does not work with signal\_on\_top
 - sorb\_cut\_upper: Same as sorb, but with upper bound cut.
 
+### Cutflow table generating tools
+
+Cutflows following the H to Z gamma baseline selection can be automatically generated using the cutflow back-end and input jsons, stored in `txt/`.
+
+~~~~bash
+./run/zgamma/cutflow_backend.cxx [cutflow input]
+~~~~
+
+The main input file for creating baseline selection cutflows is `cutflow_inputs_datamccombineAN.json`. Running with these inputs will create all cutflows necessary for the AN. The other input files can be used for debugging or specific alternative sets of cutflows. 
+
+Notes on inputs in json files:
+- production\_name and short\_name are used to create the subdirectories `table/production_name/short_name` where the cutflows are stored. The subdirectories are also timestamped, so re-running cutflow generation will not replace previous cutflows.
+- sample\_type should be a string selected from: "sig", "bkg", or "data".
+- weight is a string selected from: "1" (unweighted), "lumi" (lumiweighted), "custom" (custom weight based on definition in backend), or "weight" (full weight branch)
+- mlly\_window is a string that should be selected from: "full", "sideband", and "higgs"
+- lepton\_type is a list of strings which can be selected from: "el", "mu", and "lep"
+The remainder of inputs are largely self-explanatory.
+
+There is currently no machinery to combine the separately generated cutflows. This task should be done externally to draw\_pico.
+
 ## Higgsino useful commands
 
 ### To make datacards and get limits:

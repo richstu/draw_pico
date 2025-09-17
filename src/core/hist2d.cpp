@@ -176,7 +176,7 @@ void Hist2D::MakeOnePlot(const string &subdir){
     bkg_is_hist = false;
     break;
   }
-
+/*
   const Int_t NRGBs = 5;
   const Int_t NCont = 999;
 
@@ -186,7 +186,7 @@ void Hist2D::MakeOnePlot(const string &subdir){
   Double_t blue[NRGBs] = { 0.95, 1.00, 0.50, 0.40, 0.50 };
   TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
   gStyle->SetNumberContours(NCont);
-
+*/
   TCanvas c("canvas","canvas", this_opt_.CanvasWidth(), this_opt_.CanvasHeight());
   c.cd();
   c.SetTicks(1,1);
@@ -438,9 +438,11 @@ vector<shared_ptr<TLatex> > Hist2D::GetLabels(bool bkg_is_hist) const{
   }
 
   ostringstream oss;
-  if (luminosity_tag_ != "") oss << luminosity_tag_ << " fb^{-1} (13 TeV)" << flush;
-  else if (luminosity_<1.1) oss << "137 fb^{-1} (13 TeV)" << flush;
-  else oss << luminosity_ << " fb^{-1} (13 TeV)" << flush;
+  string default_label_ = " fb^{-1} (13 TeV)";
+  if (energy_label_ != "") oss << energy_label_ << flush;
+  else if (luminosity_tag_ != "") oss << luminosity_tag_ << default_label_ << flush;
+  //else if (luminosity_<1.1) oss << "137 fb^{-1} (13 TeV)" << flush;
+  else oss << luminosity_ << default_label_ << flush;
   labels.push_back(make_shared<TLatex>(right+0.01, top,
                                        oss.str().c_str()));
   labels.back()->SetNDC();
@@ -484,8 +486,17 @@ Hist2D & Hist2D::LuminosityTag(const string &tag){
   return *this;
 }
 
+Hist2D & Hist2D::EnergyLabel(const string &tag){
+  energy_label_ = tag;
+  return *this;
+}
+
 void Hist2D::SetLuminosityTag(const string &tag) {
   this->LuminosityTag(tag);
+}
+
+void Hist2D::SetEnergyLabel(const string &tag) {
+  this->EnergyLabel(tag);
 }
 
 void Hist2D::AddEntry(TLegend &l, const SingleHist2D &h, const TGraph &g) const{

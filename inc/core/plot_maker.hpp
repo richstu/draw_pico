@@ -53,7 +53,8 @@ public:
 
 private:
   std::vector<std::unique_ptr<Figure> > figures_;//!<Figures to be produced
-
+  
+  void GenerateGradient();
   void GetYields();
   long GetYield(Baby *baby_ptr);
 

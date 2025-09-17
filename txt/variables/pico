@@ -177,6 +177,9 @@ int nbdfl
 int nbdfm
 int nbdft
 
+bool ishemvetoevt
+bool ismapvetoevt
+
 std::vector<float> jet_pt
 std::vector<float> jet_eta
 std::vector<float> jet_phi
@@ -195,6 +198,9 @@ std::vector<bool>  jet_islep
 std::vector<bool>  jet_isvlep
 std::vector<bool>  jet_isphoton
 std::vector<bool>  jet_isgood
+std::vector<bool>  jet_isgood_min
+std::vector<bool>  jet_isvetomap
+std::vector<bool>  jet_isvetohem
 std::vector<bool>  jet_id
 std::vector<int>   jet_hflavor
 std::vector<int>   jet_pflavor
@@ -206,6 +212,7 @@ std::vector<bool>  jet_h2d
 std::vector<int>   jet_fjet_idx
 std::vector<float> jet_pt_nosmear
 std::vector<float> jet_m_nosmear
+
 
 int ngenjet
 std::vector<float> genjet_pt
@@ -481,6 +488,7 @@ float w_el
 float w_mu
 float w_fs_lep
 float w_photon
+float w_phshape
 float w_photon_id
 float w_photon_csev
 float w_btag
@@ -494,6 +502,8 @@ float w_prefire
 float w_trig
 float w_trig_singlemu
 float w_trig_doublemu
+float w_fakephoton
+float w_nnlo
 
 ################  Triggers copy straight from Nano, same names   ##################
 
