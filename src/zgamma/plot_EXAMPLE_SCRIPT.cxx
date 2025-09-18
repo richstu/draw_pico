@@ -88,8 +88,8 @@ int main(){
   //Manual sample loading:
   //vector<shared_ptr<Process>> internal_name       = Process::MakeShared<Baby_pico>("Plot legend name", Process::Type::[signal,background,data], [TColor of choice], {"pico_path", "pico_path_2",..., "pico_path_n"}, {"simple_cut_1",...,"simple_cut_n"});
   auto ggF_2022     = Process::MakeShared<Baby_pico>("ggF 2022", Process::Type::background, kBlack, {"/net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v0/2022/mc/skim_ll/*GluGluHtoZG_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8*.root"},"1");
-  auto vbf_2022     = Process::MakeShared<Baby_pico>("ggF 2022", Process::Type::background, kBlack, {"/net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v0/2022/mc/skim_ll/*VBFHtoZG_Zto2L_M-125_TuneCP5_withDipoleRecoil_13p6TeV_powheg-pythia8*.root"},"1");
-  
+  auto vbf_2022     = Process::MakeShared<Baby_pico>("vbf 2022", Process::Type::background, kBlue, {"/net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v0/2022/mc/skim_ll/*VBFHtoZG_Zto2L_M-125_TuneCP5_withDipoleRecoil_13p6TeV_powheg-pythia8*.root"},"1");
+ 
   //Automated sample loading: One can define much more complicated sample loading patterns in the txt files.
   //vector<shared_ptr<Process>> internal_name       = ZgUtilities::ZgSampleLoader().LoadSamples("sample_loading_txt_file","key");
   vector<shared_ptr<Process>> MC_test = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma.txt","MCtest");
@@ -103,7 +103,7 @@ int main(){
   //This code creates the plotting styles for the 1D and 2D histograms
   //One can either take plotting styles direct from input txt 
   //or take a style and modify it.
-  vector<PlotOpt> style_1D = {PlotOpt("txt/plot_styles.txt","LinLumi").Title(TitleType::preliminary).TitleSize(0.032)};
+  vector<PlotOpt> style_1D = {PlotOpt("txt/plot_styles.txt","LinLumi").Title(TitleType::preliminary).TitleSize(0.032).DisplayMCNorm(true)};
   vector<PlotOpt> style_2D = {PlotOpt("txt/plot_styles.txt","LogLumi2D").Title(TitleType::preliminary).FileExtensions({"pdf", "root"})};
   //This defines the plotting object used to create plots
   PlotMaker pm;
@@ -111,6 +111,9 @@ int main(){
   //Define additional namedfunctions if necessary
   NamedFunc init = "pass==1 && use_event";
   NamedFunc base_half = cutbitcheck(0b100000000000) && cutbitcheck(0b000100000000) && cutbitcheck(0b000010000000) && cutbitcheck(0b000001000000);//half baseline selection
+
+
+//===========================Generate Plots=============================//
 
 
 for(unsigned int i(0); i < procs_test.size();  i++){//loop over combinations of samples to plot
@@ -127,7 +130,6 @@ for(unsigned int i(0); i < procs_test.size();  i++){//loop over combinations of 
   pm.Push<Hist1D>(Axis(40,70,110 , "ll_m[0]"   ,"m_{ll} [GeV]"   ,{80,100}), init && base_half, procs_test[i], style_1D).Weight(wgt_std).LuminosityTag(lumi_vec_str[i]).Tag("ShortName:plot_example1D_mll" + procs_name[i]);
   pm.Push<Hist1D>(Axis(40,70,110 , "ll_m[0]"   ,"m_{ll} [GeV]"   ,{80,100}), init && base_half, procs_test[i], style_1D).Weight(wgt_std).LuminosityTag(lumi_vec_str[i]).EnergyLabel(e_label[0]).Tag("ShortName:plot_example1D_mll_label" + procs_name[i]); //Same plots but with custom energy and lumi label
 }
-
 
   //This chunk of code is needed to actually create the plots. The 1.0 can be changed to a luminosity value. 
   pm.min_print_ = true;

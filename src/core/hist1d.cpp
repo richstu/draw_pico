@@ -652,7 +652,7 @@ void Hist1D::RefreshScaledHistos(){
   MergeOverflow();
   ScaleHistos();
   StackHistos();
-  NormalizeSignalBackground();
+  //NormalizeSignalBackground();
   NormalizeHistos();
   FixAsymmErrors();
 }
@@ -785,21 +785,12 @@ void Hist1D::NormalizeHistos() const{
     for(auto &hist: datas_){
       Normalize(hist->scaled_hist_, 100., true);
     }
-  }
-}
-
-/*!\brief Normalize stacked signal and background to 1
- */
-
-void Hist1D::NormalizeSignalBackground() const{
-mc_scale_ = 1.;
-mc_scale_error_ = 1.;
-if(this_opt_.Stack() == StackType::prop_shape_stack){
-  if(signals_.size() == 0 || backgrounds_.size() == 0) return;
+  }else if(this_opt_.Stack() == StackType::prop_shape_stack){
+    if(signals_.size() == 0 || backgrounds_.size() == 0) return;
     int nbins = xaxis_.Nbins();
     double sig_error, mc_error;
-    double sig_norm = signals_.front()->scaled_hist_.IntegralAndError(1, nbins, sig_error, "width");//Not including over and underflow bins
-    double mc_norm = backgrounds_.front()->scaled_hist_.IntegralAndError(1, nbins, mc_error, "width");//Not including over and underflow bins
+    double sig_norm = signals_.front()->scaled_hist_.IntegralAndError(2, nbins, sig_error, "width");//Not including over and underflow bins
+    double mc_norm = backgrounds_.front()->scaled_hist_.IntegralAndError(2, nbins, mc_error, "width");//Not including over and underflow bins
     mc_scale_ = sig_norm/mc_norm;
     if(this_opt_.PrintVals()){
       cout << "MC scale factor: " << mc_scale_ << endl;
@@ -810,7 +801,6 @@ if(this_opt_.Stack() == StackType::prop_shape_stack){
     }
   }
 }
-
 
 /*!\brief Restore asymmetric error bars if histogram unweighted"
  */
@@ -829,6 +819,7 @@ void Hist1D::FixAsymmErrors() const{
 
 /*!\brief Restore asymmetric error bars if histogram unweighted"
  */
+
 void Hist1D::FixAsymmErrors(const unique_ptr<SingleHist1D> &sh1d, bool error_on_zero_data) const{
   TH1D &h = sh1d->scaled_hist_;
   const TArrayD *sumw2 = h.GetSumw2();

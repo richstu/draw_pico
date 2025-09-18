@@ -119,7 +119,6 @@ private:
   void MergeOverflow() const;
   void ScaleHistos() const;
   void StackHistos() const;
-  void NormalizeSignalBackground() const;
   void NormalizeHistos() const;
   void FixAsymmErrors() const;
   void FixAsymmErrors(const std::unique_ptr<SingleHist1D> &sh1d, bool error_on_zero_data=false) const;
