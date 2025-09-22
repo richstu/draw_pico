@@ -122,23 +122,23 @@ int main() {
   //Plots
   PlotMaker pm;
   
-  pm.Push<Hist1D>(Axis(45,150,600,"met", "p_{T}^{miss} [GeV]", {}),		   res_baseline && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:res_met_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(4,0,4,"nvlep", "n_{veto leptons}", {1}), 		   res_nm_nvl && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,      procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:res_nvl_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(6,4,10,"njet", "n_{jets}", {4,6}),       		   res_nm_njet && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,     procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:res_njet_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(5,0,5, num_b, "n_{b}", {2}),		    		   res_nm_nb  && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,             procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:res_nb_nm1_ny0");
-  pm.Push<Hist1D>(Axis(5,0,5, "nphoton", "n_{photons}", {1}),			   res_nm_nphoton && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,  procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:res_ny_nm1");
-  pm.Push<Hist1D>(Axis(25,0,400, "hig_df_cand_am[0]", "<m_{bb}> [GeV]", {200}),    res_nm_higam && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:res_am_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(15,0,120, "hig_df_cand_dm[0]", "#Deltam_{HH} [GeV]", {40}), res_nm_higdm && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:res_dm_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(20,0,4, "hig_df_cand_drmax[0]", "#DeltaR_{max}", {2.2}),    res_nm_higdrmax && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch, procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:res_drmax_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(45,150,600,"met", "p_{T}^{miss} [GeV]", {}),		   res_baseline && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_met_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(4,0,4,"nvlep", "n_{veto leptons}", {1}), 		   res_nm_nvl && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,      procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_nvl_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(6,4,10,"njet", "n_{jets}", {4,6}),       		   res_nm_njet && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,     procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_njet_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(5,0,5, num_b, "n_{b}", {2}),		    		   res_nm_nb  && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,             procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_nb_nm1_ny0");
+  pm.Push<Hist1D>(Axis(5,0,5, "nphoton", "n_{photons}", {1}),			   res_nm_nphoton && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,  procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_ny_nm1");
+  pm.Push<Hist1D>(Axis(25,0,400, "hig_df_cand_am[0]", "<m_{bb}> [GeV]", {200}),    res_nm_higam && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_am_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(15,0,120, "hig_df_cand_dm[0]", "#Deltam_{HH} [GeV]", {40}), res_nm_higdm && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_dm_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(20,0,4, "hig_df_cand_drmax[0]", "#DeltaR_{max}", {2.2}),    res_nm_higdrmax && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch, procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_drmax_nm1_nb4_ny0");
 
-  pm.Push<Hist1D>(Axis(45,150,600,"met", "p_{T}^{miss} [GeV]", {}),		   res_baseline && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops_log).Weight(w_lumi_hb).Tag("ShortName:res_log_met_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(4,0,4,"nvlep", "Number of veto leptons", {1}), 		   res_nm_nvl && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,      procs_vec, ops_log).Weight(w_lumi_hb).Tag("ShortName:res_log_nvl_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(6,4,10,"njet", "Number of jets", {4,6}),       		   res_nm_njet && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,     procs_vec, ops_log).Weight(w_lumi_hb).Tag("ShortName:res_log_njet_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(5,0,5, num_b, "n_{b}", {2}),		    		   res_nm_nb  && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,             procs_vec, ops_log).Weight(w_lumi_hb).Tag("ShortName:res_log_nb_nm1_ny0");
-  pm.Push<Hist1D>(Axis(5,0,5, "nphoton", "n_{photons}", {1}),			   res_nm_nphoton && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,  procs_vec, ops_log).Weight(w_lumi_hb).Tag("ShortName:res_log_ny_nm1");
-  pm.Push<Hist1D>(Axis(25,0,400, "hig_df_cand_am[0]", "<m_{bb}> [GeV]", {200}),    res_nm_higam && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops_log).Weight(w_lumi_hb).Tag("ShortName:res_log_am_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(15,0,120, "hig_df_cand_dm[0]", "#Deltam_{HH} [GeV]", {40}), res_nm_higdm && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops_log).Weight(w_lumi_hb).Tag("ShortName:res_log_dm_nm1_nb4_ny0");
-  pm.Push<Hist1D>(Axis(20,0,4, "hig_df_cand_drmax[0]", "#DeltaR_{max}", {2.2}),    res_nm_higdrmax && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch, procs_vec, ops_log).Weight(w_lumi_hb).Tag("ShortName:res_log_drmax_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(45,150,600,"met", "p_{T}^{miss} [GeV]", {}),		   res_baseline && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops_log).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_log_met_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(4,0,4,"nvlep", "Number of veto leptons", {1}), 		   res_nm_nvl && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,      procs_vec, ops_log).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_log_nvl_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(6,4,10,"njet", "Number of jets", {4,6}),       		   res_nm_njet && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,     procs_vec, ops_log).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_log_njet_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(5,0,5, num_b, "n_{b}", {2}),		    		   res_nm_nb  && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,             procs_vec, ops_log).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_log_nb_nm1_ny0");
+  pm.Push<Hist1D>(Axis(5,0,5, "nphoton", "n_{photons}", {1}),			   res_nm_nphoton && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,  procs_vec, ops_log).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_log_ny_nm1");
+  pm.Push<Hist1D>(Axis(25,0,400, "hig_df_cand_am[0]", "<m_{bb}> [GeV]", {200}),    res_nm_higam && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops_log).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_log_am_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(15,0,120, "hig_df_cand_dm[0]", "#Deltam_{HH} [GeV]", {40}), res_nm_higdm && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch,    procs_vec, ops_log).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_log_dm_nm1_nb4_ny0");
+  pm.Push<Hist1D>(Axis(20,0,4, "hig_df_cand_drmax[0]", "#DeltaR_{max}", {2.2}),    res_nm_higdrmax && nb4 && ptmiss_htmiss_trig && pass_filters && TTJ_stitch && WJets_stitch, procs_vec, ops_log).Weight(w_lumi_hb_mettrig).Tag("ShortName:res_log_drmax_nm1_nb4_ny0");
 
 
 

@@ -9,6 +9,7 @@
 #include "core/palette.hpp"
 #include "core/plot_opt.hpp"
 #include "TVector2.h"
+#include "TLorentzVector.h"
 #include "TMath.h"
 #include "Math/Vector4D.h"
 
@@ -155,6 +156,46 @@ namespace vardef{
    }
    return dphi;
  });
+
+// variables used for control regions
+ const NamedFunc drjl1_min("drjl1_min", [](const Baby &b) -> NamedFunc::ScalarType{
+   double min = 9999;
+   double dr;
+   TLorentzVector lep;
+   TLorentzVector jet;
+   if ( fabs(b.lep_pdgid()->at(0)) == 11){
+     lep.SetPtEtaPhiM( b.lep_pt()->at(0), b.lep_eta()->at(0), b.lep_phi()->at(0), 0.000511);
+   }
+   else {
+     lep.SetPtEtaPhiM( b.lep_pt()->at(0), b.lep_eta()->at(0), b.lep_phi()->at(0), 0.10566);
+   }
+   for (size_t i = 0; i < 4; i++){
+     jet.SetPtEtaPhiM( b.jet_pt()->at(b.jet_ordered_pt_indices()->at(i)), b.jet_eta()->at(b.jet_ordered_pt_indices()->at(i)), b.jet_phi()->at(b.jet_ordered_pt_indices()->at(i)), b.jet_m()->at(b.jet_ordered_pt_indices()->at(i)) );
+     dr = lep.DeltaR(jet);
+     if (dr < min) { min = dr; }
+   }
+   return min;
+ });
+
+ const NamedFunc drjl2_min("drjl2_min", [](const Baby &b) -> NamedFunc::ScalarType{
+   double min = 9999;
+   double dr;
+   TLorentzVector lep;
+   TLorentzVector jet;
+   if ( fabs(b.lep_pdgid()->at(0)) == 11){
+     lep.SetPtEtaPhiM( b.lep_pt()->at(1), b.lep_eta()->at(1), b.lep_phi()->at(1), 0.000511);
+   }
+   else {
+     lep.SetPtEtaPhiM( b.lep_pt()->at(1), b.lep_eta()->at(1), b.lep_phi()->at(1), 0.10566);
+   }
+   for (size_t i = 0; i < 4; i++){
+     jet.SetPtEtaPhiM( b.jet_pt()->at(b.jet_ordered_pt_indices()->at(i)), b.jet_eta()->at(b.jet_ordered_pt_indices()->at(i)), b.jet_phi()->at(b.jet_ordered_pt_indices()->at(i)), b.jet_m()->at(b.jet_ordered_pt_indices()->at(i)) );
+     dr = lep.DeltaR(jet);
+     if (dr < min) { min = dr; }
+   }
+   return min;
+ });
+
   
 }
 

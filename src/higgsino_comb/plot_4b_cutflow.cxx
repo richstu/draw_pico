@@ -147,7 +147,7 @@ int main() {
   int index = 0;
   bool at_fakemet = false;
   //table for hh signal region
-  tablevec.push_back(TableRow("Filters, p_{T}^{miss} > 150 GeV", basic_cuts, 0, 0, w_lumi_hb));
+  tablevec.push_back(TableRow("Filters, p_{T}^{miss} > 150 GeV", basic_cuts, 0, 0, w_lumi_hb_mettrig));
   // Iterate over the sample info map
   for (const auto& pair : cuts_4b_res) {
 
@@ -163,19 +163,19 @@ int main() {
         const auto axes = plotparams.axes_limits;
         const auto lines = plotparams.vert_lines;
         if (at_fakemet){
-          pm.Push<Hist1D>(Axis(axes[0],axes[1],axes[2],var,axes_label,lines), cuts.str() && basic_cuts && dphi_res, procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:cutflow_res_"+label);
+          pm.Push<Hist1D>(Axis(axes[0],axes[1],axes[2],var,axes_label,lines), cuts.str() && basic_cuts && dphi_res, procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:cutflow_res_"+label);
           }
         else{
-          pm.Push<Hist1D>(Axis(axes[0],axes[1],axes[2],var,axes_label,lines), cuts.str() && basic_cuts, procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:cutflow_res_"+label);
+          pm.Push<Hist1D>(Axis(axes[0],axes[1],axes[2],var,axes_label,lines), cuts.str() && basic_cuts, procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:cutflow_res_"+label);
           }
         }
       }
   // fakemet cut has four plots, make them separately here
     if (cutlabel == "fakemet"){
-      pm.Push<Hist1D>(Axis(25,0,5,dphi1,"#Delta#phi_{j_{1},MET}",{0.5}), cuts.str()&&basic_cuts, procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:cutflow_res_dphi1");
-      pm.Push<Hist1D>(Axis(25,0,5,dphi2,"#Delta#phi_{j_{2},MET}",{0.5}), cuts.str()&&basic_cuts, procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:cutflow_res_dphi2");
-      pm.Push<Hist1D>(Axis(25,0,5,dphi3,"#Delta#phi_{j_{3},MET}",{0.3}), cuts.str()&&basic_cuts, procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:cutflow_res_dphi3");
-      pm.Push<Hist1D>(Axis(25,0,5,dphi4,"#Delta#phi_{j_{4},MET}",{0.3}), cuts.str()&&basic_cuts, procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:cutflow_res_dphi4");
+      pm.Push<Hist1D>(Axis(25,0,5,dphi1,"#Delta#phi_{j_{1},MET}",{0.5}), cuts.str()&&basic_cuts, procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:cutflow_res_dphi1");
+      pm.Push<Hist1D>(Axis(25,0,5,dphi2,"#Delta#phi_{j_{2},MET}",{0.5}), cuts.str()&&basic_cuts, procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:cutflow_res_dphi2");
+      pm.Push<Hist1D>(Axis(25,0,5,dphi3,"#Delta#phi_{j_{3},MET}",{0.3}), cuts.str()&&basic_cuts, procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:cutflow_res_dphi3");
+      pm.Push<Hist1D>(Axis(25,0,5,dphi4,"#Delta#phi_{j_{4},MET}",{0.3}), cuts.str()&&basic_cuts, procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:cutflow_res_dphi4");
       }
     if (index == 0) { cuts << cut; }
     else { cuts << "&&" << cut; }
@@ -183,19 +183,19 @@ int main() {
     
     if (cutlabel == "fakemet"){at_fakemet = true;}
     if (at_fakemet){ // beyond fakemet step, add dphi_res cut
-        tablevec.push_back(TableRow(cutlabel, cuts.str() && basic_cuts && dphi_res, 0, 0, w_lumi_hb));
+        tablevec.push_back(TableRow(cutlabel, cuts.str() && basic_cuts && dphi_res, 0, 0, w_lumi_hb_mettrig));
       }
     else {
-        tablevec.push_back(TableRow(cutlabel, cuts.str() && basic_cuts, 0, 0, w_lumi_hb));
+        tablevec.push_back(TableRow(cutlabel, cuts.str() && basic_cuts, 0, 0, w_lumi_hb_mettrig));
       }
 
     }
 // add two more rows in table to show effect of higher ptmiss cut and 4b requirement
-  tablevec.push_back(TableRow("met > 250 GeV", cuts.str() && basic_cuts && dphi_res && "met > 250", 0, 0, w_lumi_hb));
-  tablevec.push_back(TableRow("nb = 4", cuts.str() && basic_cuts && dphi_res && "met>250" && nb4, 0, 0, w_lumi_hb));
+  tablevec.push_back(TableRow("met > 250 GeV", cuts.str() && basic_cuts && dphi_res && "met > 250", 0, 0, w_lumi_hb_mettrig));
+  tablevec.push_back(TableRow("nb = 4", cuts.str() && basic_cuts && dphi_res && "met>250" && nb4, 0, 0, w_lumi_hb_mettrig));
 
-  pm.Push<Hist1D>(Axis(50,150,650,"met","p_{T}^{miss} [GeV]",{250}), cuts.str() && basic_cuts && dphi_res && "met>250", procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:cutflow_res_met250");
-  pm.Push<Hist1D>(Axis(4,2,6, num_b, "n_{b}", {4}), cuts.str() && basic_cuts && dphi_res && "met>250" && nb4, procs_vec, ops).Weight(w_lumi_hb).Tag("ShortName:cutflow_res_nb4");
+  pm.Push<Hist1D>(Axis(50,150,650,"met","p_{T}^{miss} [GeV]",{250}), cuts.str() && basic_cuts && dphi_res && "met>250", procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:cutflow_res_met250");
+  pm.Push<Hist1D>(Axis(4,2,6, num_b, "n_{b}", {4}), cuts.str() && basic_cuts && dphi_res && "met>250" && nb4, procs_vec, ops).Weight(w_lumi_hb_mettrig).Tag("ShortName:cutflow_res_nb4");
 
   pm.Push<Table>("Cutflow_resolved_4b_sigbkgmc_run2_cutflow_resolved_deepflavb_2dxsec_ptmiss_trig_ttjstitch_dyweight_wjstitch", tablevec, procs_vec, false, true, false, false, false, false); //do_zbi, print_table, print_pie, print_titlepie, do_eff, do_unc
   pm.Push<Table>("Cutflow_eff_resolved_4b_sigbkgmc_run2_cutflow_resolved_deepflavb_2dxsec_ptmiss_trig_ttjstitch_dyweight_wjstitch", tablevec, procs_vec, false, true, false, false, true, false); //do_zbi, print_table, print_pie, print_titlepie, do_eff, do_unc

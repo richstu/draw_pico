@@ -98,6 +98,8 @@ namespace regions_4b {
   });
 
   const NamedFunc nb4 = "nbdft>=2 && nbdfm>=3 && nbdfl>=4";
+  const NamedFunc nb3 = "nbdft>=2 && nbdfm==3 && nbdfl==3";
+  const NamedFunc nb34 = nb3 || nb4;
 
   vector<pair<string, NamedFunc>> cuts_4b_res = {
     {"met", 	  "met>150"},
@@ -130,6 +132,7 @@ namespace regions_4b {
     {"hig_am", 	  "hig_df_cand_am[0]<200"},
     {"hig_dm", 	  "hig_df_cand_dm[0]<40"},
     {"hig_drmax", "hig_df_cand_drmax[0]<2.2"},
+    {"nphoton",   "nphoton==0"},
   };
 
   vector<pair<string, NamedFunc>> cuts_4b_CR2 = {
@@ -142,6 +145,7 @@ namespace regions_4b {
     {"hig_dm",	  "hig_df_cand_dm[0]<40"},
     {"hig_drmax", "hig_df_cand_drmax[0]<2.2"},
     {"nb", 	  "(nbdfm==1 || nbdfm==0)"},
+    {"nphoton",   "nphoton==0"},
   };
 
   vector<pair<string, NamedFunc>> cuts_4b_CR3 = {
@@ -153,6 +157,7 @@ namespace regions_4b {
     {"hig_dm", 	  "hig_df_cand_dm[0]<40"},
     {"hig_drmax", "hig_df_cand_drmax[0]<2.2"},
     {"nb", 	  "(nbdfm==1 || nbdfm==0)"},
+    {"nphoton",   "nphoton==0"},
   };
 
   vector<pair<string, NamedFunc>> cuts_4b_CR1b = {
@@ -195,6 +200,22 @@ namespace regions_4b {
   const NamedFunc CR3 = get_cuts(cuts_4b_CR3, "") && !dphi_res;
   const NamedFunc CR1b_el = get_cuts(cuts_4b_CR1b, "") && "nel>0";
   const NamedFunc CR1b_mu = get_cuts(cuts_4b_CR1b, "") && "nmu>0";
+
+  const NamedFunc CR1_el_nm_higam = get_cuts(cuts_4b_CR1, "hig_am") && "nel>0";
+  const NamedFunc CR1_el_nm_higdm = get_cuts(cuts_4b_CR1, "hig_dm") && "nel>0";
+  const NamedFunc CR1_el_nm_higdrmax = get_cuts(cuts_4b_CR1, "hig_drmax") && "nel>0";
+  const NamedFunc CR1_mu_nm_higam = get_cuts(cuts_4b_CR1, "hig_am") && "nmu>0";
+  const NamedFunc CR1_mu_nm_higdm = get_cuts(cuts_4b_CR1, "hig_dm") && "nmu>0";
+  const NamedFunc CR1_mu_nm_higdrmax = get_cuts(cuts_4b_CR1, "hig_drmax") && "nmu>0";
+  const NamedFunc CR2_el_nm_higam = get_cuts(cuts_4b_CR2, "hig_am") && "nel>0";
+  const NamedFunc CR2_el_nm_higdm = get_cuts(cuts_4b_CR2, "hig_dm") && "nel>0";
+  const NamedFunc CR2_el_nm_higdrmax = get_cuts(cuts_4b_CR2, "hig_drmax") && "nel>0";
+  const NamedFunc CR2_mu_nm_higam = get_cuts(cuts_4b_CR2, "hig_am") && "nmu>0";
+  const NamedFunc CR2_mu_nm_higdm = get_cuts(cuts_4b_CR2, "hig_dm") && "nmu>0";
+  const NamedFunc CR2_mu_nm_higdrmax = get_cuts(cuts_4b_CR2, "hig_drmax") && "nmu>0";
+  const NamedFunc CR3_nm_higam = get_cuts(cuts_4b_CR3, "hig_am");
+  const NamedFunc CR3_nm_higdm = get_cuts(cuts_4b_CR3, "hig_dm");
+  const NamedFunc CR3_nm_higdrmax = get_cuts(cuts_4b_CR3, "hig_drmax");
 
 }
 

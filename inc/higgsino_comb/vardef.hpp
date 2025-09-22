@@ -20,6 +20,8 @@ namespace vardef{
  extern const NamedFunc dphi3;
  extern const NamedFunc dphi4;
  extern const NamedFunc dphi_vec;
+ extern const NamedFunc drjl1_min;
+ extern const NamedFunc drjl2_min;
 }
 
 #endif

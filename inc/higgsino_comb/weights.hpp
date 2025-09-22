@@ -13,7 +13,9 @@ using namespace std;
 namespace weights{
   extern const NamedFunc w_run2_datavmc;
   extern const NamedFunc w_lumi_hb;
+  extern const NamedFunc w_lumi_hb_mettrig;
   extern const NamedFunc w_lumi_gmsb;
+  extern const NamedFunc w_lumi_gmsb_mettrig;
 }
 
 namespace triggers{
