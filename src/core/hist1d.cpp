@@ -600,6 +600,11 @@ Hist1D & Hist1D::LuminosityTag(const string &tag){
   return *this;
 }
 
+Hist1D & Hist1D::EnergyLabel(const string &tag){
+  energy_label_ = tag;
+  return *this;
+}
+
 Hist1D & Hist1D::LeftLabel(const vector<string> &label){
   left_label_ = label;
   return *this;
@@ -631,6 +636,10 @@ void Hist1D::SetLuminosityTag(const string &tag) {
   this->LuminosityTag(tag);
 }
 
+void Hist1D::SetEnergyLabel(const string &tag) {
+  this->EnergyLabel(tag);
+}
+
 /*!\brief Generates stacked and scaled histograms from unstacked and unscaled
   ones
 
@@ -643,7 +652,7 @@ void Hist1D::RefreshScaledHistos(){
   MergeOverflow();
   ScaleHistos();
   StackHistos();
-  NormalizeSignalBackground();
+  //NormalizeSignalBackground();
   NormalizeHistos();
   FixAsymmErrors();
 }
@@ -776,17 +785,8 @@ void Hist1D::NormalizeHistos() const{
     for(auto &hist: datas_){
       Normalize(hist->scaled_hist_, 100., true);
     }
-  }
-}
-
-/*!\brief Normalize stacked signal and background to 1
- */
-
-void Hist1D::NormalizeSignalBackground() const{
-mc_scale_ = 1.;
-mc_scale_error_ = 1.;
-if(this_opt_.Stack() == StackType::prop_shape_stack){
-  if(signals_.size() == 0 || backgrounds_.size() == 0) return;
+  }else if(this_opt_.Stack() == StackType::prop_shape_stack){
+    if(signals_.size() == 0 || backgrounds_.size() == 0) return;
     int nbins = xaxis_.Nbins();
     double sig_error, mc_error;
     double sig_norm = signals_.front()->scaled_hist_.IntegralAndError(1, nbins, sig_error, "width");//Not including over and underflow bins
@@ -801,7 +801,6 @@ if(this_opt_.Stack() == StackType::prop_shape_stack){
     }
   }
 }
-
 
 /*!\brief Restore asymmetric error bars if histogram unweighted"
  */
@@ -820,6 +819,7 @@ void Hist1D::FixAsymmErrors() const{
 
 /*!\brief Restore asymmetric error bars if histogram unweighted"
  */
+
 void Hist1D::FixAsymmErrors(const unique_ptr<SingleHist1D> &sh1d, bool error_on_zero_data) const{
   TH1D &h = sh1d->scaled_hist_;
   const TArrayD *sumw2 = h.GetSumw2();
@@ -1115,10 +1115,12 @@ vector<shared_ptr<TLatex> > Hist1D::GetTitleTexts() const{
     out.back()->SetTextSize(this_opt_.TitleSize());
 
     ostringstream oss;
+    string default_label_ = " fb^{-1} (13 TeV)";
     if(this_opt_.Stack() != StackType::shapes) {
-      if (luminosity_tag_ != "") oss << luminosity_tag_ << " fb^{-1} (13 TeV)" << flush;
-      else if (luminosity_<1.1) oss << "137 fb^{-1} (13 TeV)" << setprecision(1) << flush;
-      else oss << setprecision(1) << luminosity_ << " fb^{-1} (13 TeV)" << flush;
+      if (energy_label_ != "") oss << energy_label_ <<flush;
+      else if (luminosity_tag_ != "") oss << luminosity_tag_ << default_label_ << flush;
+      //else if (luminosity_<1.1) oss << "137 fb^{-1} (13 TeV)" << setprecision(1) << flush;
+      else oss << setprecision(1) << luminosity_ << default_label_ << flush;
     } else oss << "13 TeV" << flush;
     out.push_back(make_shared<TLatex>(right, bottom+0.2*(top-bottom),
                                       oss.str().c_str()));

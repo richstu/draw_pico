@@ -25,6 +25,17 @@
 #include "core/named_func.hpp"
 #include "core/process.hpp"
 
+
+#include "TStyle.h"
+//#include "TH2D.h"
+//#include "TROOT.h"
+//#include "TCanvas.h"
+//#include "TLatex.h"
+//#include "TPaveText.h"
+//#include "TLegend.h"
+#include "TColor.h"
+//#include "TArrow.h"
+
 using namespace std;
 using namespace PlotOptTypes;
 
@@ -63,6 +74,8 @@ void PlotMaker::MakePlots(double luminosity,
   }
 
   GetYields();
+
+  if(print_2d_figures_) GenerateGradient();
 
   for(auto &figure: figures_){
     if ((!(figure->is_2d_histogram()))||print_2d_figures_) {
@@ -106,6 +119,19 @@ void PlotMaker::Clear(){
 
 void PlotMaker::SetEventVetoData(void * eventVetoData) {
   event_veto_data_ = eventVetoData;
+}
+
+void PlotMaker::GenerateGradient(){
+  const Int_t NRGBs = 5;
+  const Int_t NCont = 999;
+
+  Double_t stops[NRGBs] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
+  Double_t red[NRGBs] = { 0.71, 0.50, 1.00, 1.00, 1.00 };
+  Double_t green[NRGBs] = { 0.80, 1.00, 1.00, 0.60, 0.50 };
+  Double_t blue[NRGBs] = { 0.95, 1.00, 0.50, 0.40, 0.50 };
+
+  TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
+  gStyle->SetNumberContours(NCont);
 }
 
 void PlotMaker::GetYields(){

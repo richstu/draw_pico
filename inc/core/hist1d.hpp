@@ -74,6 +74,7 @@ public:
   Hist1D & Weight(const NamedFunc &weight);
   Hist1D & Tag(const std::string &tag);
   Hist1D & LuminosityTag(const std::string &tag);
+  Hist1D & EnergyLabel(const std::string &tag);
   Hist1D & LeftLabel(const std::vector<std::string> &label);
   Hist1D & RightLabel(const std::vector<std::string> &label);
   Hist1D & YAxisZoom(const double &yaxis_zoom);
@@ -82,12 +83,14 @@ public:
   Hist1D & DrawPlot(const bool &draw_plot);
 
   void SetLuminosityTag(const std::string &tag); 
+  void SetEnergyLabel(const std::string &tag);
 
   Axis xaxis_;//!<Specification of content: plotted variable, binning, etc.
   NamedFunc cut_;//!<Event selection
   NamedFunc weight_;//!<Event weight
   std::string tag_;//!<Filename tag to identify plot
   std::string luminosity_tag_;//!<Filename tag to identify plot
+  std::string energy_label_;//!<Center of mass energy for given sample
   std::vector<std::string> left_label_;//!<Label to plot under the legend, to the left
   std::vector<std::string> right_label_;//!<Label to plot under the legend, to the right
   double yaxis_zoom_;//!<Y-axis zoom
@@ -116,7 +119,6 @@ private:
   void MergeOverflow() const;
   void ScaleHistos() const;
   void StackHistos() const;
-  void NormalizeSignalBackground() const;
   void NormalizeHistos() const;
   void FixAsymmErrors() const;
   void FixAsymmErrors(const std::unique_ptr<SingleHist1D> &sh1d, bool error_on_zero_data=false) const;

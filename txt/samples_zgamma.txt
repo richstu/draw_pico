@@ -1,5 +1,5 @@
-#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_pinnacles_v0/
-#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_pinnacles_v0/
+#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v0/
+#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v0/
 #add PRODUCTION_NAME_UCSB /net/cms11/cms11r0/pico/NanoAODv9UCSB2/htozgamma_pinnacles_v0/
 #add YEARS 2016APV
 #add YEARS 2016
@@ -332,6 +332,29 @@
     PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+
+[[MCtest]]
+  [ggF]
+    ProcessType = 1
+    PaletteColor = htozg
+    Files = $PRODUCTION_NAME/2022/$SKIM_DILEP/*GluGluHtoZG_Zto2L_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [VBF]
+    ProcessType = 1
+    PaletteColor = vbfzg
+    Files = $PRODUCTION_NAME/2022/$SKIM_DILEP/*VBFHtoZG_Zto2L_M-125_TuneCP5_withDipoleRecoil_13p6TeV_powheg-pythia8*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [VH]
+    ProcessType = 1
+    PaletteColor = vhzg
+    Files = $PRODUCTION_NAME/2022/$SKIM_DILEP/$FILENAMES_HZG_VH
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [ttH]
+    ProcessType = 1
+    PaletteColor = tthzg
+    Files = $PRODUCTION_NAME/2022/$SKIM_DILEP/*ttHtoZG_Zto2L_M-125*.root
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+
 
 [[Datacard]]
   [pseudodata]
