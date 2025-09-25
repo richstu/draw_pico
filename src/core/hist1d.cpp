@@ -789,8 +789,8 @@ void Hist1D::NormalizeHistos() const{
     if(signals_.size() == 0 || backgrounds_.size() == 0) return;
     int nbins = xaxis_.Nbins();
     double sig_error, mc_error;
-    double sig_norm = signals_.front()->scaled_hist_.IntegralAndError(2, nbins, sig_error, "width");//Not including over and underflow bins
-    double mc_norm = backgrounds_.front()->scaled_hist_.IntegralAndError(2, nbins, mc_error, "width");//Not including over and underflow bins
+    double sig_norm = signals_.front()->scaled_hist_.IntegralAndError(1, nbins, sig_error, "width");//Not including over and underflow bins
+    double mc_norm = backgrounds_.front()->scaled_hist_.IntegralAndError(1, nbins, mc_error, "width");//Not including over and underflow bins
     mc_scale_ = sig_norm/mc_norm;
     if(this_opt_.PrintVals()){
       cout << "MC scale factor: " << mc_scale_ << endl;
