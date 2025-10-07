@@ -113,6 +113,14 @@ float ll_refit_m
 float ll_refit_pt
 float ll_refit_eta
 float ll_refit_phi
+std::vector<float> ll_refit_lep1_pt
+std::vector<float> ll_refit_lep1_eta
+std::vector<float> ll_refit_lep1_phi
+std::vector<float> ll_refit_lep1_m
+std::vector<float> ll_refit_lep2_pt
+std::vector<float> ll_refit_lep2_eta
+std::vector<float> ll_refit_lep2_phi
+std::vector<float> ll_refit_lep2_m
 
 bool trig_single_el
 bool trig_double_el
@@ -206,6 +214,9 @@ std::vector<bool>  jet_h2d
 std::vector<int>   jet_fjet_idx
 std::vector<float> jet_pt_nosmear
 std::vector<float> jet_m_nosmear
+std::vector<bool>  jet_isgood_min
+std::vector<bool>  jet_isvetomap
+std::vector<bool>  jet_isvetohem
 
 int ngenjet
 std::vector<float> genjet_pt
@@ -396,6 +407,8 @@ std::vector<float> photon_jet_mindr
 std::vector<float> photon_jet_maxdr
 std::vector<float> photon_jet1_dr
 std::vector<float> photon_jet2_dr
+std::vector<float> photon_mht_dphi
+std::vector<float> photon_relpterr
 
 std::vector<float> photon_zeppenfeld
 
@@ -493,6 +506,9 @@ float w_prefire
 float w_trig
 float w_trig_singlemu
 float w_trig_doublemu
+float w_phshape
+float w_fakephoton
+float w_nnlo
 
 ################  Triggers copy straight from Nano, same names   ##################
 
@@ -682,6 +698,8 @@ std::vector<float> sys_bchig_uncorr
 std::vector<float> sys_udsghig_uncorr
 
 std::vector<float> sys_trig
+std::vector<float> sys_trig_el
+std::vector<float> sys_trig_mu
 std::vector<float> sys_isr
 std::vector<float> sys_pu
 std::vector<float> sys_prefire
@@ -702,11 +720,17 @@ std::vector<float> sys_jet_m_jesdn
 std::vector<float> sys_jet_m_jerup
 std::vector<float> sys_jet_m_jerdn
 
-#index matches electron_*
+#index matches el_*
 std::vector<float> sys_el_pt_scaleup
 std::vector<float> sys_el_pt_scaledn
 std::vector<float> sys_el_pt_resup
 std::vector<float> sys_el_pt_resdn
+
+#index matches mu_*
+std::vector<float> sys_mu_pt_scaleup
+std::vector<float> sys_mu_pt_scaledn
+std::vector<float> sys_mu_pt_resup
+std::vector<float> sys_mu_pt_resdn
 
 #index matches photon_*
 std::vector<float> sys_photon_pt_scaleup

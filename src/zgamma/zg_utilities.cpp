@@ -15,12 +15,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "RooAbsPdf.h"
-#include "RooArgList.h"
-#include "RooArgSet.h"
-#include "RooFFTConvPdf.h"
-#include "RooGenericPdf.h"
-#include "RooRealVar.h"
+#include "TROOT.h"
+#include "TVirtualMutex.h"
 
 #include "core/baby.hpp"
 #include "core/fastforest.hpp"
@@ -775,7 +771,7 @@ namespace ZgUtilities {
         -> NamedFunc::ScalarType{
       //if (b.njet()<2) return -1.0;
       float score = bdt_scores.GetScalar(b);
-      if (score > 0.489) return 1.0;
+      if (score > 0.91) return 1.0;
       return 0.0;
     }).EnableCaching(true);
   }
@@ -787,7 +783,7 @@ namespace ZgUtilities {
         -> NamedFunc::ScalarType{
       //if (b.njet()<2) return -1.0;
       float score = bdt_scores.GetScalar(b);
-      if (score > 0.286 && score < 0.489) return 1.0;
+      if (score > 0.81 && score <= 0.91) return 1.0;
       return 0.0;
     }).EnableCaching(true);
   }
@@ -799,7 +795,7 @@ namespace ZgUtilities {
         -> NamedFunc::ScalarType{
       //if (b.njet()<2) return -1.0;
       float score = bdt_scores.GetScalar(b);
-      if (score > 0.083 && score < 0.286) return 1.0;
+      if (score > 0.48 && score <= 0.81) return 1.0;
       return 0.0;
     }).EnableCaching(true);
   }
@@ -811,21 +807,19 @@ namespace ZgUtilities {
         -> NamedFunc::ScalarType{
       //if (b.njet()<2) return -1.0;
       float score = bdt_scores.GetScalar(b);
-      if (score < 0.083) return 1.0;
+      if (score <= 0.48) return 1.0;
       return 0.0;
     }).EnableCaching(true);
   }
 
   //returns XGBoost BDTs
-  const vector<FastForest> XGBoostBDTs() {
+  vector<FastForest> XGBoostBDTs_2503() {
     vector<string> xgb_features{"f0","f1","f2","f3","f4","f5","f6","f7","f8",
                                 "f9","f10"};
     //in order vars are photon_mva, photon_res, max_dR, min_dR, pt_mass, 
     //cosTheta, costheta, phi, l1_rapidity, l2_rapidity, and photon_rapidity
     cout << "Loading XGBoost BDTs from "
          << "/homes/oshiro/public_weights/xgb_bdt_*.txt" << endl;
-    cout << "Evaluator is NOT thread safe, ensure PlotMaker is using 1 thread"
-         << endl;
     return {fastforest::load_txt(
         "/homes/oshiro/public_weights/xgb_bdt_0.txt", xgb_features),
         fastforest::load_txt(
@@ -834,6 +828,47 @@ namespace ZgUtilities {
         "/homes/oshiro/public_weights/xgb_bdt_2.txt", xgb_features),
         fastforest::load_txt(
         "/homes/oshiro/public_weights/xgb_bdt_3.txt", xgb_features)};
+  }
+
+  //returns XGBoost BDTs
+  vector<FastForest> XGBoostBDTs() {
+    vector<string> xgb_features = {"costheta", "cosTheta", "pt_mass", 
+        "l1_rapidity", "l2_rapidity", "photon_rapidity", "phi", "photon_mva", 
+        "photon_res", "min_dR", "max_dR", "llphoton_hmiss_photon_dphi", 
+        "photon_jet1_dr", "photon_zeppenfeld", "llphoton_dijet_dphi", 
+        "llphoton_dijet_balance", "j1_eta", "j1_m", "j1_pt", "njet"};
+    cout << "Loading XGBoost BDTs from "
+         << "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_*.txt" << endl;
+    return {fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_0.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_1.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_2.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_3.txt", 
+        xgb_features)};
+  }
+
+  //returns VBF XGBoost BDTs
+  vector<FastForest> VBFXGBoostBDTs() {
+    vector<string> xgb_features = {"cosTheta", "phi", "costheta", 
+        "l1_rapidity", "l2_rapidity", "photon_rapidity", "min_dR", "max_dR", 
+        "photon_mva", "photon_res", "pt_mass", "llphoton_dijet_dphi", 
+        "dijet_m", "dijet_deta", "llphoton_dijet_balance", "njet", 
+        "dijet_dphi", "photon_zeppenfeld", "photon_jet1_dr", "photon_jet2_dr", 
+        "j1_pt", "j2_pt", "llphoton_hmiss_photon_dphi"};
+    cout << "Loading XGBoost BDTs from "
+         << "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_*.txt" << endl;
+    return {fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_0.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_1.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_2.txt", xgb_features),
+        fastforest::load_txt(
+        "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_3.txt", 
+        xgb_features)};
   }
 
   //hacky machinery to cache XGBoost score since it is slow
@@ -875,32 +910,38 @@ namespace ZgUtilities {
   }
 
   //Returns NamedFunc that returns XGBoost score
+  //Be careful: xgb_bdt not allowed to go out of scope
   NamedFunc XGBoostBDTScore(const vector<FastForest> &xgb_bdts, 
-                            const vector<NamedFunc> &inputs) {
-    return NamedFunc("xgb_bdtscore",[xgb_bdts, inputs](const Baby &b) 
-        -> NamedFunc::ScalarType{
+                            const vector<float> &offsets,
+                            const vector<NamedFunc> inputs,
+                            const string &name) {
+    return NamedFunc("xgb_bdtscore_"+name,[&xgb_bdts, inputs, &offsets]
+        (const Baby &b) -> NamedFunc::ScalarType{
       int bdt_idx = (b.event()%314159)%4;
       vector<float> bdt_inputs;
       for (const NamedFunc &nf : inputs) {
         bdt_inputs.push_back(nf.GetScalar(b));
       }
-      return xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
-    });
+      float raw_score = xgb_bdts[bdt_idx](bdt_inputs.data())-offsets[bdt_idx];
+      return 1.0/(1.0+exp(-1.0*raw_score));
+    }).EnableCaching(true);
   }
 
   //Returns NamedFunc that returns XGBoost score
-  //Be careful: neither NamedFuncs nor xgb_bdt may be allowed to go out of 
-  //scope
+  //Be careful: NamedFuncs and xgb_bdt cannot go out of scope
   NamedFunc XGBoostBDTScoreCached(const vector<FastForest> &xgb_bdts, 
-                                  const vector<const NamedFunc*> &inputs) {
-    return NamedFunc("xgb_bdtscore",[&xgb_bdts, inputs](const Baby &b) 
-        -> NamedFunc::ScalarType{
+                                  const vector<float> &offsets,
+                                  const vector<const NamedFunc*> inputs,
+                                  const string &name) {
+    return NamedFunc("xgb_bdtscore_"+name,[&xgb_bdts, inputs, &offsets]
+        (const Baby &b) -> NamedFunc::ScalarType{
       int bdt_idx = (b.event()%314159)%4;
       vector<float> bdt_inputs;
       for (const NamedFunc* nf : inputs) {
         bdt_inputs.push_back(nf->GetScalar(b));
       }
-      return xgb_bdts[bdt_idx](bdt_inputs.data())+0.5;
+      float raw_score = xgb_bdts[bdt_idx](bdt_inputs.data())-offsets[bdt_idx];
+      return 1.0/(1.0+exp(-1.0*raw_score));
     }).EnableCaching(true);
   }
 
@@ -910,7 +951,7 @@ namespace ZgUtilities {
     return NamedFunc("ggf4",[&bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = bdtscore.GetScalar(b);
-      if (score<0.47) return 1.0;
+      if (score<=0.57) return 1.0;
       return 0.0;
     }).EnableCaching(true);
   }
@@ -921,7 +962,7 @@ namespace ZgUtilities {
     return NamedFunc("ggf3",[&bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = bdtscore.GetScalar(b);
-      if (score>0.47&&score<0.64) return 1.0;
+      if (score>0.57&&score<=0.83) return 1.0;
       return 0.0;
     }).EnableCaching(true);
   }
@@ -932,7 +973,7 @@ namespace ZgUtilities {
     return NamedFunc("ggf2",[&bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = bdtscore.GetScalar(b);
-      if (score>0.64&&score<0.81) return 1.0;
+      if (score>0.83&&score<=0.94) return 1.0;
       return 0.0;
     }).EnableCaching(true);
   }
@@ -943,7 +984,7 @@ namespace ZgUtilities {
     return NamedFunc("ggf1",[&bdtscore](const Baby &b) 
         -> NamedFunc::ScalarType{
       float score = bdtscore.GetScalar(b);
-      if (score>0.81) return 1.0;
+      if (score>0.94) return 1.0;
       return 0.0;
     }).EnableCaching(true);
   }
@@ -1110,6 +1151,7 @@ namespace ZgUtilities {
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
     lock_guard<mutex> lock(Multithreading::root_mutex);
+    R__LOCKGUARD(gROOTMutex);
     kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kin_z_fitter.KinRefitZ1();
     double massZ1REFIT = kin_z_fitter.GetRefitMZ1();
@@ -1127,6 +1169,7 @@ namespace ZgUtilities {
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
     lock_guard<mutex> lock(Multithreading::root_mutex);
+    R__LOCKGUARD(gROOTMutex);
     kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kin_z_fitter.KinRefitZ1();
     std::vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
@@ -1144,6 +1187,7 @@ namespace ZgUtilities {
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
     lock_guard<mutex> lock(Multithreading::root_mutex);
+    R__LOCKGUARD(gROOTMutex);
     kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kin_z_fitter.KinRefitZ1();
     std::vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
@@ -1160,6 +1204,7 @@ namespace ZgUtilities {
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
     lock_guard<mutex> lock(Multithreading::root_mutex);
+    R__LOCKGUARD(gROOTMutex);
     kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kin_z_fitter.KinRefitZ1();
     std::vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
@@ -1268,6 +1313,7 @@ namespace ZgUtilities {
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
     lock_guard<mutex> lock(Multithreading::root_mutex);
+    R__LOCKGUARD(gROOTMutex);
     kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kin_z_fitter.KinRefitZ1();
     double massZ1REFIT = kin_z_fitter.GetRefitMZ1();
@@ -1285,6 +1331,7 @@ namespace ZgUtilities {
     std::map<unsigned int, TLorentzVector> selectedFsrMap = fsrphoton_ret(b);
 
     lock_guard<mutex> lock(Multithreading::root_mutex);
+    R__LOCKGUARD(gROOTMutex);
     kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kin_z_fitter.KinRefitZ1();
     std::vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();
@@ -1332,6 +1379,7 @@ namespace ZgUtilities {
         b, ll_lepid, ll_i1, ll_i2);
 
     lock_guard<mutex> lock(Multithreading::root_mutex);
+    R__LOCKGUARD(gROOTMutex);
     kin_z_fitter.Setup(selectedLeptons, selectedFsrMap, errorLeptons);
     kin_z_fitter.KinRefitZ1();
     vector<TLorentzVector> reFit = kin_z_fitter.GetRefitP4s();

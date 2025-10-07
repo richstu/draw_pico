@@ -14,15 +14,18 @@
 #include "core/fastforest.hpp"
 #include "core/named_func.hpp"
 #include "core/named_func_utilities.hpp"
+#include "zgamma/photon_weighter.hpp"
 #include "zgamma/KinZfitter.hpp"
 #include "zgamma/zg_syst_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
 
 using std::lock_guard;
 using std::make_shared;
+using std::make_unique;
 using std::mutex;
 using std::shared_ptr;
 using std::string;
+using std::unique_ptr;
 using std::unordered_map;
 using std::vector;
 using fastforest::FastForest;
@@ -43,13 +46,6 @@ using ZgUtilities::get_lep_custom_refit;
 using ZgUtilities::get_btag_wp_deepjet;
 using ZgUtilities::XGBoostBDTScoreCached;
 
-//Be very careful!! zg_functions MUST be linked before this file so that the
-//relevant NamedFuncs are defined in advance. The name of this file is made
-//to be alphabetically after zg_functions (and so scons will link it after
-//zg_functions), but if the linking order is changed, this file must be linked
-//second
-//alternatively, all relevant NamedFuncs could be copied over to this file...
-
 namespace ZgFunctions {
 
   //utility functions
@@ -62,10 +58,14 @@ namespace ZgFunctions {
   }
 
   double map_deltaphi(vector<double> phi_values) {
+    if (fabs(phi_values[0]) > 3.1416 || fabs(phi_values[1]) > 3.1416)
+      return -999.0;
     return deltaPhi(phi_values[0], phi_values[1]);
   }
 
   double map_deltar(vector<double> inputs) {
+    if (fabs(inputs[1]) > 3.1416 || fabs(inputs[3]) > 3.1416)
+      return -999.0;
     return deltaR(inputs[0], inputs[1], inputs[2], inputs[3]);
   }
 
@@ -113,15 +113,15 @@ namespace ZgFunctions {
       unc = 0.009+0.006;
     else if (b.type() == 200500) //ttH
       unc = 0.020+0.006;
-    else if (b.type() == 28500) //ggF H->mumu
+    else if (b.type() >= 28000 && b.type() < 29000) //ggF H->mumu
       unc = 0.026+0.006;
-    else if (b.type() == 29500) //VBF H->mumu
+    else if (b.type() >= 29000 && b.type() < 30000) //VBF H->mumu
       unc = 0.005+0.006;
-    else if (b.type() == 12500) //WH H->mumu
+    else if (b.type() >= 12000 && b.type() < 13000) //WH H->mumu
       unc = 0.009+0.006;
-    else if (b.type() == 13500) //ZH H->mumu
+    else if (b.type() >= 13000 && b.type() < 14000) //ZH H->mumu
       unc = 0.009+0.006;
-    else if (b.type() == 9500) //ttH H->mumu
+    else if (b.type() >= 9000 && b.type() < 10000) //ttH H->mumu
       unc = 0.020+0.006;
     return 1.0+unc;
   });
@@ -132,7 +132,7 @@ namespace ZgFunctions {
     float unc = 0.0;
     //in linear approximation N=xs*BR implies dN/N=dxs/xs+dBR/BR
     //TODO add 13.6 TeV uncertainties and year check
-    if (b.type() == 200000 || b.type() == 28500) //ggF
+    if (b.type() == 200000 || (b.type() >= 28000 && b.type() < 29000)) //ggF
       unc = 0.019;
     return 1.0+unc;
   });
@@ -141,12 +141,14 @@ namespace ZgFunctions {
   const NamedFunc sys_w_pdf_qq("sys_w_pdf_qq",
       [](const Baby &b) -> NamedFunc::ScalarType{
     float unc = 0.0;
-    if (b.type() == 200100 || b.type() == 29500) //VBF
+    if (b.type() == 200100 || (b.type() >= 29000 && b.type() < 30000)) //VBF
       unc = 0.021;
-    else if (b.type() == 200200 || b.type() == 200300 || b.type() == 12500)
+    else if (b.type() == 200200 || b.type() == 200300 
+             || (b.type() >= 12000 && b.type() < 13000))
       //WH
       unc = 0.017;
-    else if (b.type() == 200400 || b.type() == 13500) //ZH
+    else if (b.type() == 200400 
+             || (b.type() >= 13000 && b.type() < 14000)) //ZH
       unc = 0.013;
     return 1.0+unc;
   });
@@ -155,7 +157,7 @@ namespace ZgFunctions {
   const NamedFunc sys_w_pdf_tth("sys_w_pdf_tth",
       [](const Baby &b) -> NamedFunc::ScalarType{
     float unc = 0.0;
-    if (b.type() == 200500 || b.type() == 9500) //ttH
+    if (b.type() == 200500 || (b.type() >= 9000 && b.type() < 10000)) //ttH
       unc = 0.030;
     return 1.0+unc;
   });
@@ -163,7 +165,7 @@ namespace ZgFunctions {
   //weight implementing variations in ggF cross section
   const NamedFunc sys_w_ggf_xs("sys_w_ggf_xs",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200000 || b.type() == 28500) //ggF
+    if (b.type() == 200000 || (b.type() >= 28000 && b.type() < 29000)) //ggF
       return 1.039;
     return 1.0;
   });
@@ -171,7 +173,7 @@ namespace ZgFunctions {
   //weight implementing up variation in VBF cross section
   const NamedFunc sys_w_vbf_xs_up("sys_w_vbf_xs_up",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200100 || b.type() == 29500) //VBF
+    if (b.type() == 200100 || (b.type() >= 29000 && b.type() < 30000)) //VBF
       return 1.004;
     return 1.0;
   });
@@ -179,7 +181,7 @@ namespace ZgFunctions {
   //weight implementing down variation in VBF cross section
   const NamedFunc sys_w_vbf_xs_dn("sys_w_vbf_xs_dn",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200100 || b.type() == 29500) //VBF
+    if (b.type() == 200100 || (b.type() >= 29000 && b.type() < 30000)) //VBF
       return 0.997;
     return 1.0;
   });
@@ -187,7 +189,8 @@ namespace ZgFunctions {
   //weight implementing up variation in WH cross section
   const NamedFunc sys_w_wh_xs_up("sys_w_wh_xs_up",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200200 || b.type() == 200300 || b.type() == 12500)
+    if (b.type() == 200200 || b.type() == 200300 
+        || (b.type() >= 12000 && b.type() < 13000)) //WH
       return 1.005;
     return 1.0;
   });
@@ -195,7 +198,8 @@ namespace ZgFunctions {
   //weight implementing down variation in WH cross section
   const NamedFunc sys_w_wh_xs_dn("sys_w_wh_xs_dn",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200200 || b.type() == 200300 || b.type() == 12500)
+    if (b.type() == 200200 || b.type() == 200300 
+        || (b.type() >= 12000 && b.type() < 13000)) //WH
       return 0.993;
     return 1.0;
   });
@@ -203,7 +207,7 @@ namespace ZgFunctions {
   //weight implementing up variation in ZH cross section
   const NamedFunc sys_w_zh_xs_up("sys_w_zh_xs_up",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200400 || b.type() == 13500) //ZH
+    if (b.type() == 200400 || (b.type() >= 13000 && b.type() < 14000)) //ZH
       return 1.038;
     return 1.0;
   });
@@ -211,7 +215,7 @@ namespace ZgFunctions {
   //weight implementing down variation in ZH cross section
   const NamedFunc sys_w_zh_xs_dn("sys_w_zh_xs_dn",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200400 || b.type() == 13500) //ZH
+    if (b.type() == 200400 || (b.type() >= 13000 && b.type() < 14000)) //ZH
       return 0.969;
     return 1.0;
   });
@@ -219,7 +223,7 @@ namespace ZgFunctions {
   //weight implementing up variation in ttH cross section
   const NamedFunc sys_w_tth_xs_up("sys_w_tth_xs_up",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200500 || b.type() == 9500) //ttH
+    if (b.type() == 200500 || (b.type() >= 9000 && b.type() < 10000)) //ttH
       return 1.058;
     return 1.0;
   });
@@ -227,7 +231,7 @@ namespace ZgFunctions {
   //weight implementing down variation in ttH cross section
   const NamedFunc sys_w_tth_xs_dn("sys_w_tth_xs_dn",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 200500 || b.type() == 9500) //ttH
+    if (b.type() == 200500 || (b.type() >= 9000 && b.type() < 10000)) //ttH
       return 0.908;
     return 1.0;
   });
@@ -243,8 +247,12 @@ namespace ZgFunctions {
   //weight implementing variation in H->MuMu BR
   const NamedFunc sys_w_htomumu_br("sys_w_htomumu_br",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    if (b.type() == 28500 || b.type() == 29500 || b.type() == 12500 
-        || b.type() == 13500 || b.type() == 9500) //H->MuMu
+    //if (b.type() == 28500 || b.type() == 29500 || b.type() == 12500 
+    //    || b.type() == 13500 || b.type() == 9500) //H->MuMu
+    //bug for run 3, for now do all non-ZG Higgs
+    if ((b.type() >= 9000 && b.type() < 10000)
+        || (b.type() >= 12000 && b.type() < 14000)
+        || (b.type() >= 28000 && b.type() < 30000)) //All other H
       return 1.23;
     return 1.0;
   });
@@ -254,8 +262,12 @@ namespace ZgFunctions {
       [](const Baby &b) -> NamedFunc::ScalarType{
     if (b.type() >= 200000 && b.type() < 201000) //H->Zgamma
       return 1.01;
-    else if (b.type() == 28500 || b.type() == 29500 || b.type() == 12500 
-        || b.type() == 13500 || b.type() == 9500) //H->MuMu
+    //else if (b.type() == 28500 || b.type() == 29500 || b.type() == 12500 
+    //    || b.type() == 13500 || b.type() == 9500) //H->MuMu
+    //bug for run 3, for now do all non-ZG Higgs
+    else if ((b.type() >= 9000 && b.type() < 10000)
+        || (b.type() >= 12000 && b.type() < 14000)
+        || (b.type() >= 28000 && b.type() < 30000)) //All other H
       return 1.01;
     return 1.0;
   });
@@ -352,25 +364,34 @@ namespace ZgFunctions {
   //weight implementing upward variation in electron weights (efficiency)
   const NamedFunc sys_w_el_up("sys_w_el_up",
       [](const Baby &b) -> NamedFunc::ScalarType{
+    if (isinf(b.sys_el()->at(0)) || isnan(b.sys_el()->at(0))) 
+      return 1.0;
     return b.sys_el()->at(0)/b.w_el();
   });
 
   //weight implementing downward variation in electron weights (efficiency)
   const NamedFunc sys_w_el_dn("sys_w_el_dn",
       [](const Baby &b) -> NamedFunc::ScalarType{
+    if (isinf(b.sys_el()->at(1)) || isnan(b.sys_el()->at(1))) 
+      return 1.0;
     return b.sys_el()->at(1)/b.w_el();
   });
 
   //weight implementing upward variation in muon weights (efficiency)
   const NamedFunc sys_w_mu_up("sys_w_mu_up",
       [](const Baby &b) -> NamedFunc::ScalarType{
+    if (isinf(b.sys_mu()->at(0)) || isnan(b.sys_mu()->at(0))) 
+      return 1.0;
     return b.sys_mu()->at(0)/b.w_mu();
   });
 
   //weight implementing downward variation in muon weights (efficiency)
   const NamedFunc sys_w_mu_dn("sys_w_mu_dn",
       [](const Baby &b) -> NamedFunc::ScalarType{
-    return b.sys_mu()->at(1)/b.w_mu();
+    if (isinf(b.sys_mu()->at(0)) || isnan(b.sys_mu()->at(0)) 
+        || b.sys_mu()->at(0)==2.0)
+      return 1.0;
+    return (2.0-b.sys_mu()->at(0))/b.w_mu();
   });
 
   //weight implementing upward variation in photon weights (efficiency)
@@ -417,6 +438,218 @@ namespace ZgFunctions {
     return 1.0;
   });
 
+  //weights varying trigger efficiency
+  const NamedFunc sys_trig_el_up("sys_trig_el_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    //if (isinf(b.sys_trig_el()->at(0)) || isnan(b.sys_trig_el()->at(0))) 
+    //  return 1.0;
+    if (b.w_trig()==0)
+      return 1.0;
+    return b.sys_trig_el()->at(0)/b.w_trig();
+  });
+
+  //weights varying trigger efficiency
+  const NamedFunc sys_trig_el_dn("sys_trig_el_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    //if (isinf(b.sys_trig_el()->at(1)) || isnan(b.sys_trig_el()->at(1))) 
+    //  return 1.0;
+    if (b.w_trig()==0)
+      return 1.0;
+    return b.sys_trig_el()->at(1)/b.w_trig();
+  });
+
+  //weights varying trigger efficiency
+  const NamedFunc sys_trig_mu_up("sys_trig_mu_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    //if (isinf(b.sys_trig_mu()->at(0)) || isnan(b.sys_trig_mu()->at(0))) 
+    //  return 1.0;
+    if (b.w_trig()==0)
+      return 1.0;
+    return b.sys_trig_mu()->at(0)/b.w_trig();
+  });
+
+  //weights varying trigger efficiency
+  const NamedFunc sys_trig_mu_dn("sys_trig_mu_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    //if (isinf(b.sys_trig_mu()->at(1)) || isnan(b.sys_trig_mu()->at(1))) 
+    //  return 1.0;
+    if (b.w_trig()==0)
+      return 1.0;
+    return b.sys_trig_mu()->at(1)/b.w_trig();
+  });
+
+  //helper function to get diff scale systematics for VH in run 3
+  float get_sys_vh_diffscale(float gen_higgs_pt, bool variation_up) {
+    const static vector<float> pt_bin_edges = {0.0,20.0,40.0,60.0,80.0,100.0,
+      120.0,140.0,160.0,180.0,200.0,220.0,240.0,260.0,280.0,300.0,320.0,340.0,
+      9999.9};
+    const static vector<float> sfs_up = {0.986331,0.986725,0.991900,0.995603,
+      1.001798,1.006528,1.009984,1.014429,1.019551,1.022969,1.030068,1.033365,
+      1.034668,1.038822,1.035096,1.049993,1.035277,1.049603};
+    const static vector<float> sfs_dn = {1.022638,1.019138,1.012236,1.004235,
+      0.995704,0.988336,0.982491,0.976015,0.973581,0.968658,0.967002,0.967028,
+      0.961878,0.961370,0.955002,0.960036,0.951761,0.953473};
+    float sf = 1.0;
+    for (unsigned ibin = 0; ibin < pt_bin_edges.size()-1; ibin++) {
+      if (gen_higgs_pt >= pt_bin_edges[ibin]
+          && gen_higgs_pt < pt_bin_edges[ibin+1]) {
+        if (variation_up)
+          sf = sfs_up[ibin];
+        else
+          sf = sfs_dn[ibin];
+      }
+    }
+    return sf;
+  }
+
+  //gen Higgs pt
+  const NamedFunc mc_higgs_pt = NamedFunc("mc_higgs_pt",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    for (unsigned imc = 0; imc < b.mc_id()->size(); imc++) {
+      if (b.mc_id()->at(imc)==25 && 
+          (b.mc_statusflag()->at(imc) & 0x1080)) {
+        return b.mc_pt()->at(imc);
+      }
+    }
+    return 0;
+  }).EnableCaching(true);
+
+  //weights implementing variations in differential modelling
+  const NamedFunc sys_diffscale_ggf_up("sys_diffscale_ggf_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200000) //ggF
+      return b.sys_murf()->at(0);
+    else if (b.type() >= 28000 && b.type() < 29000) //ggF H->mumu
+      return b.sys_murf()->at(0);
+    return 1.0;
+    //TODO add NNLO weights for ggF
+  });
+
+  const NamedFunc sys_diffscale_vbf_up("sys_diffscale_vbf_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200100) //VBF
+      return b.sys_murf()->at(3);
+    else if (b.type() >= 29000 && b.type() < 30000) //VBF H->mumu
+      return b.sys_murf()->at(3);
+    return 1.0;
+  });
+
+  const NamedFunc sys_diffscale_vh_up("sys_diffscale_vh_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200200 || b.type() == 200300 
+        || b.type() == 200400 
+        || (b.type() >= 12000 && b.type() < 14000)) { //WH/ZH
+      if (b.SampleTypeString()=="2016APV" || b.SampleTypeString()=="2016" 
+          || b.SampleTypeString()=="2017" || b.SampleTypeString()=="2018") {
+        return b.sys_murf()->at(3);
+      }
+      //run 3
+      return get_sys_vh_diffscale(mc_higgs_pt.GetScalar(b), true);
+    }
+    return 1.0;
+  });
+
+  const NamedFunc sys_diffscale_tth_up("sys_diffscale_tth_up",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200500) //ttH
+      return b.sys_murf()->at(0);
+    else if (b.type() >= 9000 && b.type() < 10000) //ttH H->mumu
+      return b.sys_murf()->at(0);
+    return 1.0;
+  });
+
+  const NamedFunc sys_diffscale_ggf_dn("sys_diffscale_ggf_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200000) //ggF
+      return b.sys_murf()->at(8);
+    else if (b.type() >= 28000 && b.type() < 29000) //ggF H->mumu
+      return b.sys_murf()->at(8);
+    return 1.0;
+    //TODO add NNLO weights for ggF
+  });
+
+  const NamedFunc sys_diffscale_vbf_dn("sys_diffscale_vbf_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200100) //VBF
+      return b.sys_murf()->at(2);
+    else if (b.type() >= 29000 && b.type() < 30000) //VBF H->mumu
+      return b.sys_murf()->at(2);
+    return 1.0;
+  });
+
+  const NamedFunc sys_diffscale_vh_dn("sys_diffscale_vh_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200200 || b.type() == 200300 
+             || b.type() == 200400 
+             || (b.type() >= 12000 && b.type() < 14000)) { //WH/ZH
+      if (b.SampleTypeString()=="2016APV" || b.SampleTypeString()=="2016" 
+          || b.SampleTypeString()=="2017" || b.SampleTypeString()=="2018") {
+        return b.sys_murf()->at(8);
+      }
+      //run 3
+      return get_sys_vh_diffscale(mc_higgs_pt.GetScalar(b), false);
+    }
+    return 1.0;
+  });
+
+  const NamedFunc sys_diffscale_tth_dn("sys_diffscale_tth_dn",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.type() == 200500) //ttH
+      return b.sys_murf()->at(8);
+    else if (b.type() >= 9000 && b.type() < 10000) //ttH H->mumu
+      return b.sys_murf()->at(8);
+    return 1.0;
+  });
+
+  //photon shape weight and variations for pinnacles
+  const NamedFunc w_phshape = NamedFunc("w_phshape", 
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    static unique_ptr<rw_mmp> dnn_photon_weighter_r2 = nullptr;
+    static unique_ptr<rw_mmp_r3> dnn_photon_weighter_r3 = nullptr;
+    static mutex mutex_;
+    bool is_run3 = false;
+    if (b.SampleTypeString().Contains("-")) 
+      return 1.; //data
+    if (b.SampleTypeString() == "2022" || b.SampleTypeString() == "2022EE" ||
+        b.SampleTypeString() == "2023" || b.SampleTypeString() == "2023BPix")
+      is_run3 = true;
+    if (b.photon_pflavor()->at(0) != 1)
+      return 1.;
+    vector<float> dnn_input = {b.photon_pt()->at(0), 
+        fabs(b.photon_eta()->at(0)), b.photon_idmva()->at(0),
+        static_cast<float>(b.photon_energyErr()->at(0)/(b.photon_pt()->at(0)
+         *TMath::CosH(b.photon_eta()->at(0))))};
+    float dnn_output = 0.5;
+    {
+      lock_guard<mutex> lock(mutex_);
+      if (dnn_photon_weighter_r2 == nullptr) {
+        dnn_photon_weighter_r2 = make_unique<rw_mmp>();
+        dnn_photon_weighter_r3 = make_unique<rw_mmp_r3>();
+      }
+      if (!is_run3)
+        dnn_output = dnn_photon_weighter_r2->evaluate(dnn_input);
+      else
+        dnn_output = dnn_photon_weighter_r3->evaluate(dnn_input);
+    }
+    float sf = dnn_output/(1.0-dnn_output);
+    if (fabs(sf) > 5.0)
+      sf = 5.0*(sf/fabs(sf));
+    if (isnan(sf) || isinf(sf)) sf = 1.0;
+    return sf;
+  }).EnableCaching(true);
+
+  const NamedFunc sys_phshape_up("sys_phshape_up", 
+      [](const Baby &b) -> NamedFunc::ScalarType{
+      float nom_w_phshape = w_phshape.GetScalar(b);
+      return (nom_w_phshape-1.0)*1.5+1.0;
+  });
+
+  const NamedFunc sys_phshape_dn("sys_phshape_dn", 
+      [](const Baby &b) -> NamedFunc::ScalarType{
+      float nom_w_phshape = w_phshape.GetScalar(b);
+      return (nom_w_phshape-1.0)*0.5+1.0;
+  });
+
   //for reference, electrons and muons failing eta, dxy, or dz cuts are dropped from pico lists
   
   //el_sig and variations
@@ -456,10 +689,10 @@ namespace ZgFunctions {
   //mu_pt and variations
   //TODO update with next production
   const NamedFunc sys_mu_pt_default = NamedFunc("mu_pt");
-  const NamedFunc sys_mu_pt_scaleup = NamedFunc("mu_pt");
-  const NamedFunc sys_mu_pt_scaledn = NamedFunc("mu_pt");
-  const NamedFunc sys_mu_pt_resup = NamedFunc("mu_pt+mu_ptErr");
-  const NamedFunc sys_mu_pt_resdn = NamedFunc("mu_pt-mu_ptErr");
+  const NamedFunc sys_mu_pt_scaleup = NamedFunc("sys_mu_pt_scaleup");
+  const NamedFunc sys_mu_pt_scaledn = NamedFunc("sys_mu_pt_scaledn");
+  const NamedFunc sys_mu_pt_resup = NamedFunc("sys_mu_pt_resup");
+  const NamedFunc sys_mu_pt_resdn = NamedFunc("sys_mu_pt_resdn");
 
   //nel and variations
   const NamedFunc sys_nel_default("nel");
@@ -1254,9 +1487,9 @@ namespace ZgFunctions {
                                          const NamedFunc &lead_photon_phi,
                                          const int var_pdgid,
                                          const string &name) {
-    return NamedFunc(("sys_lphoton_p4_"+name).c_str(),[&ll_p4, &lead_photon_pt, 
-        &lead_photon_eta, &lead_photon_phi, var_pdgid] (const Baby &b) 
-        -> NamedFunc::VectorType{
+    return NamedFunc(("sys_llphoton_p4_"+name).c_str(),[&ll_p4, 
+        &lead_photon_pt, &lead_photon_eta, &lead_photon_phi, var_pdgid] 
+        (const Baby &b) -> NamedFunc::VectorType{
           vector<double> ll_prop = ll_p4.GetVector(b);
           if (var_pdgid != 22 && ll_prop[7]==0) {
             return {static_cast<double>(b.llphoton_pt()->at(0)),
@@ -1392,6 +1625,325 @@ namespace ZgFunctions {
   const NamedFunc sys_llphoton_pt_phresdn = ReduceNamedFuncCached(
       sys_llphoton_p4_phresdn, reduce_index0)
       .Name("sys_llphoton_pt_phresdn");
+  const NamedFunc sys_llphoton_relpt_default = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_default,&sys_llphoton_m_default}, map_div);
+  const NamedFunc sys_llphoton_relpt_elscaleup = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_elscaleup,&sys_llphoton_m_elscaleup}, map_div);
+  const NamedFunc sys_llphoton_relpt_elscaledn = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_elscaledn,&sys_llphoton_m_elscaledn}, map_div);
+  const NamedFunc sys_llphoton_relpt_elresup = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_elresup,&sys_llphoton_m_elresup}, map_div);
+  const NamedFunc sys_llphoton_relpt_elresdn = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_elresdn,&sys_llphoton_m_elresdn}, map_div);
+  const NamedFunc sys_llphoton_relpt_muscaleup = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_muscaleup,&sys_llphoton_m_muscaleup}, map_div);
+  const NamedFunc sys_llphoton_relpt_muscaledn = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_muscaledn,&sys_llphoton_m_muscaledn}, map_div);
+  const NamedFunc sys_llphoton_relpt_muresup = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_muresup,&sys_llphoton_m_muresup}, map_div);
+  const NamedFunc sys_llphoton_relpt_muresdn = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_muresdn,&sys_llphoton_m_muresdn}, map_div);
+  const NamedFunc sys_llphoton_relpt_phscaleup = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_phscaleup,&sys_llphoton_m_phscaleup}, map_div);
+  const NamedFunc sys_llphoton_relpt_phscaledn = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_phscaledn,&sys_llphoton_m_phscaledn}, map_div);
+  const NamedFunc sys_llphoton_relpt_phresup = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_phresup,&sys_llphoton_m_phresup}, map_div);
+  const NamedFunc sys_llphoton_relpt_phresdn = MultiMapNamedFuncCached(
+      {&sys_llphoton_pt_phresdn,&sys_llphoton_m_phresdn}, map_div);
+
+  //Higgs candidate phi and variations
+  const NamedFunc sys_llphoton_phi_default = NamedFunc("llphoton_phi[0]");
+  const NamedFunc sys_llphoton_phi_elscaleup = ReduceNamedFuncCached(
+      sys_llphoton_p4_elscaleup, reduce_index2)
+      .Name("sys_llphoton_phi_elscaleup");
+  const NamedFunc sys_llphoton_phi_elscaledn = ReduceNamedFuncCached(
+      sys_llphoton_p4_elscaledn, reduce_index2)
+      .Name("sys_llphoton_phi_elscaledn");
+  const NamedFunc sys_llphoton_phi_elresup = ReduceNamedFuncCached(
+      sys_llphoton_p4_elresup, reduce_index2)
+      .Name("sys_llphoton_phi_elresup");
+  const NamedFunc sys_llphoton_phi_elresdn = ReduceNamedFuncCached(
+      sys_llphoton_p4_elresdn, reduce_index2)
+      .Name("sys_llphoton_phi_elresdn");
+  const NamedFunc sys_llphoton_phi_muscaleup = ReduceNamedFuncCached(
+      sys_llphoton_p4_muscaleup, reduce_index2)
+      .Name("sys_llphoton_phi_muscaleup");
+  const NamedFunc sys_llphoton_phi_muscaledn = ReduceNamedFuncCached(
+      sys_llphoton_p4_muscaledn, reduce_index2)
+      .Name("sys_llphoton_phi_muscaledn");
+  const NamedFunc sys_llphoton_phi_muresup = ReduceNamedFuncCached(
+      sys_llphoton_p4_muresup, reduce_index2)
+      .Name("sys_llphoton_phi_muresup");
+  const NamedFunc sys_llphoton_phi_muresdn = ReduceNamedFuncCached(
+      sys_llphoton_p4_muresdn, reduce_index2)
+      .Name("sys_llphoton_phi_muresdn");
+  const NamedFunc sys_llphoton_phi_phscaleup = ReduceNamedFuncCached(
+      sys_llphoton_p4_phscaleup, reduce_index2)
+      .Name("sys_llphoton_phi_phscaleup");
+  const NamedFunc sys_llphoton_phi_phscaledn = ReduceNamedFuncCached(
+      sys_llphoton_p4_phscaledn, reduce_index2)
+      .Name("sys_llphoton_phi_phscaledn");
+  const NamedFunc sys_llphoton_phi_phresup = ReduceNamedFuncCached(
+      sys_llphoton_p4_phresup, reduce_index2)
+      .Name("sys_llphoton_phi_phresup");
+  const NamedFunc sys_llphoton_phi_phresdn = ReduceNamedFuncCached(
+      sys_llphoton_p4_phresdn, reduce_index2)
+      .Name("sys_llphoton_phi_phresdn");
+
+  //Gets NamedFunc that assigns kinematic angles with variation
+  NamedFunc assign_variation_llphoton_angles(const NamedFunc &var_ll,
+      const NamedFunc &var_el_pt, const NamedFunc &var_mu_pt, 
+      const NamedFunc &var_photon_pt, const NamedFunc &var_photon_eta, 
+      const NamedFunc &var_photon_phi, int var_id, const string name) {
+    return NamedFunc(("sys_llphoton_angles_"+name).c_str(),[&var_ll, 
+        &var_el_pt, &var_mu_pt, &var_photon_pt, &var_photon_eta, 
+        &var_photon_phi, var_id] 
+        (const Baby &b) -> NamedFunc::VectorType{
+          vector<double> ll_properties = var_ll.GetVector(b);
+          vector<double> el_pt = var_el_pt.GetVector(b);
+          vector<double> mu_pt = var_mu_pt.GetVector(b);
+          TLorentzVector lplus, lminus, ph;
+          if ((ll_properties[7]==0 && ll_properties[4]==11 && var_id==13)
+              || (ll_properties[7]==0 && ll_properties[4]==13 && var_id==11)
+              || (var_id == 0)) {
+            //no reclaculation needed
+            return {static_cast<double>(b.llphoton_cosTheta()->at(0)), 
+                    static_cast<double>(b.llphoton_costheta()->at(0)),
+                    static_cast<double>(b.llphoton_psi()->at(0))};
+          }
+          int ll_i1 = static_cast<int>(ll_properties[5]);
+          int ll_i2 = static_cast<int>(ll_properties[6]);
+          if (ll_properties[4]==11) {
+            if (b.el_charge()->at(ll_i1) == 1) {
+              lplus.SetPtEtaPhiM(el_pt[ll_i1],
+                                 b.el_eta()->at(ll_i1),
+                                 b.el_phi()->at(ll_i1),
+                                 0.00511);
+              lminus.SetPtEtaPhiM(el_pt[ll_i2],
+                                  b.el_eta()->at(ll_i2),
+                                  b.el_phi()->at(ll_i2),
+                                  0.00511);
+            }
+            else {
+              lminus.SetPtEtaPhiM(el_pt[ll_i1],
+                                  b.el_eta()->at(ll_i1),
+                                  b.el_phi()->at(ll_i1),
+                                  0.00511);
+              lplus.SetPtEtaPhiM(el_pt[ll_i2],
+                                 b.el_eta()->at(ll_i2),
+                                 b.el_phi()->at(ll_i2),
+                                 0.00511);
+            }
+          }
+          else {
+            if (b.mu_charge()->at(ll_i1) == 1) {
+              lplus.SetPtEtaPhiM(mu_pt[ll_i1],
+                                 b.mu_eta()->at(ll_i1),
+                                 b.mu_phi()->at(ll_i1),
+                                 0.106);
+              lminus.SetPtEtaPhiM(mu_pt[ll_i2],
+                                  b.mu_eta()->at(ll_i2),
+                                  b.mu_phi()->at(ll_i2),
+                                  0.106);
+            }
+            else {
+              lminus.SetPtEtaPhiM(mu_pt[ll_i1],
+                                  b.mu_eta()->at(ll_i1),
+                                  b.mu_phi()->at(ll_i1),
+                                  0.106);
+              lplus.SetPtEtaPhiM(mu_pt[ll_i2],
+                                 b.mu_eta()->at(ll_i2),
+                                 b.mu_phi()->at(ll_i2),
+                                 0.106);
+            }
+          }
+          ph.SetPtEtaPhiM(var_photon_pt.GetScalar(b), 
+                          var_photon_eta.GetScalar(b), 
+                          var_photon_phi.GetScalar(b), 
+                          0.0);
+          return CalculateAngles(lplus, lminus, ph);
+        }).EnableCaching(true);
+  }
+
+  const NamedFunc sys_llphoton_angles_default = 
+      assign_variation_llphoton_angles(sys_ll_default, sys_el_pt_default,
+      sys_mu_pt_default, sys_lead_photon_pt_default, 
+      sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 0, "default");
+  const NamedFunc sys_llphoton_angles_elscaleup = 
+      assign_variation_llphoton_angles(sys_ll_elscaleup, sys_el_pt_scaleup,
+      sys_mu_pt_default, sys_lead_photon_pt_default, 
+      sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 11, "elscaleup");
+  const NamedFunc sys_llphoton_angles_elscaledn = 
+      assign_variation_llphoton_angles(sys_ll_elscaledn, sys_el_pt_scaledn,
+      sys_mu_pt_default, sys_lead_photon_pt_default, 
+      sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 11, "elscaledn");
+  const NamedFunc sys_llphoton_angles_elresup = 
+      assign_variation_llphoton_angles(sys_ll_elresup, sys_el_pt_resup,
+      sys_mu_pt_default, sys_lead_photon_pt_default, 
+      sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 11, "elresup");
+  const NamedFunc sys_llphoton_angles_elresdn = 
+      assign_variation_llphoton_angles(sys_ll_elresdn, sys_el_pt_resdn,
+      sys_mu_pt_default, sys_lead_photon_pt_default, 
+      sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 11, "elresdn");
+  const NamedFunc sys_llphoton_angles_muscaleup = 
+      assign_variation_llphoton_angles(sys_ll_muscaleup, sys_el_pt_default,
+      sys_mu_pt_scaleup, sys_lead_photon_pt_default, 
+      sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 13, "muscaleup");
+  const NamedFunc sys_llphoton_angles_muscaledn = 
+      assign_variation_llphoton_angles(sys_ll_muscaledn, sys_el_pt_default,
+      sys_mu_pt_scaledn, sys_lead_photon_pt_default, 
+      sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 13, "muscaledn");
+  const NamedFunc sys_llphoton_angles_muresup = 
+      assign_variation_llphoton_angles(sys_ll_muresup, sys_el_pt_default,
+      sys_mu_pt_resup, sys_lead_photon_pt_default, sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 13, "muresup");
+  const NamedFunc sys_llphoton_angles_muresdn = 
+      assign_variation_llphoton_angles(sys_ll_muresdn, sys_el_pt_default,
+      sys_mu_pt_resdn, sys_lead_photon_pt_default, sys_lead_photon_eta_default,
+      sys_lead_photon_phi_default, 13, "muresdn");
+  const NamedFunc sys_llphoton_angles_phscaleup = 
+      assign_variation_llphoton_angles(sys_ll_default, sys_el_pt_default,
+      sys_mu_pt_default, sys_lead_photon_pt_scaleup, 
+      sys_lead_photon_eta_scaleup,
+      sys_lead_photon_phi_scaledn, 22, "phscaleup");
+  const NamedFunc sys_llphoton_angles_phscaledn = 
+      assign_variation_llphoton_angles(sys_ll_default, sys_el_pt_default,
+      sys_mu_pt_default, sys_lead_photon_pt_scaledn, 
+      sys_lead_photon_eta_scaledn,
+      sys_lead_photon_phi_scaledn, 22, "phscaledn");
+  const NamedFunc sys_llphoton_angles_phresup = 
+      assign_variation_llphoton_angles(sys_ll_default, sys_el_pt_default,
+      sys_mu_pt_default, sys_lead_photon_pt_resup, sys_lead_photon_eta_resup,
+      sys_lead_photon_phi_resdn, 22, "phresup");
+  const NamedFunc sys_llphoton_angles_phresdn = 
+      assign_variation_llphoton_angles(sys_ll_default, sys_el_pt_default,
+      sys_mu_pt_default, sys_lead_photon_pt_resdn, sys_lead_photon_eta_resdn,
+      sys_lead_photon_phi_resdn, 22, "phresdn");
+  const NamedFunc sys_llphoton_cosTheta_default = ReduceNamedFuncCached(
+      sys_llphoton_angles_default,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_default");
+  const NamedFunc sys_llphoton_cosTheta_elscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_elscaleup,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_elscaleup");
+  const NamedFunc sys_llphoton_cosTheta_elscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_elscaledn,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_elscaledn");
+  const NamedFunc sys_llphoton_cosTheta_elresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_elresup,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_elresup");
+  const NamedFunc sys_llphoton_cosTheta_elresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_elresdn,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_elresdn");
+  const NamedFunc sys_llphoton_cosTheta_muscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_muscaleup,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_muscaleup");
+  const NamedFunc sys_llphoton_cosTheta_muscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_muscaledn,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_muscaledn");
+  const NamedFunc sys_llphoton_cosTheta_muresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_muresup,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_muresup");
+  const NamedFunc sys_llphoton_cosTheta_muresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_muresdn,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_muresdn");
+  const NamedFunc sys_llphoton_cosTheta_phscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_phscaleup,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_phscaleup");
+  const NamedFunc sys_llphoton_cosTheta_phscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_phscaledn,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_phscaledn");
+  const NamedFunc sys_llphoton_cosTheta_phresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_phresup,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_phresup");
+  const NamedFunc sys_llphoton_cosTheta_phresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_phresdn,reduce_index0).Name(
+      "sys_llphoton_coscapTheta_phresdn");
+  const NamedFunc sys_llphoton_costheta_default = ReduceNamedFuncCached(
+      sys_llphoton_angles_default,reduce_index1).Name(
+      "sys_llphoton_costheta_default");
+  const NamedFunc sys_llphoton_costheta_elscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_elscaleup,reduce_index1).Name(
+      "sys_llphoton_costheta_elscaleup");
+  const NamedFunc sys_llphoton_costheta_elscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_elscaledn,reduce_index1).Name(
+      "sys_llphoton_costheta_elscaledn");
+  const NamedFunc sys_llphoton_costheta_elresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_elresup,reduce_index1).Name(
+      "sys_llphoton_costheta_elresup");
+  const NamedFunc sys_llphoton_costheta_elresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_elresdn,reduce_index1).Name(
+      "sys_llphoton_costheta_elresdn");
+  const NamedFunc sys_llphoton_costheta_muscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_muscaleup,reduce_index1).Name(
+      "sys_llphoton_costheta_muscaleup");
+  const NamedFunc sys_llphoton_costheta_muscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_muscaledn,reduce_index1).Name(
+      "sys_llphoton_costheta_muscaledn");
+  const NamedFunc sys_llphoton_costheta_muresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_muresup,reduce_index1).Name(
+      "sys_llphoton_costheta_muresup");
+  const NamedFunc sys_llphoton_costheta_muresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_muresdn,reduce_index1).Name(
+      "sys_llphoton_costheta_muresdn");
+  const NamedFunc sys_llphoton_costheta_phscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_phscaleup,reduce_index1).Name(
+      "sys_llphoton_costheta_phscaleup");
+  const NamedFunc sys_llphoton_costheta_phscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_phscaledn,reduce_index1).Name(
+      "sys_llphoton_costheta_phscaledn");
+  const NamedFunc sys_llphoton_costheta_phresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_phresup,reduce_index1).Name(
+      "sys_llphoton_costheta_phresup");
+  const NamedFunc sys_llphoton_costheta_phresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_phresdn,reduce_index1).Name(
+      "sys_llphoton_costheta_phresdn");
+  const NamedFunc sys_llphoton_psi_default = ReduceNamedFuncCached(
+      sys_llphoton_angles_default,reduce_index2).Name(
+      "sys_llphoton_psi_default");
+  const NamedFunc sys_llphoton_psi_elscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_elscaleup,reduce_index2).Name(
+      "sys_llphoton_psi_elscaleup");
+  const NamedFunc sys_llphoton_psi_elscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_elscaledn,reduce_index2).Name(
+      "sys_llphoton_psi_elscaledn");
+  const NamedFunc sys_llphoton_psi_elresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_elresup,reduce_index2).Name(
+      "sys_llphoton_psi_elresup");
+  const NamedFunc sys_llphoton_psi_elresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_elresdn,reduce_index2).Name(
+      "sys_llphoton_psi_elresdn");
+  const NamedFunc sys_llphoton_psi_muscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_muscaleup,reduce_index2).Name(
+      "sys_llphoton_psi_muscaleup");
+  const NamedFunc sys_llphoton_psi_muscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_muscaledn,reduce_index2).Name(
+      "sys_llphoton_psi_muscaledn");
+  const NamedFunc sys_llphoton_psi_muresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_muresup,reduce_index2).Name(
+      "sys_llphoton_psi_muresup");
+  const NamedFunc sys_llphoton_psi_muresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_muresdn,reduce_index2).Name(
+      "sys_llphoton_psi_muresdn");
+  const NamedFunc sys_llphoton_psi_phscaleup = ReduceNamedFuncCached(
+      sys_llphoton_angles_phscaleup,reduce_index2).Name(
+      "sys_llphoton_psi_phscaleup");
+  const NamedFunc sys_llphoton_psi_phscaledn = ReduceNamedFuncCached(
+      sys_llphoton_angles_phscaledn,reduce_index2).Name(
+      "sys_llphoton_psi_phscaledn");
+  const NamedFunc sys_llphoton_psi_phresup = ReduceNamedFuncCached(
+      sys_llphoton_angles_phresup,reduce_index2).Name(
+      "sys_llphoton_psi_phresup");
+  const NamedFunc sys_llphoton_psi_phresdn = ReduceNamedFuncCached(
+      sys_llphoton_angles_phresdn,reduce_index2).Name(
+      "sys_llphoton_psi_phresdn");
 
   //Gets NamedFunc that is (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) of lepton
   //refit pT with variation
@@ -1413,25 +1965,62 @@ namespace ZgFunctions {
     }).EnableCaching(true);
   }
 
+  //Gets NamedFunc that is (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) of lepton
+  //refit pT with variation
+  NamedFunc assign_variation_lep_refit2(int variation, string name) {
+    //require nll>=1 
+    return NamedFunc(("sys_lep_refit_"+name).c_str(),[variation] 
+        (const Baby &b) -> NamedFunc::VectorType{
+      vector<double> lep_refit;
+      lep_refit.push_back(b.ll_refit_lep1_pt()->at(variation));
+      lep_refit.push_back(b.ll_refit_lep1_eta()->at(variation));
+      lep_refit.push_back(b.ll_refit_lep1_phi()->at(variation));
+      lep_refit.push_back(b.ll_refit_lep1_m()->at(variation));
+      lep_refit.push_back(b.ll_refit_lep2_pt()->at(variation));
+      lep_refit.push_back(b.ll_refit_lep2_eta()->at(variation));
+      lep_refit.push_back(b.ll_refit_lep2_phi()->at(variation));
+      lep_refit.push_back(b.ll_refit_lep2_m()->at(variation));
+      return lep_refit;
+    }).EnableCaching(true);
+  }
+
   //lepton 4 momentum and variations
-  const NamedFunc sys_lep_refit_default = assign_variation_lep_refit(
-      sys_el_pt_default, sys_mu_pt_default, sys_ll_default, "default");
-  const NamedFunc sys_lep_refit_elscaleup = assign_variation_lep_refit(
-      sys_el_pt_scaleup, sys_mu_pt_default, sys_ll_elscaleup, "elscaleup");
-  const NamedFunc sys_lep_refit_elscaledn = assign_variation_lep_refit(
-      sys_el_pt_scaledn, sys_mu_pt_default, sys_ll_elscaledn, "elscaledn");
-  const NamedFunc sys_lep_refit_elresup = assign_variation_lep_refit(
-      sys_el_pt_resup, sys_mu_pt_default, sys_ll_elresup, "elresup");
-  const NamedFunc sys_lep_refit_elresdn = assign_variation_lep_refit(
-      sys_el_pt_resdn, sys_mu_pt_default, sys_ll_elresdn, "elresdn");
-  const NamedFunc sys_lep_refit_muscaleup = assign_variation_lep_refit(
-      sys_el_pt_default, sys_mu_pt_scaleup, sys_ll_muscaleup, "muscaleup");
-  const NamedFunc sys_lep_refit_muscaledn = assign_variation_lep_refit(
-      sys_el_pt_default, sys_mu_pt_scaledn, sys_ll_muscaledn, "muscaledn");
-  const NamedFunc sys_lep_refit_muresup = assign_variation_lep_refit(
-      sys_el_pt_default, sys_mu_pt_resup, sys_ll_muresup, "muresup");
-  const NamedFunc sys_lep_refit_muresdn = assign_variation_lep_refit(
-      sys_el_pt_default, sys_mu_pt_resdn, sys_ll_muresdn, "muresdn");
+  //const NamedFunc sys_lep_refit_default = assign_variation_lep_refit(
+  //    sys_el_pt_default, sys_mu_pt_default, sys_ll_default, "default");
+  //const NamedFunc sys_lep_refit_elscaleup = assign_variation_lep_refit(
+  //    sys_el_pt_scaleup, sys_mu_pt_default, sys_ll_elscaleup, "elscaleup");
+  //const NamedFunc sys_lep_refit_elscaledn = assign_variation_lep_refit(
+  //    sys_el_pt_scaledn, sys_mu_pt_default, sys_ll_elscaledn, "elscaledn");
+  //const NamedFunc sys_lep_refit_elresup = assign_variation_lep_refit(
+  //    sys_el_pt_resup, sys_mu_pt_default, sys_ll_elresup, "elresup");
+  //const NamedFunc sys_lep_refit_elresdn = assign_variation_lep_refit(
+  //    sys_el_pt_resdn, sys_mu_pt_default, sys_ll_elresdn, "elresdn");
+  //const NamedFunc sys_lep_refit_muscaleup = assign_variation_lep_refit(
+  //    sys_el_pt_default, sys_mu_pt_scaleup, sys_ll_muscaleup, "muscaleup");
+  //const NamedFunc sys_lep_refit_muscaledn = assign_variation_lep_refit(
+  //    sys_el_pt_default, sys_mu_pt_scaledn, sys_ll_muscaledn, "muscaledn");
+  //const NamedFunc sys_lep_refit_muresup = assign_variation_lep_refit(
+  //    sys_el_pt_default, sys_mu_pt_resup, sys_ll_muresup, "muresup");
+  //const NamedFunc sys_lep_refit_muresdn = assign_variation_lep_refit(
+  //    sys_el_pt_default, sys_mu_pt_resdn, sys_ll_muresdn, "muresdn");
+  const NamedFunc sys_lep_refit_default = assign_variation_lep_refit2(0, 
+      "default");
+  const NamedFunc sys_lep_refit_elscaleup = assign_variation_lep_refit2(1,
+      "elscaleup");
+  const NamedFunc sys_lep_refit_elscaledn = assign_variation_lep_refit2(2, 
+      "elscaledn");
+  const NamedFunc sys_lep_refit_elresup = assign_variation_lep_refit2(3,
+      "elresup");
+  const NamedFunc sys_lep_refit_elresdn = assign_variation_lep_refit2(4,
+      "elresdn");
+  const NamedFunc sys_lep_refit_muscaleup = assign_variation_lep_refit2(5,
+      "muscaleup");
+  const NamedFunc sys_lep_refit_muscaledn = assign_variation_lep_refit2(6, 
+      "muscaledn");
+  const NamedFunc sys_lep_refit_muresup = assign_variation_lep_refit2(7,
+      "muresup");
+  const NamedFunc sys_lep_refit_muresdn = assign_variation_lep_refit2(8,
+      "muresdn");
 
   //Gets NamedFunc that is assigns Z candidate four momentum with variation
   NamedFunc assign_variation_ll_refit_p4(const NamedFunc &ll, 
@@ -2311,7 +2900,7 @@ namespace ZgFunctions {
 
         return (
             //2l+b but not enough jets for tth
-            (var_nlep_==2&&var_nbdfm_>=1&&var_njet_<5)
+            (var_nlep_==2&&var_nbdfm_>=1&&var_njet_>=2&&var_njet_<5)
             //3l0b, but not enough met for vh3l
             ||(var_nlep_>=3&&var_nbdfm_==0.0&&var_met_<=30)
             //3l+b, but not enough jets for tth
@@ -2567,10 +3156,9 @@ namespace ZgFunctions {
       double evt_njet = var_njet.GetScalar(b);
       if (evt_njet < 1)
         return -999.0;
-      //TODO fix 2 in next production
       if (evt_njet < 2)
         return fabs(var_lead_photon_eta.GetScalar(b)
-                    -var_lead_jet_eta.GetScalar(b)/2.0);
+                    -var_lead_jet_eta.GetScalar(b));
       return fabs(var_lead_photon_eta.GetScalar(b)
           -(var_lead_jet_eta.GetScalar(b)
             +var_sublead_jet_eta.GetScalar(b))
@@ -2580,65 +3168,178 @@ namespace ZgFunctions {
 
 
   //jet+llphoton variations
+  const NamedFunc sys_llphoton_dijet_dphi_default = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_default, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_default");
+  const NamedFunc sys_llphoton_dijet_dphi_elscaleup = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_elscaleup, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_elscaleup");
+  const NamedFunc sys_llphoton_dijet_dphi_elscaledn = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_elscaledn, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_elscaledn");
+  const NamedFunc sys_llphoton_dijet_dphi_elresup = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_elresup, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_elresup");
+  const NamedFunc sys_llphoton_dijet_dphi_elresdn = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_elresdn, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_elresdn");
+  const NamedFunc sys_llphoton_dijet_dphi_muscaleup = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_muscaleup, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_muscaleup");
+  const NamedFunc sys_llphoton_dijet_dphi_muscaledn = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_muscaledn, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_muscaledn");
+  const NamedFunc sys_llphoton_dijet_dphi_muresup = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_muresup, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_muresup");
+  const NamedFunc sys_llphoton_dijet_dphi_muresdn = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_muresdn, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_muresdn");
+  const NamedFunc sys_llphoton_dijet_dphi_phscaleup = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_phscaleup, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_phscaleup");
+  const NamedFunc sys_llphoton_dijet_dphi_phscaledn = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_phscaledn, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_phscaledn");
+  const NamedFunc sys_llphoton_dijet_dphi_phresup = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_phresup, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_phresup");
+  const NamedFunc sys_llphoton_dijet_dphi_phresdn = 
+      MultiMapNamedFuncCached(
+      {&sys_llphoton_phi_phresdn, &sys_dijet_phi_default}, 
+      map_deltaphi).Name("sys_llphoton_dijet_dphi_phresdn");
+  vector<NamedFunc> sys_llphoton_dijet_dphi_jetscaleup;
+  vector<NamedFunc> sys_llphoton_dijet_dphi_jetscaledn;
+  vector<NamedFunc> sys_llphoton_dijet_dphi_jetresup;
+  vector<NamedFunc> sys_llphoton_dijet_dphi_jetresdn;
+
   const NamedFunc sys_llphoton_refit_dijet_dphi_default = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_default, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_default");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_default");
   const NamedFunc sys_llphoton_refit_dijet_dphi_elscaleup = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_elscaleup, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_elscaleup");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_elscaleup");
   const NamedFunc sys_llphoton_refit_dijet_dphi_elscaledn = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_elscaledn, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_elscaledn");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_elscaledn");
   const NamedFunc sys_llphoton_refit_dijet_dphi_elresup = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_elresup, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_elresup");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_elresup");
   const NamedFunc sys_llphoton_refit_dijet_dphi_elresdn = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_elresdn, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_elresdn");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_elresdn");
   const NamedFunc sys_llphoton_refit_dijet_dphi_muscaleup = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_muscaleup, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_muscaleup");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_muscaleup");
   const NamedFunc sys_llphoton_refit_dijet_dphi_muscaledn = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_muscaledn, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_muscaledn");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_muscaledn");
   const NamedFunc sys_llphoton_refit_dijet_dphi_muresup = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_muresup, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_muresup");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_muresup");
   const NamedFunc sys_llphoton_refit_dijet_dphi_muresdn = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_muresdn, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_muresdn");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_muresdn");
   const NamedFunc sys_llphoton_refit_dijet_dphi_phscaleup = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_phscaleup, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_phscaleup");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_phscaleup");
   const NamedFunc sys_llphoton_refit_dijet_dphi_phscaledn = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_phscaledn, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_phscaledn");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_phscaledn");
   const NamedFunc sys_llphoton_refit_dijet_dphi_phresup = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_phresup, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_phresup");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_phresup");
   const NamedFunc sys_llphoton_refit_dijet_dphi_phresdn = 
       MultiMapNamedFuncCached(
       {&sys_llphoton_refit_phi_phresdn, &sys_dijet_phi_default}, 
-      map_deltaphi).Name("sys_llphoton_dijet_dphi_phresdn");
+      map_deltaphi).Name("sys_llphoton_refit_dijet_dphi_phresdn");
   vector<NamedFunc> sys_llphoton_refit_dijet_dphi_jetscaleup;
   vector<NamedFunc> sys_llphoton_refit_dijet_dphi_jetscaledn;
   vector<NamedFunc> sys_llphoton_refit_dijet_dphi_jetresup;
   vector<NamedFunc> sys_llphoton_refit_dijet_dphi_jetresdn;
 
+  const NamedFunc sys_llphoton_jet_dphi_default = 
+      assign_variation_llphoton_refit_jet_dphi(sys_llphoton_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "default");
+  const NamedFunc sys_llphoton_jet_dphi_elscaleup = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_elscaleup, sys_jet_isgood_default, 
+      sys_jet_pt_default, "elscaleup");
+  const NamedFunc sys_llphoton_jet_dphi_elscaledn = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_elscaledn, sys_jet_isgood_default, 
+      sys_jet_pt_default, "elscaledn");
+  const NamedFunc sys_llphoton_jet_dphi_elresup = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_elresup, sys_jet_isgood_default, 
+      sys_jet_pt_default, "elresup");
+  const NamedFunc sys_llphoton_jet_dphi_elresdn = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_elresdn, sys_jet_isgood_default, 
+      sys_jet_pt_default, "elresdn");
+  const NamedFunc sys_llphoton_jet_dphi_muscaleup = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_muscaleup, sys_jet_isgood_default, 
+      sys_jet_pt_default, "muscaleup");
+  const NamedFunc sys_llphoton_jet_dphi_muscaledn = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_muscaledn, sys_jet_isgood_default, 
+      sys_jet_pt_default, "muscaledn");
+  const NamedFunc sys_llphoton_jet_dphi_muresup = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_muresup, sys_jet_isgood_default, 
+      sys_jet_pt_default, "muresup");
+  const NamedFunc sys_llphoton_jet_dphi_muresdn = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_muresdn, sys_jet_isgood_default, 
+      sys_jet_pt_default, "muresdn");
+  const NamedFunc sys_llphoton_jet_dphi_phscaleup = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_phscaleup, sys_jet_isgood_default, 
+      sys_jet_pt_default, "phscaleup");
+  const NamedFunc sys_llphoton_jet_dphi_phscaledn = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_phscaledn, sys_jet_isgood_default, 
+      sys_jet_pt_default, "phscaledn");
+  const NamedFunc sys_llphoton_jet_dphi_phresup = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_phresup, sys_jet_isgood_default, 
+      sys_jet_pt_default, "phresup");
+  const NamedFunc sys_llphoton_jet_dphi_phresdn = 
+      assign_variation_llphoton_refit_jet_dphi(
+      sys_llphoton_phi_phresdn, sys_jet_isgood_default, 
+      sys_jet_pt_default, "phresdn");
+  vector<NamedFunc> sys_llphoton_jet_dphi_jetscaleup;
+  vector<NamedFunc> sys_llphoton_jet_dphi_jetscaledn;
+  vector<NamedFunc> sys_llphoton_jet_dphi_jetresup;
+  vector<NamedFunc> sys_llphoton_jet_dphi_jetresdn;
+
   const NamedFunc sys_llphoton_refit_jet_dphi_default = 
-      assign_variation_llphoton_refit_jet_dphi("llphoton_refit_phi", 
+      assign_variation_llphoton_refit_jet_dphi(sys_llphoton_refit_phi_default, 
       sys_jet_isgood_default, sys_jet_pt_default, "default");
   const NamedFunc sys_llphoton_refit_jet_dphi_default_elscaleup = 
       assign_variation_llphoton_refit_jet_dphi(
@@ -2692,6 +3393,67 @@ namespace ZgFunctions {
   vector<NamedFunc> sys_llphoton_refit_jet_dphi_jetscaledn;
   vector<NamedFunc> sys_llphoton_refit_jet_dphi_jetresup;
   vector<NamedFunc> sys_llphoton_refit_jet_dphi_jetresdn;
+
+  const NamedFunc sys_llphoton_jet_balance_default = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "default");
+  const NamedFunc sys_llphoton_jet_balance_elscaleup = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_elscaleup, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "elscaleup");
+  const NamedFunc sys_llphoton_jet_balance_elscaledn = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_elscaledn, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "elscaledn");
+  const NamedFunc sys_llphoton_jet_balance_elresup = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_elresup, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "elresup");
+  const NamedFunc sys_llphoton_jet_balance_elresdn = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_elresdn, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "elresdn");
+  const NamedFunc sys_llphoton_jet_balance_muscaleup = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_muscaleup, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "muscaleup");
+  const NamedFunc sys_llphoton_jet_balance_muscaledn = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_muscaledn, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "muscaledn");
+  const NamedFunc sys_llphoton_jet_balance_muresup = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_muresup, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "muresup");
+  const NamedFunc sys_llphoton_jet_balance_muresdn = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_muresdn, 
+      sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+      sys_jet_isgood_default, sys_jet_pt_default, "muresdn");
+  const NamedFunc sys_llphoton_jet_balance_phscaleup = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+      sys_lead_photon_pt_scaleup, sys_lead_photon_phi_scaleup, 
+      sys_jet_isgood_default, 
+      sys_jet_pt_default, "phscaleup");
+  const NamedFunc sys_llphoton_jet_balance_phscaledn = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+      sys_lead_photon_pt_scaledn, sys_lead_photon_phi_scaledn, 
+      sys_jet_isgood_default, 
+      sys_jet_pt_default, "phscaledn");
+  const NamedFunc sys_llphoton_jet_balance_phresup = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+      sys_lead_photon_pt_resup, sys_lead_photon_phi_resup, 
+      sys_jet_isgood_default, 
+      sys_jet_pt_default, "phresup");
+  const NamedFunc sys_llphoton_jet_balance_phresdn = 
+      assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+      sys_lead_photon_pt_resdn, sys_lead_photon_phi_resdn, 
+      sys_jet_isgood_default, 
+      sys_jet_pt_default, "phresdn");
+  vector<NamedFunc> sys_llphoton_jet_balance_jetscaleup;
+  vector<NamedFunc> sys_llphoton_jet_balance_jetscaledn;
+  vector<NamedFunc> sys_llphoton_jet_balance_jetresup;
+  vector<NamedFunc> sys_llphoton_jet_balance_jetresdn;
 
   const NamedFunc sys_llphoton_refit_jet_balance_default = 
       assign_variation_llphoton_refit_jet_balance(sys_ll_refit_p4_default, 
@@ -2967,6 +3729,15 @@ namespace ZgFunctions {
   vector<NamedFunc> sys_udsghig_uncorr_up;
   vector<NamedFunc> sys_udsghig_uncorr_dn;
 
+  std::vector<std::vector<const NamedFunc*>> ggf_bdt_inputs_jetscaleup;
+  std::vector<std::vector<const NamedFunc*>> ggf_bdt_inputs_jetscaledn;
+  std::vector<std::vector<const NamedFunc*>> ggf_bdt_inputs_jetresup;
+  std::vector<std::vector<const NamedFunc*>> ggf_bdt_inputs_jetresdn;
+  std::vector<std::vector<const NamedFunc*>> vbf_bdt_inputs_jetscaleup;
+  std::vector<std::vector<const NamedFunc*>> vbf_bdt_inputs_jetscaledn;
+  std::vector<std::vector<const NamedFunc*>> vbf_bdt_inputs_jetresup;
+  std::vector<std::vector<const NamedFunc*>> vbf_bdt_inputs_jetresdn;
+
   //isgood requires !invetomap !inhemveto !inetahornveto !islep !isphoton eta 
   //fixedjetid pt
   //isgood_min includes !islep !isphoton eta fixedjetid !inethornveto
@@ -3073,14 +3844,26 @@ namespace ZgFunctions {
     untagged_category_jetscaledn.reserve(years.size());
     untagged_category_jetresup.reserve(years.size());
     untagged_category_jetresdn.reserve(years.size());
+    sys_llphoton_dijet_dphi_jetscaleup.reserve(years.size());
+    sys_llphoton_dijet_dphi_jetscaledn.reserve(years.size());
+    sys_llphoton_dijet_dphi_jetresup.reserve(years.size());
+    sys_llphoton_dijet_dphi_jetresdn.reserve(years.size());
     sys_llphoton_refit_dijet_dphi_jetscaleup.reserve(years.size());
     sys_llphoton_refit_dijet_dphi_jetscaledn.reserve(years.size());
     sys_llphoton_refit_dijet_dphi_jetresup.reserve(years.size());
     sys_llphoton_refit_dijet_dphi_jetresdn.reserve(years.size());
+    sys_llphoton_jet_dphi_jetscaleup.reserve(years.size());
+    sys_llphoton_jet_dphi_jetscaledn.reserve(years.size());
+    sys_llphoton_jet_dphi_jetresup.reserve(years.size());
+    sys_llphoton_jet_dphi_jetresdn.reserve(years.size());
     sys_llphoton_refit_jet_dphi_jetscaleup.reserve(years.size());
     sys_llphoton_refit_jet_dphi_jetscaledn.reserve(years.size());
     sys_llphoton_refit_jet_dphi_jetresup.reserve(years.size());
     sys_llphoton_refit_jet_dphi_jetresdn.reserve(years.size());
+    sys_llphoton_jet_balance_jetscaleup.reserve(years.size());
+    sys_llphoton_jet_balance_jetscaledn.reserve(years.size());
+    sys_llphoton_jet_balance_jetresup.reserve(years.size());
+    sys_llphoton_jet_balance_jetresdn.reserve(years.size());
     sys_llphoton_refit_jet_balance_jetscaleup.reserve(years.size());
     sys_llphoton_refit_jet_balance_jetscaledn.reserve(years.size());
     sys_llphoton_refit_jet_balance_jetresup.reserve(years.size());
@@ -3113,6 +3896,14 @@ namespace ZgFunctions {
     sys_bchig_uncorr_dn.reserve(years.size());
     sys_udsghig_uncorr_up.reserve(years.size());
     sys_udsghig_uncorr_dn.reserve(years.size());
+    ggf_bdt_inputs_jetscaleup.reserve(years.size());
+    ggf_bdt_inputs_jetscaledn.reserve(years.size());
+    ggf_bdt_inputs_jetresup.reserve(years.size());
+    ggf_bdt_inputs_jetresdn.reserve(years.size());
+    vbf_bdt_inputs_jetscaleup.reserve(years.size());
+    vbf_bdt_inputs_jetscaledn.reserve(years.size());
+    vbf_bdt_inputs_jetresup.reserve(years.size());
+    vbf_bdt_inputs_jetresdn.reserve(years.size());
     for (unsigned iyear = 0; iyear < years.size(); iyear++) {
       string year = years[iyear];
       sys_jet_pt_scaleup.push_back(assign_vec_variation_year_select(
@@ -3131,31 +3922,31 @@ namespace ZgFunctions {
           "sys_jet_m_jerup", "jet_m", year, "sys_jet_m_resup"));
       sys_jet_m_resdn.push_back(assign_vec_variation_year_select(
           "sys_jet_m_jerdn", "jet_m", year, "sys_jet_m_resdn"));
-      //TODO uncomment real ones for next production
-      sys_jet_isgood_scaleup.push_back(assign_isgood_pinnacles(
-          sys_jet_pt_scaleup[iyear], "scaleup"+year));
-      sys_jet_isgood_scaledn.push_back(assign_isgood_pinnacles(
-          sys_jet_pt_scaledn[iyear], "scaledn"+year));
-      sys_jet_isgood_resup.push_back(assign_isgood_pinnacles(
-          sys_jet_pt_resup[iyear], "resup"+year));
-      sys_jet_isgood_resdn.push_back(assign_isgood_pinnacles(
-          sys_jet_pt_resdn[iyear], "resdn"+year));
-      //sys_jet_isgood_scaleup.push_back(NamedFunc(
-      //    "jet_isgood_min&&!jet_isvetomap&&!jet_is_vetohem"
-      //    &&sys_jet_pt_scaleup[iyear]>30.0).Name("sys_jet_isgood_scaleup"+year)
-      //    .EnableCaching(true));
-      //sys_jet_isgood_scaledn.push_back(NamedFunc(
-      //    "jet_isgood_min&&!jet_isvetomap&&!jet_is_vetohem"
-      //    &&sys_jet_pt_scaledn[iyear]>30.0).Name("sys_jet_isgood_scaledn"+year)
-      //    .EnableCaching(true));
-      //sys_jet_isgood_resup.push_back(NamedFunc(
-      //    "jet_isgood_min&&!jet_isvetomap&&!jet_is_vetohem"
-      //    &&sys_jet_pt_resup[iyear]>30.0).Name("sys_jet_isgood_resup"+year)
-      //    .EnableCaching(true));
-      //sys_jet_isgood_resdn.push_back(NamedFunc(
-      //    "jet_isgood_min&&!jet_isvetomap&&!jet_is_vetohem"
-      //    &&sys_jet_pt_resdn[iyear]>30.0).Name("sys_jet_isgood_resdn"+year)
-      //    .EnableCaching(true));
+      //pinnacles version
+      //sys_jet_isgood_scaleup.push_back(assign_isgood_pinnacles(
+      //    sys_jet_pt_scaleup[iyear], "scaleup"+year));
+      //sys_jet_isgood_scaledn.push_back(assign_isgood_pinnacles(
+      //    sys_jet_pt_scaledn[iyear], "scaledn"+year));
+      //sys_jet_isgood_resup.push_back(assign_isgood_pinnacles(
+      //    sys_jet_pt_resup[iyear], "resup"+year));
+      //sys_jet_isgood_resdn.push_back(assign_isgood_pinnacles(
+      //    sys_jet_pt_resdn[iyear], "resdn"+year));
+      sys_jet_isgood_scaleup.push_back(NamedFunc(
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"
+          &&sys_jet_pt_scaleup[iyear]>30.0).Name("sys_jet_isgood_scaleup"+year)
+          .EnableCaching(true));
+      sys_jet_isgood_scaledn.push_back(NamedFunc(
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"
+          &&sys_jet_pt_scaledn[iyear]>30.0).Name("sys_jet_isgood_scaledn"+year)
+          .EnableCaching(true));
+      sys_jet_isgood_resup.push_back(NamedFunc(
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"
+          &&sys_jet_pt_resup[iyear]>30.0).Name("sys_jet_isgood_resup"+year)
+          .EnableCaching(true));
+      sys_jet_isgood_resdn.push_back(NamedFunc(
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"
+          &&sys_jet_pt_resdn[iyear]>30.0).Name("sys_jet_isgood_resdn"+year)
+          .EnableCaching(true));
       sys_sig_jet_pt_scaleup.push_back(FilterNamedFuncCached(
           sys_jet_pt_scaleup[iyear], sys_jet_isgood_scaleup[iyear]).Name(
           "sys_sig_jet_pt_scaleup"+year));
@@ -3407,36 +4198,88 @@ namespace ZgFunctions {
           sys_met_resdn[iyear], sys_llphoton_pt_default, 
           sys_llphoton_m_default, sys_max_lep_miniso_default, sys_ll_m_default, 
           "jetresdn"));
+      sys_llphoton_dijet_dphi_jetscaleup.push_back(
+          MultiMapNamedFuncCached({&sys_llphoton_phi_default, 
+          &sys_dijet_phi_scaleup[iyear]}, map_deltaphi).Name(
+          "sys_llphoton_dijet_dphi_jetscaleup"));
+      sys_llphoton_dijet_dphi_jetscaledn.push_back(
+          MultiMapNamedFuncCached({&sys_llphoton_phi_default, 
+          &sys_dijet_phi_scaledn[iyear]}, map_deltaphi).Name(
+          "sys_llphoton_dijet_dphi_jetscaledn"));
+      sys_llphoton_dijet_dphi_jetresup.push_back(
+          MultiMapNamedFuncCached({&sys_llphoton_phi_default, 
+          &sys_dijet_phi_resup[iyear]}, map_deltaphi).Name(
+          "sys_llphoton_dijet_dphi_jetresup"));
+      sys_llphoton_dijet_dphi_jetresdn.push_back(
+          MultiMapNamedFuncCached({&sys_llphoton_phi_default, 
+          &sys_dijet_phi_resdn[iyear]}, map_deltaphi).Name(
+          "sys_llphoton_dijet_dphi_jetresdn"));
       sys_llphoton_refit_dijet_dphi_jetscaleup.push_back(
           MultiMapNamedFuncCached({&sys_llphoton_refit_phi_default, 
           &sys_dijet_phi_scaleup[iyear]}, map_deltaphi).Name(
-          "sys_llphoton_dijet_dphi_jetscaleup"));
+          "sys_llphton_refit_dijet_dphi_jetscaleup"));
       sys_llphoton_refit_dijet_dphi_jetscaledn.push_back(
           MultiMapNamedFuncCached({&sys_llphoton_refit_phi_default, 
           &sys_dijet_phi_scaledn[iyear]}, map_deltaphi).Name(
-          "sys_llphoton_dijet_dphi_jetscaledn"));
+          "sys_llphton_refit_dijet_dphi_jetscaledn"));
       sys_llphoton_refit_dijet_dphi_jetresup.push_back(
           MultiMapNamedFuncCached({&sys_llphoton_refit_phi_default, 
           &sys_dijet_phi_resup[iyear]}, map_deltaphi).Name(
-          "sys_llphoton_dijet_dphi_jetresup"));
+          "sys_llphton_refit_dijet_dphi_jetresup"));
       sys_llphoton_refit_dijet_dphi_jetresdn.push_back(
           MultiMapNamedFuncCached({&sys_llphoton_refit_phi_default, 
           &sys_dijet_phi_resdn[iyear]}, map_deltaphi).Name(
-          "sys_llphoton_dijet_dphi_jetresdn"));
-      sys_llphoton_refit_jet_dphi_jetscaleup.push_back(
-          assign_variation_llphoton_refit_jet_dphi("llphoton_refit_phi", 
+          "sys_llphton_refit_dijet_dphi_jetresdn"));
+      sys_llphoton_jet_dphi_jetscaleup.push_back(
+          assign_variation_llphoton_refit_jet_dphi(sys_llphoton_phi_default,
           sys_jet_isgood_scaleup[iyear], sys_jet_pt_scaleup[iyear], 
           "jetscaleup"));
-      sys_llphoton_refit_jet_dphi_jetscaledn.push_back(
-          assign_variation_llphoton_refit_jet_dphi("llphoton_refit_phi", 
+      sys_llphoton_jet_dphi_jetscaledn.push_back(
+          assign_variation_llphoton_refit_jet_dphi(sys_llphoton_phi_default, 
           sys_jet_isgood_scaledn[iyear], sys_jet_pt_scaledn[iyear], 
           "jetscaledn"));
-      sys_llphoton_refit_jet_dphi_jetresup.push_back(
-          assign_variation_llphoton_refit_jet_dphi("llphoton_refit_phi", 
+      sys_llphoton_jet_dphi_jetresup.push_back(
+          assign_variation_llphoton_refit_jet_dphi(sys_llphoton_phi_default, 
           sys_jet_isgood_resup[iyear], sys_jet_pt_resup[iyear], "jetresup"));
-      sys_llphoton_refit_jet_dphi_jetresdn.push_back(
-          assign_variation_llphoton_refit_jet_dphi("llphoton_refit_phi", 
+      sys_llphoton_jet_dphi_jetresdn.push_back(
+          assign_variation_llphoton_refit_jet_dphi(sys_llphoton_phi_default, 
           sys_jet_isgood_resdn[iyear], sys_jet_pt_resdn[iyear], "jetresdn"));
+      sys_llphoton_refit_jet_dphi_jetscaleup.push_back(
+          assign_variation_llphoton_refit_jet_dphi(
+          sys_llphoton_refit_phi_default, sys_jet_isgood_scaleup[iyear], 
+          sys_jet_pt_scaleup[iyear], "jetscaleup"));
+      sys_llphoton_refit_jet_dphi_jetscaledn.push_back(
+          assign_variation_llphoton_refit_jet_dphi(
+          sys_llphoton_refit_phi_default, sys_jet_isgood_scaledn[iyear], 
+          sys_jet_pt_scaledn[iyear], "jetscaledn"));
+      sys_llphoton_refit_jet_dphi_jetresup.push_back(
+          assign_variation_llphoton_refit_jet_dphi(
+          sys_llphoton_refit_phi_default, sys_jet_isgood_resup[iyear], 
+          sys_jet_pt_resup[iyear], "jetresup"));
+      sys_llphoton_refit_jet_dphi_jetresdn.push_back(
+          assign_variation_llphoton_refit_jet_dphi(
+          sys_llphoton_refit_phi_default, sys_jet_isgood_resdn[iyear], 
+          sys_jet_pt_resdn[iyear], "jetresdn"));
+      sys_llphoton_jet_balance_jetscaleup.push_back(
+          assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+          sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+          sys_jet_isgood_scaleup[iyear], 
+          sys_jet_pt_scaleup[iyear], "jetscaleup"));
+      sys_llphoton_jet_balance_jetscaledn.push_back(
+          assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+          sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+          sys_jet_isgood_scaledn[iyear], 
+          sys_jet_pt_scaledn[iyear], "jetscaledn"));
+      sys_llphoton_jet_balance_jetresup.push_back(
+          assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+          sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+          sys_jet_isgood_resup[iyear], 
+          sys_jet_pt_resup[iyear], "jetresup"));
+      sys_llphoton_jet_balance_jetresdn.push_back(
+          assign_variation_llphoton_refit_jet_balance(sys_ll_default, 
+          sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
+          sys_jet_isgood_resdn[iyear], 
+          sys_jet_pt_resdn[iyear], "jetresdn"));
       sys_llphoton_refit_jet_balance_jetscaleup.push_back(
           assign_variation_llphoton_refit_jet_balance(sys_ll_refit_p4_default, 
           sys_lead_photon_pt_default, sys_lead_photon_phi_default, 
@@ -3559,6 +4402,186 @@ namespace ZgFunctions {
           "sys_udsghig_uncorr[0]/w_bhig_df","1",year,"sys_udsghig_uncorr_up"));
       sys_udsghig_uncorr_dn.push_back(assign_sca_variation_year_select(
           "sys_udsghig_uncorr[1]/w_bhig_df","1",year,"sys_udsghig_uncorr_dn"));
+      ggf_bdt_inputs_jetscaleup.push_back({
+          &sys_llphoton_costheta_default,
+          &sys_llphoton_cosTheta_default,
+          &sys_llphoton_relpt_default,
+          &sys_lead_lepton_eta_default,
+          &sys_sublead_lepton_eta_default,
+          &sys_lead_photon_eta_default,
+          &sys_llphoton_psi_default,
+          &sys_lead_photon_idmva_default,
+          &sys_lead_photon_relpterr_default,
+          &sys_lead_photon_drmin_default,
+          &sys_lead_photon_drmax_default,
+          &sys_photon_mht_dphi_jetscaleup[iyear],
+          &sys_photon_jet1_dr_jetscaleup[iyear],
+          &sys_photon_zeppenfeld_jetscaleup[iyear],
+          &sys_llphoton_jet_dphi_jetscaleup[iyear],
+          &sys_llphoton_jet_balance_jetscaleup[iyear],
+          &sys_lead_jet_eta_scaleup[iyear],
+          &sys_lead_jet_m_scaleup[iyear],
+          &sys_lead_jet_pt_scaleup[iyear],
+          &sys_njet_scaleup[iyear]});
+      ggf_bdt_inputs_jetscaledn.push_back({
+          &sys_llphoton_costheta_default,
+          &sys_llphoton_cosTheta_default,
+          &sys_llphoton_relpt_default,
+          &sys_lead_lepton_eta_default,
+          &sys_sublead_lepton_eta_default,
+          &sys_lead_photon_eta_default,
+          &sys_llphoton_psi_default,
+          &sys_lead_photon_idmva_default,
+          &sys_lead_photon_relpterr_default,
+          &sys_lead_photon_drmin_default,
+          &sys_lead_photon_drmax_default,
+          &sys_photon_mht_dphi_jetscaledn[iyear],
+          &sys_photon_jet1_dr_jetscaledn[iyear],
+          &sys_photon_zeppenfeld_jetscaledn[iyear],
+          &sys_llphoton_jet_dphi_jetscaledn[iyear],
+          &sys_llphoton_jet_balance_jetscaledn[iyear],
+          &sys_lead_jet_eta_scaledn[iyear],
+          &sys_lead_jet_m_scaledn[iyear],
+          &sys_lead_jet_pt_scaledn[iyear],
+          &sys_njet_scaledn[iyear]});
+      ggf_bdt_inputs_jetresup.push_back({
+          &sys_llphoton_costheta_default,
+          &sys_llphoton_cosTheta_default,
+          &sys_llphoton_relpt_default,
+          &sys_lead_lepton_eta_default,
+          &sys_sublead_lepton_eta_default,
+          &sys_lead_photon_eta_default,
+          &sys_llphoton_psi_default,
+          &sys_lead_photon_idmva_default,
+          &sys_lead_photon_relpterr_default,
+          &sys_lead_photon_drmin_default,
+          &sys_lead_photon_drmax_default,
+          &sys_photon_mht_dphi_jetresup[iyear],
+          &sys_photon_jet1_dr_jetresup[iyear],
+          &sys_photon_zeppenfeld_jetresup[iyear],
+          &sys_llphoton_jet_dphi_jetresup[iyear],
+          &sys_llphoton_jet_balance_jetresup[iyear],
+          &sys_lead_jet_eta_resup[iyear],
+          &sys_lead_jet_m_resup[iyear],
+          &sys_lead_jet_pt_resup[iyear],
+          &sys_njet_resup[iyear]});
+      ggf_bdt_inputs_jetresdn.push_back({
+          &sys_llphoton_costheta_default,
+          &sys_llphoton_cosTheta_default,
+          &sys_llphoton_relpt_default,
+          &sys_lead_lepton_eta_default,
+          &sys_sublead_lepton_eta_default,
+          &sys_lead_photon_eta_default,
+          &sys_llphoton_psi_default,
+          &sys_lead_photon_idmva_default,
+          &sys_lead_photon_relpterr_default,
+          &sys_lead_photon_drmin_default,
+          &sys_lead_photon_drmax_default,
+          &sys_photon_mht_dphi_jetresdn[iyear],
+          &sys_photon_jet1_dr_jetresdn[iyear],
+          &sys_photon_zeppenfeld_jetresdn[iyear],
+          &sys_llphoton_jet_dphi_jetresdn[iyear],
+          &sys_llphoton_jet_balance_jetresdn[iyear],
+          &sys_lead_jet_eta_resdn[iyear],
+          &sys_lead_jet_m_resdn[iyear],
+          &sys_lead_jet_pt_resdn[iyear],
+          &sys_njet_resdn[iyear]});
+      vbf_bdt_inputs_jetscaleup.push_back({
+          &sys_llphoton_cosTheta_default,
+          &sys_llphoton_psi_default,
+          &sys_llphoton_costheta_default,
+          &sys_lead_lepton_eta_default,
+          &sys_sublead_lepton_eta_default,
+          &sys_lead_photon_eta_default,
+          &sys_lead_photon_drmin_default,
+          &sys_lead_photon_drmax_default,
+          &sys_lead_photon_idmva_default,
+          &sys_lead_photon_relpterr_default,
+          &sys_llphoton_relpt_default,
+          &sys_llphoton_dijet_dphi_jetscaleup[iyear],
+          &sys_dijet_m_scaleup[iyear],
+          &sys_dijet_deta_scaleup[iyear],
+          &sys_llphoton_jet_balance_jetscaleup[iyear],
+          &sys_njet_scaleup[iyear],
+          &sys_dijet_dphi_scaleup[iyear],
+          &sys_photon_zeppenfeld_jetscaleup[iyear],
+          &sys_photon_jet1_dr_jetscaleup[iyear],
+          &sys_photon_jet2_dr_jetscaleup[iyear],
+          &sys_lead_jet_pt_scaleup[iyear],
+          &sys_sublead_jet_pt_scaleup[iyear],
+          &sys_photon_mht_dphi_jetscaleup[iyear]});
+      vbf_bdt_inputs_jetscaledn.push_back({
+          &sys_llphoton_cosTheta_default,
+          &sys_llphoton_psi_default,
+          &sys_llphoton_costheta_default,
+          &sys_lead_lepton_eta_default,
+          &sys_sublead_lepton_eta_default,
+          &sys_lead_photon_eta_default,
+          &sys_lead_photon_drmin_default,
+          &sys_lead_photon_drmax_default,
+          &sys_lead_photon_idmva_default,
+          &sys_lead_photon_relpterr_default,
+          &sys_llphoton_relpt_default,
+          &sys_llphoton_dijet_dphi_jetscaledn[iyear],
+          &sys_dijet_m_scaledn[iyear],
+          &sys_dijet_deta_scaledn[iyear],
+          &sys_llphoton_jet_balance_jetscaledn[iyear],
+          &sys_njet_scaledn[iyear],
+          &sys_dijet_dphi_scaledn[iyear],
+          &sys_photon_zeppenfeld_jetscaledn[iyear],
+          &sys_photon_jet1_dr_jetscaledn[iyear],
+          &sys_photon_jet2_dr_jetscaledn[iyear],
+          &sys_lead_jet_pt_scaledn[iyear],
+          &sys_sublead_jet_pt_scaledn[iyear],
+          &sys_photon_mht_dphi_jetscaledn[iyear]});
+      vbf_bdt_inputs_jetresup.push_back({
+          &sys_llphoton_cosTheta_default,
+          &sys_llphoton_psi_default,
+          &sys_llphoton_costheta_default,
+          &sys_lead_lepton_eta_default,
+          &sys_sublead_lepton_eta_default,
+          &sys_lead_photon_eta_default,
+          &sys_lead_photon_drmin_default,
+          &sys_lead_photon_drmax_default,
+          &sys_lead_photon_idmva_default,
+          &sys_lead_photon_relpterr_default,
+          &sys_llphoton_relpt_default,
+          &sys_llphoton_dijet_dphi_jetresup[iyear],
+          &sys_dijet_m_resup[iyear],
+          &sys_dijet_deta_resup[iyear],
+          &sys_llphoton_jet_balance_jetresup[iyear],
+          &sys_njet_resup[iyear],
+          &sys_dijet_dphi_resup[iyear],
+          &sys_photon_zeppenfeld_jetresup[iyear],
+          &sys_photon_jet1_dr_jetresup[iyear],
+          &sys_photon_jet2_dr_jetresup[iyear],
+          &sys_lead_jet_pt_resup[iyear],
+          &sys_sublead_jet_pt_resup[iyear],
+          &sys_photon_mht_dphi_jetresup[iyear]});
+      vbf_bdt_inputs_jetresdn.push_back({
+          &sys_llphoton_cosTheta_default,
+          &sys_llphoton_psi_default,
+          &sys_llphoton_costheta_default,
+          &sys_lead_lepton_eta_default,
+          &sys_sublead_lepton_eta_default,
+          &sys_lead_photon_eta_default,
+          &sys_lead_photon_drmin_default,
+          &sys_lead_photon_drmax_default,
+          &sys_lead_photon_idmva_default,
+          &sys_lead_photon_relpterr_default,
+          &sys_llphoton_relpt_default,
+          &sys_llphoton_dijet_dphi_jetresdn[iyear],
+          &sys_dijet_m_resdn[iyear],
+          &sys_dijet_deta_resdn[iyear],
+          &sys_llphoton_jet_balance_jetresdn[iyear],
+          &sys_njet_resdn[iyear],
+          &sys_dijet_dphi_resdn[iyear],
+          &sys_photon_zeppenfeld_jetresdn[iyear],
+          &sys_photon_jet1_dr_jetresdn[iyear],
+          &sys_photon_jet2_dr_jetresdn[iyear],
+          &sys_lead_jet_pt_resdn[iyear],
+          &sys_sublead_jet_pt_resdn[iyear],
+          &sys_photon_mht_dphi_jetresdn[iyear]});
     }
   }
 
@@ -4142,175 +5165,801 @@ namespace ZgFunctions {
     }).EnableCaching(true);
   }
 
-  NamedFunc ggfbdt2503_score_default(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_default, 
-          &sys_llphoton_refit_cosTheta_default, 
-          &sys_llphoton_refit_costheta_default, 
-          &sys_llphoton_refit_psi_default,
-          &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_default(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_default, 
+  //        &sys_llphoton_refit_cosTheta_default, 
+  //        &sys_llphoton_refit_costheta_default, 
+  //        &sys_llphoton_refit_psi_default,
+  //        &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_elscaleup(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_elscaleup, 
-          &sys_llphoton_refit_cosTheta_elscaleup, 
-          &sys_llphoton_refit_costheta_elscaleup, 
-          &sys_llphoton_refit_psi_elscaleup,
-          &sys_lead_lepton_eta_elscaleup, &sys_sublead_lepton_eta_elscaleup, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_elscaleup(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_elscaleup, 
+  //        &sys_llphoton_refit_cosTheta_elscaleup, 
+  //        &sys_llphoton_refit_costheta_elscaleup, 
+  //        &sys_llphoton_refit_psi_elscaleup,
+  //        &sys_lead_lepton_eta_elscaleup, &sys_sublead_lepton_eta_elscaleup, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_elscaledn(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_elscaledn, 
-          &sys_llphoton_refit_cosTheta_elscaledn, 
-          &sys_llphoton_refit_costheta_elscaledn, 
-          &sys_llphoton_refit_psi_elscaledn,
-          &sys_lead_lepton_eta_elscaledn, &sys_sublead_lepton_eta_elscaledn, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_elscaledn(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_elscaledn, 
+  //        &sys_llphoton_refit_cosTheta_elscaledn, 
+  //        &sys_llphoton_refit_costheta_elscaledn, 
+  //        &sys_llphoton_refit_psi_elscaledn,
+  //        &sys_lead_lepton_eta_elscaledn, &sys_sublead_lepton_eta_elscaledn, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_elresup(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_elresup, 
-          &sys_llphoton_refit_cosTheta_elresup, 
-          &sys_llphoton_refit_costheta_elresup, 
-          &sys_llphoton_refit_psi_elresup,
-          &sys_lead_lepton_eta_elresup, &sys_sublead_lepton_eta_elresup, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_elresup(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_elresup, 
+  //        &sys_llphoton_refit_cosTheta_elresup, 
+  //        &sys_llphoton_refit_costheta_elresup, 
+  //        &sys_llphoton_refit_psi_elresup,
+  //        &sys_lead_lepton_eta_elresup, &sys_sublead_lepton_eta_elresup, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_elresdn(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_elresdn, 
-          &sys_llphoton_refit_cosTheta_elresdn, 
-          &sys_llphoton_refit_costheta_elresdn, 
-          &sys_llphoton_refit_psi_elresdn,
-          &sys_lead_lepton_eta_elresdn, &sys_sublead_lepton_eta_elresdn, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_elresdn(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_elresdn, 
+  //        &sys_llphoton_refit_cosTheta_elresdn, 
+  //        &sys_llphoton_refit_costheta_elresdn, 
+  //        &sys_llphoton_refit_psi_elresdn,
+  //        &sys_lead_lepton_eta_elresdn, &sys_sublead_lepton_eta_elresdn, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_muscaleup(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_muscaleup, 
-          &sys_llphoton_refit_cosTheta_muscaleup, 
-          &sys_llphoton_refit_costheta_muscaleup, 
-          &sys_llphoton_refit_psi_muscaleup,
-          &sys_lead_lepton_eta_muscaleup, &sys_sublead_lepton_eta_muscaleup, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_muscaleup(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_muscaleup, 
+  //        &sys_llphoton_refit_cosTheta_muscaleup, 
+  //        &sys_llphoton_refit_costheta_muscaleup, 
+  //        &sys_llphoton_refit_psi_muscaleup,
+  //        &sys_lead_lepton_eta_muscaleup, &sys_sublead_lepton_eta_muscaleup, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_muscaledn(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_muscaledn, 
-          &sys_llphoton_refit_cosTheta_muscaledn, 
-          &sys_llphoton_refit_costheta_muscaledn, 
-          &sys_llphoton_refit_psi_muscaledn,
-          &sys_lead_lepton_eta_muscaledn, &sys_sublead_lepton_eta_muscaledn, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_muscaledn(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_muscaledn, 
+  //        &sys_llphoton_refit_cosTheta_muscaledn, 
+  //        &sys_llphoton_refit_costheta_muscaledn, 
+  //        &sys_llphoton_refit_psi_muscaledn,
+  //        &sys_lead_lepton_eta_muscaledn, &sys_sublead_lepton_eta_muscaledn, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_muresup(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_muresup, 
-          &sys_llphoton_refit_cosTheta_muresup, 
-          &sys_llphoton_refit_costheta_muresup, 
-          &sys_llphoton_refit_psi_muresup,
-          &sys_lead_lepton_eta_muresup, &sys_sublead_lepton_eta_muresup, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_muresup(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_muresup, 
+  //        &sys_llphoton_refit_cosTheta_muresup, 
+  //        &sys_llphoton_refit_costheta_muresup, 
+  //        &sys_llphoton_refit_psi_muresup,
+  //        &sys_lead_lepton_eta_muresup, &sys_sublead_lepton_eta_muresup, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_muresdn(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_default, 
-          &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
-          &sys_lead_photon_drmin_default, 
-          &sys_llphoton_refit_relpt_muresdn, 
-          &sys_llphoton_refit_cosTheta_muresdn, 
-          &sys_llphoton_refit_costheta_muresdn, 
-          &sys_llphoton_refit_psi_muresdn,
-          &sys_lead_lepton_eta_muresdn, &sys_sublead_lepton_eta_muresdn, 
-          &sys_lead_photon_eta_default});
-  }
+  //NamedFunc ggfbdt2503_score_muresdn(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_default, 
+  //        &sys_lead_photon_relpterr_default, &sys_lead_photon_drmax_default, 
+  //        &sys_lead_photon_drmin_default, 
+  //        &sys_llphoton_refit_relpt_muresdn, 
+  //        &sys_llphoton_refit_cosTheta_muresdn, 
+  //        &sys_llphoton_refit_costheta_muresdn, 
+  //        &sys_llphoton_refit_psi_muresdn,
+  //        &sys_lead_lepton_eta_muresdn, &sys_sublead_lepton_eta_muresdn, 
+  //        &sys_lead_photon_eta_default});
+  //}
 
-  NamedFunc ggfbdt2503_score_phscaleup(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_scaleup, 
-          &sys_lead_photon_relpterr_scaleup, &sys_lead_photon_drmax_scaleup, 
-          &sys_lead_photon_drmin_scaleup, 
-          &sys_llphoton_refit_relpt_phscaleup, 
-          &sys_llphoton_refit_cosTheta_phscaleup, 
-          &sys_llphoton_refit_costheta_phscaleup, 
-          &sys_llphoton_refit_psi_phscaleup,
-          &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
-          &sys_lead_photon_eta_scaleup});
-  }
+  //NamedFunc ggfbdt2503_score_phscaleup(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_scaleup, 
+  //        &sys_lead_photon_relpterr_scaleup, &sys_lead_photon_drmax_scaleup, 
+  //        &sys_lead_photon_drmin_scaleup, 
+  //        &sys_llphoton_refit_relpt_phscaleup, 
+  //        &sys_llphoton_refit_cosTheta_phscaleup, 
+  //        &sys_llphoton_refit_costheta_phscaleup, 
+  //        &sys_llphoton_refit_psi_phscaleup,
+  //        &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
+  //        &sys_lead_photon_eta_scaleup});
+  //}
 
-  NamedFunc ggfbdt2503_score_phscaledn(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_scaledn, 
-          &sys_lead_photon_relpterr_scaledn, &sys_lead_photon_drmax_scaledn, 
-          &sys_lead_photon_drmin_scaledn, 
-          &sys_llphoton_refit_relpt_phscaledn, 
-          &sys_llphoton_refit_cosTheta_phscaledn, 
-          &sys_llphoton_refit_costheta_phscaledn, 
-          &sys_llphoton_refit_psi_phscaledn,
-          &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
-          &sys_lead_photon_eta_scaledn});
-  }
+  //NamedFunc ggfbdt2503_score_phscaledn(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_scaledn, 
+  //        &sys_lead_photon_relpterr_scaledn, &sys_lead_photon_drmax_scaledn, 
+  //        &sys_lead_photon_drmin_scaledn, 
+  //        &sys_llphoton_refit_relpt_phscaledn, 
+  //        &sys_llphoton_refit_cosTheta_phscaledn, 
+  //        &sys_llphoton_refit_costheta_phscaledn, 
+  //        &sys_llphoton_refit_psi_phscaledn,
+  //        &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
+  //        &sys_lead_photon_eta_scaledn});
+  //}
 
-  NamedFunc ggfbdt2503_score_phresup(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_resup, 
-          &sys_lead_photon_relpterr_resup, &sys_lead_photon_drmax_resup, 
-          &sys_lead_photon_drmin_resup, 
-          &sys_llphoton_refit_relpt_phresup, 
-          &sys_llphoton_refit_cosTheta_phresup, 
-          &sys_llphoton_refit_costheta_phresup, 
-          &sys_llphoton_refit_psi_phresup,
-          &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
-          &sys_lead_photon_eta_resup});
-  }
+  //NamedFunc ggfbdt2503_score_phresup(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_resup, 
+  //        &sys_lead_photon_relpterr_resup, &sys_lead_photon_drmax_resup, 
+  //        &sys_lead_photon_drmin_resup, 
+  //        &sys_llphoton_refit_relpt_phresup, 
+  //        &sys_llphoton_refit_cosTheta_phresup, 
+  //        &sys_llphoton_refit_costheta_phresup, 
+  //        &sys_llphoton_refit_psi_phresup,
+  //        &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
+  //        &sys_lead_photon_eta_resup});
+  //}
 
-  NamedFunc ggfbdt2503_score_phresdn(const vector<FastForest> &xgb_bdts) {
-     return XGBoostBDTScoreCached(xgb_bdts,
-         {&sys_lead_photon_idmva_resdn, 
-          &sys_lead_photon_relpterr_resdn, &sys_lead_photon_drmax_resdn, 
-          &sys_lead_photon_drmin_resdn, 
-          &sys_llphoton_refit_relpt_phresdn, 
-          &sys_llphoton_refit_cosTheta_phresdn, 
-          &sys_llphoton_refit_costheta_phresdn, 
-          &sys_llphoton_refit_psi_phresdn,
-          &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
-          &sys_lead_photon_eta_resdn});
-  }
+  //NamedFunc ggfbdt2503_score_phresdn(const vector<FastForest> &xgb_bdts) {
+  //   return XGBoostBDTScoreCached(xgb_bdts,
+  //       {&sys_lead_photon_idmva_resdn, 
+  //        &sys_lead_photon_relpterr_resdn, &sys_lead_photon_drmax_resdn, 
+  //        &sys_lead_photon_drmin_resdn, 
+  //        &sys_llphoton_refit_relpt_phresdn, 
+  //        &sys_llphoton_refit_cosTheta_phresdn, 
+  //        &sys_llphoton_refit_costheta_phresdn, 
+  //        &sys_llphoton_refit_psi_phresdn,
+  //        &sys_lead_lepton_eta_default, &sys_sublead_lepton_eta_default, 
+  //        &sys_lead_photon_eta_resdn});
+  //}
 
-  //new (25-08) BDTs
+  //new (25-09) BDTs
 
+  const vector<const NamedFunc*> ggf_bdt_inputs_default = {
+      &sys_llphoton_costheta_default,
+      &sys_llphoton_cosTheta_default,
+      &sys_llphoton_relpt_default,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_default,
+      &sys_llphoton_jet_balance_default,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_elscaleup = {
+      &sys_llphoton_costheta_elscaleup,
+      &sys_llphoton_cosTheta_elscaleup,
+      &sys_llphoton_relpt_elscaleup,
+      &sys_lead_lepton_eta_elscaleup,
+      &sys_sublead_lepton_eta_elscaleup,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_elscaleup,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_elscaleup,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_elscaleup,
+      &sys_llphoton_jet_balance_elscaleup,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_elscaledn = {
+      &sys_llphoton_costheta_elscaledn,
+      &sys_llphoton_cosTheta_elscaledn,
+      &sys_llphoton_relpt_elscaledn,
+      &sys_lead_lepton_eta_elscaledn,
+      &sys_sublead_lepton_eta_elscaledn,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_elscaledn,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_elscaledn,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_elscaledn,
+      &sys_llphoton_jet_balance_elscaledn,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_elresup = {
+      &sys_llphoton_costheta_elresup,
+      &sys_llphoton_cosTheta_elresup,
+      &sys_llphoton_relpt_elresup,
+      &sys_lead_lepton_eta_elresup,
+      &sys_sublead_lepton_eta_elresup,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_elresup,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_elresup,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_elresup,
+      &sys_llphoton_jet_balance_elresup,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_elresdn = {
+      &sys_llphoton_costheta_elresdn,
+      &sys_llphoton_cosTheta_elresdn,
+      &sys_llphoton_relpt_elresdn,
+      &sys_lead_lepton_eta_elresdn,
+      &sys_sublead_lepton_eta_elresdn,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_elresdn,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_elresdn,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_elresdn,
+      &sys_llphoton_jet_balance_elresdn,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_muscaleup = {
+      &sys_llphoton_costheta_muscaleup,
+      &sys_llphoton_cosTheta_muscaleup,
+      &sys_llphoton_relpt_muscaleup,
+      &sys_lead_lepton_eta_muscaleup,
+      &sys_sublead_lepton_eta_muscaleup,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_muscaleup,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_muscaleup,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_muscaleup,
+      &sys_llphoton_jet_balance_muscaleup,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_muscaledn = {
+      &sys_llphoton_costheta_muscaledn,
+      &sys_llphoton_cosTheta_muscaledn,
+      &sys_llphoton_relpt_muscaledn,
+      &sys_lead_lepton_eta_muscaledn,
+      &sys_sublead_lepton_eta_muscaledn,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_muscaledn,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_muscaledn,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_muscaledn,
+      &sys_llphoton_jet_balance_muscaledn,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_muresup = {
+      &sys_llphoton_costheta_muresup,
+      &sys_llphoton_cosTheta_muresup,
+      &sys_llphoton_relpt_muresup,
+      &sys_lead_lepton_eta_muresup,
+      &sys_sublead_lepton_eta_muresup,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_muresup,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_muresup,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_muresup,
+      &sys_llphoton_jet_balance_muresup,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_muresdn = {
+      &sys_llphoton_costheta_muresdn,
+      &sys_llphoton_cosTheta_muresdn,
+      &sys_llphoton_relpt_muresdn,
+      &sys_lead_lepton_eta_muresdn,
+      &sys_sublead_lepton_eta_muresdn,
+      &sys_lead_photon_eta_default,
+      &sys_llphoton_psi_muresdn,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_photon_mht_dphi_muresdn,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_llphoton_jet_dphi_muresdn,
+      &sys_llphoton_jet_balance_muresdn,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_phscaleup = {
+      &sys_llphoton_costheta_phscaleup,
+      &sys_llphoton_cosTheta_phscaleup,
+      &sys_llphoton_relpt_phscaleup,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_scaleup,
+      &sys_llphoton_psi_phscaleup,
+      &sys_lead_photon_idmva_scaleup,
+      &sys_lead_photon_relpterr_scaleup,
+      &sys_lead_photon_drmin_scaleup,
+      &sys_lead_photon_drmax_scaleup,
+      &sys_photon_mht_dphi_phscaleup,
+      &sys_photon_jet1_dr_phscaleup,
+      &sys_photon_zeppenfeld_phscaleup,
+      &sys_llphoton_jet_dphi_phscaleup,
+      &sys_llphoton_jet_balance_phscaleup,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_phscaledn = {
+      &sys_llphoton_costheta_phscaledn,
+      &sys_llphoton_cosTheta_phscaledn,
+      &sys_llphoton_relpt_phscaledn,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_scaledn,
+      &sys_llphoton_psi_phscaledn,
+      &sys_lead_photon_idmva_scaledn,
+      &sys_lead_photon_relpterr_scaledn,
+      &sys_lead_photon_drmin_scaledn,
+      &sys_lead_photon_drmax_scaledn,
+      &sys_photon_mht_dphi_phscaledn,
+      &sys_photon_jet1_dr_phscaledn,
+      &sys_photon_zeppenfeld_phscaledn,
+      &sys_llphoton_jet_dphi_phscaledn,
+      &sys_llphoton_jet_balance_phscaledn,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_phresup = {
+      &sys_llphoton_costheta_phresup,
+      &sys_llphoton_cosTheta_phresup,
+      &sys_llphoton_relpt_phresup,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_resup,
+      &sys_llphoton_psi_phresup,
+      &sys_lead_photon_idmva_resup,
+      &sys_lead_photon_relpterr_resup,
+      &sys_lead_photon_drmin_resup,
+      &sys_lead_photon_drmax_resup,
+      &sys_photon_mht_dphi_phresup,
+      &sys_photon_jet1_dr_phresup,
+      &sys_photon_zeppenfeld_phresup,
+      &sys_llphoton_jet_dphi_phresup,
+      &sys_llphoton_jet_balance_phresup,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> ggf_bdt_inputs_phresdn = {
+      &sys_llphoton_costheta_phresdn,
+      &sys_llphoton_cosTheta_phresdn,
+      &sys_llphoton_relpt_phresdn,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_resdn,
+      &sys_llphoton_psi_phresdn,
+      &sys_lead_photon_idmva_resdn,
+      &sys_lead_photon_relpterr_resdn,
+      &sys_lead_photon_drmin_resdn,
+      &sys_lead_photon_drmax_resdn,
+      &sys_photon_mht_dphi_phresdn,
+      &sys_photon_jet1_dr_phresdn,
+      &sys_photon_zeppenfeld_phresdn,
+      &sys_llphoton_jet_dphi_phresdn,
+      &sys_llphoton_jet_balance_phresdn,
+      &sys_lead_jet_eta_default,
+      &sys_lead_jet_m_default,
+      &sys_lead_jet_pt_default,
+      &sys_njet_default};
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_default = {
+      &sys_llphoton_cosTheta_default,
+      &sys_llphoton_psi_default,
+      &sys_llphoton_costheta_default,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_default,
+      &sys_llphoton_dijet_dphi_default,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_default,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_default
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_elscaleup = {
+      &sys_llphoton_cosTheta_elscaleup,
+      &sys_llphoton_psi_elscaleup,
+      &sys_llphoton_costheta_elscaleup,
+      &sys_lead_lepton_eta_elscaleup,
+      &sys_sublead_lepton_eta_elscaleup,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_elscaleup,
+      &sys_llphoton_dijet_dphi_elscaleup,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_elscaleup,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_elscaleup
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_elscaledn = {
+      &sys_llphoton_cosTheta_elscaledn,
+      &sys_llphoton_psi_elscaledn,
+      &sys_llphoton_costheta_elscaledn,
+      &sys_lead_lepton_eta_elscaledn,
+      &sys_sublead_lepton_eta_elscaledn,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_elscaledn,
+      &sys_llphoton_dijet_dphi_elscaledn,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_elscaledn,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_elscaledn
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_elresup = {
+      &sys_llphoton_cosTheta_elresup,
+      &sys_llphoton_psi_elresup,
+      &sys_llphoton_costheta_elresup,
+      &sys_lead_lepton_eta_elresup,
+      &sys_sublead_lepton_eta_elresup,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_elresup,
+      &sys_llphoton_dijet_dphi_elresup,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_elresup,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_elresup
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_elresdn = {
+      &sys_llphoton_cosTheta_elresdn,
+      &sys_llphoton_psi_elresdn,
+      &sys_llphoton_costheta_elresdn,
+      &sys_lead_lepton_eta_elresdn,
+      &sys_sublead_lepton_eta_elresdn,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_elresdn,
+      &sys_llphoton_dijet_dphi_elresdn,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_elresdn,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_elresdn
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_muscaleup = {
+      &sys_llphoton_cosTheta_muscaleup,
+      &sys_llphoton_psi_muscaleup,
+      &sys_llphoton_costheta_muscaleup,
+      &sys_lead_lepton_eta_muscaleup,
+      &sys_sublead_lepton_eta_muscaleup,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_muscaleup,
+      &sys_llphoton_dijet_dphi_muscaleup,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_muscaleup,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_muscaleup
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_muscaledn = {
+      &sys_llphoton_cosTheta_muscaledn,
+      &sys_llphoton_psi_muscaledn,
+      &sys_llphoton_costheta_muscaledn,
+      &sys_lead_lepton_eta_muscaledn,
+      &sys_sublead_lepton_eta_muscaledn,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_muscaledn,
+      &sys_llphoton_dijet_dphi_muscaledn,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_muscaledn,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_muscaledn
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_muresup = {
+      &sys_llphoton_cosTheta_muresup,
+      &sys_llphoton_psi_muresup,
+      &sys_llphoton_costheta_muresup,
+      &sys_lead_lepton_eta_muresup,
+      &sys_sublead_lepton_eta_muresup,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_muresup,
+      &sys_llphoton_dijet_dphi_muresup,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_muresup,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_muresup
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_muresdn = {
+      &sys_llphoton_cosTheta_muresdn,
+      &sys_llphoton_psi_muresdn,
+      &sys_llphoton_costheta_muresdn,
+      &sys_lead_lepton_eta_muresdn,
+      &sys_sublead_lepton_eta_muresdn,
+      &sys_lead_photon_eta_default,
+      &sys_lead_photon_drmin_default,
+      &sys_lead_photon_drmax_default,
+      &sys_lead_photon_idmva_default,
+      &sys_lead_photon_relpterr_default,
+      &sys_llphoton_relpt_muresdn,
+      &sys_llphoton_dijet_dphi_muresdn,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_muresdn,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_default,
+      &sys_photon_jet1_dr_default,
+      &sys_photon_jet2_dr_default,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_muresdn
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_phscaleup = {
+      &sys_llphoton_cosTheta_phscaleup,
+      &sys_llphoton_psi_phscaleup,
+      &sys_llphoton_costheta_phscaleup,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_scaleup,
+      &sys_lead_photon_drmin_scaleup,
+      &sys_lead_photon_drmax_scaleup,
+      &sys_lead_photon_idmva_scaleup,
+      &sys_lead_photon_relpterr_scaleup,
+      &sys_llphoton_relpt_phscaleup,
+      &sys_llphoton_dijet_dphi_phscaleup,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_phscaleup,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_phscaleup,
+      &sys_photon_jet1_dr_phscaleup,
+      &sys_photon_jet2_dr_phscaleup,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_phscaleup
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_phscaledn = {
+      &sys_llphoton_cosTheta_phscaledn,
+      &sys_llphoton_psi_phscaledn,
+      &sys_llphoton_costheta_phscaledn,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_scaledn,
+      &sys_lead_photon_drmin_scaledn,
+      &sys_lead_photon_drmax_scaledn,
+      &sys_lead_photon_idmva_scaledn,
+      &sys_lead_photon_relpterr_scaledn,
+      &sys_llphoton_relpt_phscaledn,
+      &sys_llphoton_dijet_dphi_phscaledn,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_phscaledn,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_phscaledn,
+      &sys_photon_jet1_dr_phscaledn,
+      &sys_photon_jet2_dr_phscaledn,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_phscaledn
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_phresup = {
+      &sys_llphoton_cosTheta_phresup,
+      &sys_llphoton_psi_phresup,
+      &sys_llphoton_costheta_phresup,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_resup,
+      &sys_lead_photon_drmin_resup,
+      &sys_lead_photon_drmax_resup,
+      &sys_lead_photon_idmva_resup,
+      &sys_lead_photon_relpterr_resup,
+      &sys_llphoton_relpt_phresup,
+      &sys_llphoton_dijet_dphi_phresup,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_phresup,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_phresup,
+      &sys_photon_jet1_dr_phresup,
+      &sys_photon_jet2_dr_phresup,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_phresup
+      };
+
+  const vector<const NamedFunc*> vbf_bdt_inputs_phresdn = {
+      &sys_llphoton_cosTheta_phresdn,
+      &sys_llphoton_psi_phresdn,
+      &sys_llphoton_costheta_phresdn,
+      &sys_lead_lepton_eta_default,
+      &sys_sublead_lepton_eta_default,
+      &sys_lead_photon_eta_resdn,
+      &sys_lead_photon_drmin_resdn,
+      &sys_lead_photon_drmax_resdn,
+      &sys_lead_photon_idmva_resdn,
+      &sys_lead_photon_relpterr_resdn,
+      &sys_llphoton_relpt_phresdn,
+      &sys_llphoton_dijet_dphi_phresdn,
+      &sys_dijet_m_default,
+      &sys_dijet_deta_default,
+      &sys_llphoton_jet_balance_phresdn,
+      &sys_njet_default,
+      &sys_dijet_dphi_default,
+      &sys_photon_zeppenfeld_phresdn,
+      &sys_photon_jet1_dr_phresdn,
+      &sys_photon_jet2_dr_phresdn,
+      &sys_lead_jet_pt_default,
+      &sys_sublead_jet_pt_default,
+      &sys_photon_mht_dphi_phresdn
+      };
+
+  //check other stuff for redwood changes... TODO
+  
 }

@@ -32,6 +32,10 @@ using std::vector;
 using fastforest::FastForest;
 using ZgUtilities::ZgSampleLoader;
 using ZgUtilities::XGBoostBDTs;
+using ZgUtilities::VBFXGBoostBDTs;
+using ZgUtilities::xgb_ggf_bdt_250923_offsets;
+using ZgUtilities::xgb_vbf_bdt_250923_offsets;
+using ZgUtilities::XGBoostBDTScoreCached;
 using ZgUtilities::category_ggf4;
 using ZgUtilities::category_ggf3;
 using ZgUtilities::category_ggf2;
@@ -56,74 +60,111 @@ int main() {
 
   //Define processes
   vector<shared_ptr<Process>> processes = ZgSampleLoader() 
-        .SetMacro("YEARS",{"2018"})
         .LoadSamples("txt/samples_zgamma.txt","Datacard");
-
-  //TODO implement nullptrs in sample loader
-  //TODO implement processes in samples.txt
   vector<shared_ptr<Process>> processes_tuneup = ZgSampleLoader() 
-        .SetMacro("YEARS",{"2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardTuneUp");
-
   vector<shared_ptr<Process>> processes_tunedn = ZgSampleLoader() 
-        .SetMacro("YEARS",{"2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardTuneDown");
-
   vector<shared_ptr<Process>> processes_aux = ZgSampleLoader() 
-        .SetMacro("YEARS",{"2018"})
-        .LoadSamples("txt/samples_zgamma.txt","DatacardAux");
+        .LoadSamples("txt/samples_zgamma.txt","DatacardAux"); //m120, m130
 
   //Define NamedFuncs
   NamedFunc mllg = NamedFunc("llphoton_refit_m").Name("mllg");
   NamedFunc untagged_category_cached = NamedFunc(untagged_category)
       .EnableCaching(true);
   initialize_jetvariations();
-  //NamedFunc mllg_range_cut = NamedFunc("llphoton_m[0]>100&&llphoton_m[0]<165");
   const vector<string> years = {"2016APV", "2016", "2017", "2018", 
                                 "2022", "2022EE", "2023", "2023BPix"};
 
   const vector<FastForest> ggf_bdts = XGBoostBDTs();
-  const NamedFunc ggf_score_default = ggfbdt2503_score_default(ggf_bdts);
-  const NamedFunc ggf_score_elscaleup = ggfbdt2503_score_elscaleup(ggf_bdts);
-  const NamedFunc ggf_score_elscaledn = ggfbdt2503_score_elscaledn(ggf_bdts);
-  const NamedFunc ggf_score_elresup = ggfbdt2503_score_elresup(ggf_bdts);
-  const NamedFunc ggf_score_elresdn = ggfbdt2503_score_elresdn(ggf_bdts);
-  const NamedFunc ggf_score_muscaleup = ggfbdt2503_score_muscaleup(ggf_bdts);
-  const NamedFunc ggf_score_muscaledn = ggfbdt2503_score_muscaledn(ggf_bdts);
-  const NamedFunc ggf_score_muresup = ggfbdt2503_score_muresup(ggf_bdts);
-  const NamedFunc ggf_score_muresdn = ggfbdt2503_score_muresdn(ggf_bdts);
-  const NamedFunc ggf_score_phscaleup = ggfbdt2503_score_phscaleup(ggf_bdts);
-  const NamedFunc ggf_score_phscaledn = ggfbdt2503_score_phscaledn(ggf_bdts);
-  const NamedFunc ggf_score_phresup = ggfbdt2503_score_phresup(ggf_bdts);
-  const NamedFunc ggf_score_phresdn = ggfbdt2503_score_phresdn(ggf_bdts);
+  const vector<FastForest> vbf_bdts = VBFXGBoostBDTs();
+  const NamedFunc ggf_score_default = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_default, "ggf_default");
+  const NamedFunc ggf_score_elscaleup = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_elscaleup, "ggf_elscaleup");
+  const NamedFunc ggf_score_elscaledn = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_elscaledn, "ggf_elscaledn");
+  const NamedFunc ggf_score_elresup = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_elresup, "ggf_elresup");
+  const NamedFunc ggf_score_elresdn = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_elresdn, "ggf_elresdn");
+  const NamedFunc ggf_score_muscaleup = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_muscaleup, "ggf_muscaleup");
+  const NamedFunc ggf_score_muscaledn = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_muscaledn, "ggf_muscaledn");
+  const NamedFunc ggf_score_muresup = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_muresup, "ggf_muresup");
+  const NamedFunc ggf_score_muresdn = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_muresdn, "ggf_muresdn");
+  const NamedFunc ggf_score_phscaleup = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_phscaleup, "ggf_phscaleup");
+  const NamedFunc ggf_score_phscaledn = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_phscaledn, "ggf_phscaledn");
+  const NamedFunc ggf_score_phresup = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_phresup, "ggf_phresup");
+  const NamedFunc ggf_score_phresdn = XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_phresdn, "ggf_phresdn");
+  const NamedFunc vbf_score_default = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_default, "vbf_default");
+  const NamedFunc vbf_score_elscaleup = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_elscaleup, "vbf_elscaleup");
+  const NamedFunc vbf_score_elscaledn = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_elscaledn, "vbf_elscaledn");
+  const NamedFunc vbf_score_elresup = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_elresup, "vbf_elresup");
+  const NamedFunc vbf_score_elresdn = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_elresdn, "vbf_elresdn");
+  const NamedFunc vbf_score_muscaleup = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_muscaleup, "vbf_muscaleup");
+  const NamedFunc vbf_score_muscaledn = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_muscaledn, "vbf_muscaledn");
+  const NamedFunc vbf_score_muresup = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_muresup, "vbf_muresup");
+  const NamedFunc vbf_score_muresdn = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_muresdn, "vbf_muresdn");
+  const NamedFunc vbf_score_phscaleup = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_phscaleup, "vbf_phscaleup");
+  const NamedFunc vbf_score_phscaledn = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_phscaledn, "vbf_phscaledn");
+  const NamedFunc vbf_score_phresup = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_phresup, "vbf_phresup");
+  const NamedFunc vbf_score_phresdn = XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_phresdn, "vbf_phresdn");
 
-  const NamedFunc vbf_score_default = syst_vbf_bdt_score();
-  const NamedFunc vbf_score_elscaleup = syst_vbf_bdt_score("elscaleup");
-  const NamedFunc vbf_score_elscaledn = syst_vbf_bdt_score("elscaledn");
-  const NamedFunc vbf_score_elresup = syst_vbf_bdt_score("elresup");
-  const NamedFunc vbf_score_elresdn = syst_vbf_bdt_score("elresdn");
-  const NamedFunc vbf_score_muscaleup = syst_vbf_bdt_score("muscaleup");
-  const NamedFunc vbf_score_muscaledn = syst_vbf_bdt_score("muscaledn");
-  const NamedFunc vbf_score_muresup = syst_vbf_bdt_score("muresup");
-  const NamedFunc vbf_score_muresdn = syst_vbf_bdt_score("muresdn");
-  const NamedFunc vbf_score_phscaleup = syst_vbf_bdt_score("phscaleup");
-  const NamedFunc vbf_score_phscaledn = syst_vbf_bdt_score("phscaledn");
-  const NamedFunc vbf_score_phresup = syst_vbf_bdt_score("phresup");
-  const NamedFunc vbf_score_phresdn = syst_vbf_bdt_score("phresdn");
+  vector<NamedFunc> ggf_score_jetscaleup;
+  vector<NamedFunc> ggf_score_jetscaledn;
+  vector<NamedFunc> ggf_score_jetresup;
+  vector<NamedFunc> ggf_score_jetresdn;
   vector<NamedFunc> vbf_score_jetscaleup;
   vector<NamedFunc> vbf_score_jetscaledn;
   vector<NamedFunc> vbf_score_jetresup;
   vector<NamedFunc> vbf_score_jetresdn;
   for (unsigned iyear = 0; iyear < years.size(); iyear++) {
     string year = years[iyear];
-    vbf_score_jetscaleup.push_back(syst_vbf_bdt_score(
-        ("jetscaleup"+year).c_str()));
-    vbf_score_jetscaledn.push_back(syst_vbf_bdt_score(
-        ("jetscaledn"+year).c_str()));
-    vbf_score_jetresup.push_back(syst_vbf_bdt_score(
-        ("jetresup"+year).c_str()));
-    vbf_score_jetresdn.push_back(syst_vbf_bdt_score(
-        ("jetresdn"+year).c_str()));
+    ggf_score_jetscaleup.push_back(XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_jetscaleup[iyear], 
+      "ggf_jetscaleup"+year));
+    ggf_score_jetscaledn.push_back(XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_jetscaledn[iyear], 
+      "ggf_jetscaledn"+year));
+    ggf_score_jetresup.push_back(XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_jetresup[iyear], 
+      "ggf_jetresup"+year));
+    ggf_score_jetresdn.push_back(XGBoostBDTScoreCached(ggf_bdts, 
+      xgb_ggf_bdt_250923_offsets, ggf_bdt_inputs_jetresdn[iyear], 
+      "ggf_jetresdn"+year));
+    vbf_score_jetscaleup.push_back(XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_jetscaleup[iyear], 
+      "vbf_jetscaleup"+year));
+    vbf_score_jetscaledn.push_back(XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_jetscaledn[iyear], 
+      "vbf_jetscaledn"+year));
+    vbf_score_jetresup.push_back(XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_jetresup[iyear], 
+      "vbf_jetresup"+year));
+    vbf_score_jetresdn.push_back(XGBoostBDTScoreCached(vbf_bdts, 
+      xgb_vbf_bdt_250923_offsets, vbf_bdt_inputs_jetresdn[iyear], 
+      "vbf_jetresdn"+year));
   }
 
   //weight with some regularization
@@ -141,12 +182,11 @@ int main() {
   //Define channels
   SelectionList baseline("baseline");
   baseline.AddSelection("objectreq","nphoton>=1&&nll>=1");
-  baseline.AddSelection("lepptcuts",trig_plateau_cuts);
+  baseline.AddSelection("lepptcuts",sys_trig_pt_default);
   baseline.AddSelection("zmassreq","ll_m[0]>80&&ll_m[0]<100");
   baseline.AddSelection("photonptreq",
                         "(photon_pt[0]/llphoton_m[0])>=15.0/110.0");
   baseline.AddSelection("mllmllgreq","(llphoton_m[0]+ll_m[0])>=185");
-  //baseline.AddSelection("fitrange",mllg_range_cut);
   baseline.AddSelection("metfilters","pass");
 
   SelectionList cat_ggf4("cat_ggf4",baseline);
@@ -163,85 +203,46 @@ int main() {
   SelectionList cat_tthlep("cat_tthlep",baseline);
   SelectionList cat_untagged("cat_untagged",baseline);
 
-  //DEBUG
-  SelectionList cat_ggfincl("cat_ggfincl",baseline);
-  cat_ggfincl.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
-  SelectionList cat_vbfincl("cat_vbfincl",baseline);
-  cat_vbfincl.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
-  //+added to selectionlist thing
-  //DEBUG
-
   cat_ggf4.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
-  //cat_ggf4.AddSelection("fitrange",
-  //                      "llphoton_m[0]>107&&llphoton_m[0]<172");
-  cat_ggf4.AddSelection("ggf4bdtcuts",
-                        category_ggf4(ggf_score_default));
+  cat_ggf4.AddSelection("ggf4bdtcuts",category_ggf4(ggf_score_default));
   cat_ggf3.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
-  //cat_ggf3.AddSelection("fitrange",
-  //                      "llphoton_m[0]>105&&llphoton_m[0]<170");
-  cat_ggf3.AddSelection("ggf3bdtcuts",
-                        category_ggf3(ggf_score_default));
+  cat_ggf3.AddSelection("ggf3bdtcuts",category_ggf3(ggf_score_default));
   cat_ggf2.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
-  //cat_ggf2.AddSelection("fitrange",
-  //                      "llphoton_m[0]>103&&llphoton_m[0]<168");
-  cat_ggf2.AddSelection("ggf2bdtcuts",
-                        category_ggf2(ggf_score_default));
+  cat_ggf2.AddSelection("ggf2bdtcuts",category_ggf2(ggf_score_default));
   cat_ggf1.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
-  //cat_ggf1.AddSelection("fitrange",
-  //                      "llphoton_m[0]>97&&llphoton_m[0]<162");
-  cat_ggf1.AddSelection("ggf1bdtcuts",
-                        category_ggf1(ggf_score_default));
+  cat_ggf1.AddSelection("ggf1bdtcuts",category_ggf1(ggf_score_default));
 
   cat_vbf4.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
-  //cat_vbf4.AddSelection("fitrange",
-  //                      "llphoton_m[0]>105&&llphoton_m[0]<170");
   cat_vbf4.AddSelection("vbf4bdtcuts",category_vbf4(vbf_score_default));
   cat_vbf3.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
-  //cat_vbf3.AddSelection("fitrange",
-  //                      "llphoton_m[0]>100&&llphoton_m[0]<165");
   cat_vbf3.AddSelection("vbf3bdtcuts",category_vbf3(vbf_score_default));
   cat_vbf2.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
-  //cat_vbf2.AddSelection("fitrange",
-  //                      "llphoton_m[0]>96&&llphoton_m[0]<161");
   cat_vbf2.AddSelection("vbf2bdtcuts",category_vbf2(vbf_score_default));
   cat_vbf1.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
-  //cat_vbf1.AddSelection("fitrange",
-  //                      "llphoton_m[0]>95&&llphoton_m[0]<160");
   cat_vbf1.AddSelection("vbf1bdtcuts",category_vbf1(vbf_score_default));
 
   cat_vhmet.AddSelection("vhmetobjectreq","nlep==2&&njet<2&&met>90");
   cat_vhmet.AddSelection("vhmetptllgreq","llphoton_pt[0]/llphoton_m[0]>0.4");
-  //cat_vhmet.AddSelection("fitrange",
-  //                       "llphoton_m[0]>100&&llphoton_m[0]<165");
-
   cat_vh3l.AddSelection("vh3lobjectreq","nlep>=3&&nbdfm==0&&met>30");
   cat_vh3l.AddSelection("vh3lminisoreq",max_lep_miniso<0.15);
   cat_vh3l.AddSelection("vh3lptllgreq","llphoton_pt[0]/llphoton_m[0]>0.3");
-  //cat_vh3l.AddSelection("fitrange",
-  //                      "llphoton_m[0]>100&&llphoton_m[0]<165");
 
   cat_tthhad.AddSelection("tthhadobjectreq","nlep==2&&njet>=5&&nbdfm>=1");
   cat_tthhad.AddSelection("tthhadzmassreq","ll_m[0]>85&&ll_m[0]<95");
-  //cat_tthhad.AddSelection("fitrange",
-  //                        "llphoton_m[0]>100&&llphoton_m[0]<165");
-
   cat_tthlep.AddSelection("tthlepobjectreq",
       "(nlep==3&&njet>=3&&nbdfm>=1)||(nlep>=4&&njet>=1&&nbdfm>=1)");
   cat_tthlep.AddSelection("tthlepminisoreq",max_lep_miniso<0.1);
-  //cat_tthlep.AddSelection("fitrange",
-  //                        "llphoton_m[0]>100&&llphoton_m[0]<165");
 
   cat_untagged.AddSelection("untagged",untagged_category_cached);
 
   vector<SelectionList> channels = {cat_ggf4,cat_ggf3,cat_ggf2,cat_ggf1,
                                     cat_vbf4,cat_vbf3,cat_vbf2,cat_vbf1,
                                     cat_vh3l,cat_vhmet,cat_tthhad,cat_tthlep,
-                                    cat_untagged, cat_ggfincl, cat_vbfincl};
+                                    cat_untagged};
 
   //Define systematics
-
+  //follow CAT naming when possible
   vector<Systematic> systematics;
-  //no CAT guidance on alphaS naming
   systematics.push_back(Systematic("pdf_Higgs_gg",{"weight"},
                                    {weight*sys_w_pdf_ggf}));
   systematics.push_back(Systematic("pdf_Higgs_qqbar",{"weight"},
@@ -259,6 +260,18 @@ int main() {
   systematics.push_back(Systematic("QCD_scale_ttH",{"weight"},
                                    {weight*sys_w_tth_xs_up},
                                    {weight*sys_w_tth_xs_dn}));
+  systematics.push_back(Systematic("QCD_scale_diff_ggH",{"weight"},
+                                   {weight*sys_diffscale_ggf_up},
+                                   {weight*sys_diffscale_ggf_dn}));
+  systematics.push_back(Systematic("QCD_scale_diff_qqH",{"weight"},
+                                   {weight*sys_diffscale_vbf_up},
+                                   {weight*sys_diffscale_vbf_dn}));
+  systematics.push_back(Systematic("QCD_scale_diff_VH",{"weight"},
+                                   {weight*sys_diffscale_vh_up},
+                                   {weight*sys_diffscale_vh_dn}));
+  systematics.push_back(Systematic("QCD_scale_diff_ttH",{"weight"},
+                                   {weight*sys_diffscale_tth_up},
+                                   {weight*sys_diffscale_tth_dn}));
   systematics.push_back(Systematic("BR_hzg",{"weight"},
                                    {weight*sys_w_htozg_br}));
   systematics.push_back(Systematic("BR_hmm",{"weight"},
@@ -290,27 +303,29 @@ int main() {
                                    {weight*"sys_prefire[0]/w_prefire"},
                                    {weight*"sys_prefire[1]/w_prefire"}));
   systematics.push_back(Systematic("CMS_eff_e",{"weight"},
-                                   {weight*"sys_el[0]/w_el"},
-                                   {weight*"sys_el[1]/w_el"}));
+                                   {weight*sys_w_el_up},
+                                   {weight*sys_w_el_dn}));
   systematics.push_back(Systematic("CMS_eff_m",{"weight"},
-                                   {weight*"sys_mu[0]/w_mu"},
-                                   {weight*"sys_mu[1]/w_mu"}));
+                                   {weight*sys_w_mu_up},
+                                   {weight*sys_w_mu_dn}));
   systematics.push_back(Systematic("CMS_eff_g",{"weight"},
                                    {weight*"sys_photon[0]/w_photon"},
                                    {weight*"sys_photon[1]/w_photon"}));
   systematics.push_back(Systematic("CMS_trigger_e",{"weight"},
-                                   {weight*sys_w_trig_el_up_pinnacles},
-                                   {weight*sys_w_trig_el_dn_pinnacles}));
+                                   {weight*sys_trig_el_up},
+                                   {weight*sys_trig_el_dn}));
   systematics.push_back(Systematic("CMS_trigger_m",{"weight"},
-                                   {weight*sys_w_trig_mu_up_pinnacles},
-                                   {weight*sys_w_trig_mu_dn_pinnacles}));
+                                   {weight*sys_trig_mu_up},
+                                   {weight*sys_trig_mu_dn}));
+  systematics.push_back(Systematic("CMS_quality_g",{"weight"},
+                                   {weight*"(1.5*w_phshape-0.5)/w_phshape"},
+                                   {weight*"(0.5*w_phshape+0.5)/w_phshape"}));
   systematics.push_back(Systematic("CMS_btag_heavy",{"weight"},
                                    {weight*"sys_bchig[0]/w_bhig_df"},
                                    {weight*"sys_bchig[1]/w_bhig_df"}));
   systematics.push_back(Systematic("CMS_btag_light",{"weight"},
                                    {weight*"sys_udsghig[0]/w_bhig_df"},
                                    {weight*"sys_udsghig[1]/w_bhig_df"}));
-  //note only works for run 2(?) in pinnacles
   for (unsigned iyear = 0; iyear < years.size(); iyear++) {
     string year = years[iyear];
     systematics.push_back(Systematic("CMS_btag_heavy_"+year,{"weight"},
@@ -326,8 +341,7 @@ int main() {
        "tthhadobjectreq","tthlepobjectreq","untagged","vhmetptllgreq",
        "vh3lminisoreq","vh3lptllgreq","tthhadzmassreq","tthlepminisoreq",
        "ggf4bdtcuts","ggf3bdtcuts","ggf2bdtcuts","ggf1bdtcuts",
-       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts",
-       "fitvar"},
+       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts", "fitvar"},
       {"nphoton>=1"&&sys_nll_elscaleup>=1, 
        sys_trig_pt_elscaleup, 
        sys_ll_m_elscaleup>80&&sys_ll_m_elscaleup<100, 
@@ -388,8 +402,7 @@ int main() {
        "tthhadobjectreq","tthlepobjectreq","untagged","vhmetptllgreq",
        "vh3lminisoreq","vh3lptllgreq","tthhadzmassreq","tthlepminisoreq",
        "ggf4bdtcuts","ggf3bdtcuts","ggf2bdtcuts","ggf1bdtcuts",
-       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts",
-       "fitvar"},
+       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts", "fitvar"},
       {"nphoton>=1"&&sys_nll_elresup>=1, 
        sys_trig_pt_elresup, 
        sys_ll_m_elresup>80&&sys_ll_m_elresup<100, 
@@ -442,14 +455,74 @@ int main() {
        category_vbf2(vbf_score_elresdn),
        category_vbf1(vbf_score_elresdn),
        sys_llphoton_refit_m_elresdn},true));
+  systematics.push_back(Systematic("CMS_scale_m",
+      {"objectreq","lepptcuts","zmassreq","photonptreq","mllmllgreq",
+       "ggfobjectreq","vbfobjectreq","vhmetobjectreq","vh3lobjectreq",
+       "tthhadobjectreq","tthlepobjectreq","untagged","vhmetptllgreq",
+       "vh3lminisoreq","vh3lptllgreq","tthhadzmassreq","tthlepminisoreq",
+       "ggf4bdtcuts","ggf3bdtcuts","ggf2bdtcuts","ggf1bdtcuts",
+       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts", "fitvar"},
+      {"nphoton>=1"&&sys_nll_muscaleup>=1, 
+       sys_trig_pt_muscaleup, 
+       sys_ll_m_muscaleup>80&&sys_ll_m_muscaleup<100, 
+       "photon_pt[0]"/sys_llphoton_m_muscaleup>(15.0/110.0),
+       (sys_ll_m_muscaleup+sys_llphoton_m_muscaleup)>185.0,
+       sys_nlep_muscaleup==2&&"njet<2&&met<90",
+       sys_nlep_muscaleup==2&&"njet>=2&&nbdfm==0",
+       sys_nlep_muscaleup==2&&"njet<2&&met>90",
+       sys_nlep_muscaleup>=3&&"nbdfm==0&&met>30",
+       sys_nlep_muscaleup==2&&"nbdfm>=1&&njet>=5",
+       ((sys_nlep_muscaleup==3&&"njet>=3")||(sys_nlep_muscaleup>=4))
+           &&"nbdfm>=1",
+       untagged_category_muscaleup,
+       sys_llphoton_pt_muscaleup/sys_llphoton_m_muscaleup>0.4,
+       sys_max_lep_miniso_muscaleup<0.15,
+       sys_llphoton_pt_muscaleup/sys_llphoton_m_muscaleup>0.3,
+       sys_ll_m_muscaleup>85&&sys_ll_m_muscaleup<95, 
+       sys_max_lep_miniso_muscaleup<0.1,
+       category_ggf4(ggf_score_muscaleup),
+       category_ggf3(ggf_score_muscaleup),
+       category_ggf2(ggf_score_muscaleup),
+       category_ggf1(ggf_score_muscaleup),
+       category_vbf4(vbf_score_muscaleup),
+       category_vbf3(vbf_score_muscaleup),
+       category_vbf2(vbf_score_muscaleup),
+       category_vbf1(vbf_score_muscaleup),
+       sys_llphoton_refit_m_muscaleup},
+      {"nphoton>=1"&&sys_nll_muscaledn>=1, 
+       sys_trig_pt_muscaledn, 
+       sys_ll_m_muscaledn>80&&sys_ll_m_muscaledn<100, 
+       "photon_pt[0]"/sys_llphoton_m_muscaledn>(15.0/110.0),
+       (sys_ll_m_muscaledn+sys_llphoton_m_muscaledn)>185.0,
+       sys_nlep_muscaledn==2&&"njet<2&&met<90",
+       sys_nlep_muscaledn==2&&"njet>=2&&nbdfm==0",
+       sys_nlep_muscaledn==2&&"njet<2&&met>90",
+       sys_nlep_muscaledn>=3&&"nbdfm==0&&met>30",
+       sys_nlep_muscaledn==2&&"nbdfm>=1&&njet>=5",
+       ((sys_nlep_muscaledn==3&&"njet>=3")||(sys_nlep_muscaledn>=4))
+           &&"nbdfm>=1",
+       untagged_category_muscaledn,
+       sys_llphoton_pt_muscaledn/sys_llphoton_m_muscaledn>0.4,
+       sys_max_lep_miniso_muscaledn<0.15,
+       sys_llphoton_pt_muscaledn/sys_llphoton_m_muscaledn>0.3,
+       sys_ll_m_muscaledn>85&&sys_ll_m_muscaledn<95, 
+       sys_max_lep_miniso_muscaledn<0.1,
+       category_ggf4(ggf_score_muscaledn),
+       category_ggf3(ggf_score_muscaledn),
+       category_ggf2(ggf_score_muscaledn),
+       category_ggf1(ggf_score_muscaledn),
+       category_vbf4(vbf_score_muscaledn),
+       category_vbf3(vbf_score_muscaledn),
+       category_vbf2(vbf_score_muscaledn),
+       category_vbf1(vbf_score_muscaledn),
+       sys_llphoton_refit_m_muscaledn},true));
   systematics.push_back(Systematic("CMS_res_m",
       {"objectreq","lepptcuts","zmassreq","photonptreq","mllmllgreq",
        "ggfobjectreq","vbfobjectreq","vhmetobjectreq","vh3lobjectreq",
        "tthhadobjectreq","tthlepobjectreq","untagged","vhmetptllgreq",
        "vh3lminisoreq","vh3lptllgreq","tthhadzmassreq","tthlepminisoreq",
        "ggf4bdtcuts","ggf3bdtcuts","ggf2bdtcuts","ggf1bdtcuts",
-       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts",
-       "fitvar"},
+       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts", "fitvar"},
       {"nphoton>=1"&&sys_nll_muresup>=1, 
        sys_trig_pt_muresup, 
        sys_ll_m_muresup>80&&sys_ll_m_muresup<100, 
@@ -505,7 +578,7 @@ int main() {
   systematics.push_back(Systematic("CMS_scale_g",
       {"objectreq","photonptreq","mllmllgreq","untagged","vhmetptllgreq",
        "vh3lptllgreq","ggf4bdtcuts","ggf3bdtcuts","ggf2bdtcuts","ggf1bdtcuts",
-       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts","fitvar"},
+       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts", "fitvar"},
       {sys_nphoton_scaleup>=1&&"nll>=1",
        sys_lead_photon_pt_scaleup/sys_llphoton_m_phscaleup>(15.0/110.0),
        ("ll_m[0]"+sys_llphoton_m_phscaleup)>185.0,
@@ -539,7 +612,7 @@ int main() {
   systematics.push_back(Systematic("CMS_res_g",
       {"objectreq","photonptreq","mllmllgreq","untagged","vhmetptllgreq",
        "vh3lptllgreq","ggf4bdtcuts","ggf3bdtcuts","ggf2bdtcuts","ggf1bdtcuts",
-       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts","fitvar"},
+       "vbf4bdtcuts","vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts", "fitvar"},
       {sys_nphoton_resup>=1&&"nll>=1",
        sys_lead_photon_pt_resup/sys_llphoton_m_phresup>(15.0/110.0),
        ("ll_m[0]"+sys_llphoton_m_phresup)>185.0,
@@ -574,8 +647,9 @@ int main() {
     string year = years[iyear];
     systematics.push_back(Systematic("CMS_scale_j_"+year,
         {"ggfobjectreq","vbfobjectreq","vhmetobjectreq","vh3lobjectreq",
-         "tthhadobjectreq","tthlepobjectreq","untagged","vbf4bdtcuts",
-         "vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts"},
+         "tthhadobjectreq","tthlepobjectreq","untagged","ggf4bdtcuts",
+         "ggf3bdtcuts","ggf2bdtcuts","ggf1bdtcuts","vbf4bdtcuts","vbf3bdtcuts",
+         "vbf2bdtcuts","vbf1bdtcuts"},
         {"nlep==2"&&sys_njet_scaleup[iyear]<2&&sys_met_scaleup[iyear]<90,
          "nlep==2"&&sys_njet_scaleup[iyear]>=2&&sys_nbdfm_scaleup[iyear]==0.0,
          "nlep==2"&&sys_njet_scaleup[iyear]<2&&sys_met_scaleup[iyear]>90,
@@ -584,6 +658,10 @@ int main() {
          (("nlep==3"&&sys_njet_scaleup[iyear]>=3)||"nlep>=4")
            &&sys_nbdfm_scaleup[iyear]>=1,
          untagged_category_jetscaleup[iyear],
+         category_ggf4(ggf_score_jetscaleup[iyear]),
+         category_ggf3(ggf_score_jetscaleup[iyear]),
+         category_ggf2(ggf_score_jetscaleup[iyear]),
+         category_ggf1(ggf_score_jetscaleup[iyear]),
          category_vbf4(vbf_score_jetscaleup[iyear]),
          category_vbf3(vbf_score_jetscaleup[iyear]),
          category_vbf2(vbf_score_jetscaleup[iyear]),
@@ -596,14 +674,19 @@ int main() {
          (("nlep==3"&&sys_njet_scaledn[iyear]>=3)||"nlep>=4")
            &&sys_nbdfm_scaledn[iyear]>=1,
          untagged_category_jetscaledn[iyear],
+         category_ggf4(ggf_score_jetscaledn[iyear]),
+         category_ggf3(ggf_score_jetscaledn[iyear]),
+         category_ggf2(ggf_score_jetscaledn[iyear]),
+         category_ggf1(ggf_score_jetscaledn[iyear]),
          category_vbf4(vbf_score_jetscaledn[iyear]),
          category_vbf3(vbf_score_jetscaledn[iyear]),
          category_vbf2(vbf_score_jetscaledn[iyear]),
          category_vbf1(vbf_score_jetscaledn[iyear])},false));
     systematics.push_back(Systematic("CMS_res_j_"+year,
         {"ggfobjectreq","vbfobjectreq","vhmetobjectreq","vh3lobjectreq",
-         "tthhadobjectreq","tthlepobjectreq","untagged","vbf4bdtcuts",
-         "vbf3bdtcuts","vbf2bdtcuts","vbf1bdtcuts"},
+         "tthhadobjectreq","tthlepobjectreq","untagged","ggf4bdtcuts",
+         "ggf3bdtcuts","ggf2bdtcuts","ggf1bdtcuts","vbf4bdtcuts","vbf3bdtcuts",
+         "vbf2bdtcuts","vbf1bdtcuts"},
         {"nlep==2"&&sys_njet_resup[iyear]<2&&sys_met_resup[iyear]<90,
          "nlep==2"&&sys_njet_resup[iyear]>=2&&sys_nbdfm_resup[iyear]==0.0,
          "nlep==2"&&sys_njet_resup[iyear]<2&&sys_met_resup[iyear]>90,
@@ -612,6 +695,10 @@ int main() {
          (("nlep==3"&&sys_njet_resup[iyear]>=3)||"nlep>=4")
            &&sys_nbdfm_resup[iyear]>=1,
          untagged_category_jetresup[iyear],
+         category_ggf4(ggf_score_jetresup[iyear]),
+         category_ggf3(ggf_score_jetresup[iyear]),
+         category_ggf2(ggf_score_jetresup[iyear]),
+         category_ggf1(ggf_score_jetresup[iyear]),
          category_vbf4(vbf_score_jetresup[iyear]),
          category_vbf3(vbf_score_jetresup[iyear]),
          category_vbf2(vbf_score_jetresup[iyear]),
@@ -624,6 +711,10 @@ int main() {
          (("nlep==3"&&sys_njet_resdn[iyear]>=3)||"nlep>=4")
            &&sys_nbdfm_resdn[iyear]>=1,
          untagged_category_jetresdn[iyear],
+         category_ggf4(ggf_score_jetresdn[iyear]),
+         category_ggf3(ggf_score_jetresdn[iyear]),
+         category_ggf2(ggf_score_jetresdn[iyear]),
+         category_ggf1(ggf_score_jetresdn[iyear]),
          category_vbf4(vbf_score_jetresdn[iyear]),
          category_vbf3(vbf_score_jetresdn[iyear]),
          category_vbf2(vbf_score_jetresdn[iyear]),
@@ -633,20 +724,20 @@ int main() {
 
   //Make datacard
   PlotMaker pm;
-  pm.multithreaded_ = false;
+  pm.multithreaded_ = true;
   pm.min_print_ = true;
-  //pm.max_threads_ = 24;
+  pm.max_threads_ = 16;
 
   //set axis range to be larger than range in any individual category
-  pm.Push<Datacard>("test_datacard11", channels, systematics, 
+  pm.Push<Datacard>("hzg_datacard_v1p0", channels, systematics, 
       processes, weight,
-      Axis(80, 95.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
+      Axis(340, 95.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)
       .AddParametricProcess("background")
       .SaveDataAsHist()
       .IncludeStatUncertainties();
 
-  //pm.max_entries_ = 500;
+  pm.max_entries_ = 500;
   pm.MakePlots(1.0);
 
   return 0;

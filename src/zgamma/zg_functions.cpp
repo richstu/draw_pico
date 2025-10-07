@@ -257,7 +257,7 @@ namespace ZgFunctions {
   const NamedFunc zg_baseline_run2 = NamedFunc((zg_el_cuts || zg_mu_cuts) && zg_baseline_nolep).Name("baseline_run2");
 
   //new working baseline selection
-  const NamedFunc zg_baseline = NamedFunc("(nel>=2||nmu>=2) && nphoton>=1 && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ll_m[0]>80 && ll_m[0]<100 && ((llphoton_m[0]+ll_m[0])>=185) && llphoton_m[0]>100 && llphoton_m[0]<180"&&trig_plateau_cuts).Name("baseline");
+  const NamedFunc zg_baseline = NamedFunc("nll>=1 && nphoton>=1 && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ll_m[0]>80 && ll_m[0]<100 && ((llphoton_m[0]+ll_m[0])>=185)"&&trig_plateau_cuts).Name("baseline");
 
   //master stitch variable, updated for KingsCanyon_v0, later to be updated for v1
   const NamedFunc stitch("stitch",[](const Baby &b) -> NamedFunc::ScalarType{
@@ -614,6 +614,21 @@ namespace ZgFunctions {
     return deta;
   });
 
+  //|eta(photon)-eta(jet)/2|
+  const NamedFunc jet_photon_deta_half("jet_photon_deta_half",[](const Baby &b) 
+      -> NamedFunc::VectorType{
+    std::vector<double> deta;
+    for (unsigned ijet = 0; ijet < b.jet_eta()->size(); ijet++) {
+      if (b.nphoton()==0) {
+        deta.push_back(-999.0);
+      }
+      else {
+        deta.push_back(fabs(b.jet_eta()->at(ijet)/2.0-b.photon_eta()->at(0)));
+      }
+    }
+    return deta;
+  });
+
   //signal jet photon dR
   const NamedFunc sig_jet_photon_dr = FilterNamedFunc(jet_photon_dr,
       jet_isgood_hornveto).Name("sig_jet_photon_dr");
@@ -623,6 +638,11 @@ namespace ZgFunctions {
       {sig_jet_pt,sig_jet_photon_dr},reduce_maxfirst)
       .Name("lead_jet_photon_dr");
 
+  //sublead jet photon dR
+  const NamedFunc sublead_jet_photon_dr = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_photon_dr},reduce_subleadfirst)
+      .Name("sublead_jet_photon_dr");
+
   //signal jet photon deta
   const NamedFunc sig_jet_photon_deta = FilterNamedFunc(jet_photon_deta,
       jet_isgood_hornveto).Name("sig_jet_photon_deta");
@@ -631,6 +651,15 @@ namespace ZgFunctions {
   const NamedFunc lead_jet_photon_deta = MultiReduceNamedFunc(
       {sig_jet_pt,sig_jet_photon_deta},reduce_maxfirst)
       .Name("lead_jet_photon_deta");
+
+  //signal jet photon deta half
+  const NamedFunc sig_jet_photon_deta_half = FilterNamedFunc(
+      jet_photon_deta_half,jet_isgood_hornveto).Name("sig_jet_photon_deta");
+  
+  //lead jet photon deta half
+  const NamedFunc lead_jet_photon_deta_half = MultiReduceNamedFunc(
+      {sig_jet_pt,sig_jet_photon_deta_half},reduce_maxfirst)
+      .Name("lead_jet_photon_deta_half");
 
   //dR between Higgs candidate and leading jet
   const NamedFunc lead_jet_llphoton_dr(
@@ -655,6 +684,7 @@ namespace ZgFunctions {
   //dphi between Higgs candidate and leading jet
   const NamedFunc lead_jet_llphoton_dphi(
       "lead_jet_llphoton_dphi",[](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.njet()<1) return -999.0;
     float lead_jet_pt0 = 0.0;
     float lead_jet_phi0 = 0.0;
     std::vector<double> isgood = jet_isgood_hornveto.GetVector(b);
@@ -673,20 +703,23 @@ namespace ZgFunctions {
   const NamedFunc llphoton_j_balance(
       "llphoton_j_balance",[](const Baby &b) -> NamedFunc::ScalarType{
     float mht_x(0.0), mht_y(0.0), ht0(0.0);
-    if (b.ll_lepid()->at(0) == 11) {
-      mht_x -= b.ll_refit_l1_pt()*cos(b.el_phi()->at(b.ll_i1()->at(0)));
-      mht_y -= b.ll_refit_l1_pt()*sin(b.el_phi()->at(b.ll_i1()->at(0)));
-      mht_x -= b.ll_refit_l2_pt()*cos(b.el_phi()->at(b.ll_i2()->at(0)));
-      mht_y -= b.ll_refit_l2_pt()*sin(b.el_phi()->at(b.ll_i2()->at(0)));
-    }
-    else {
-      mht_x -= b.ll_refit_l1_pt()*cos(b.mu_phi()->at(b.ll_i1()->at(0)));
-      mht_y -= b.ll_refit_l1_pt()*sin(b.mu_phi()->at(b.ll_i1()->at(0)));
-      mht_x -= b.ll_refit_l2_pt()*cos(b.mu_phi()->at(b.ll_i2()->at(0)));
-      mht_y -= b.ll_refit_l2_pt()*sin(b.mu_phi()->at(b.ll_i2()->at(0)));
-    }
-    ht0 += b.ll_refit_l1_pt();
-    ht0 += b.ll_refit_l2_pt();
+    //if (b.ll_lepid()->at(0) == 11) {
+    //  mht_x -= b.ll_refit_l1_pt()*cos(b.el_phi()->at(b.ll_i1()->at(0)));
+    //  mht_y -= b.ll_refit_l1_pt()*sin(b.el_phi()->at(b.ll_i1()->at(0)));
+    //  mht_x -= b.ll_refit_l2_pt()*cos(b.el_phi()->at(b.ll_i2()->at(0)));
+    //  mht_y -= b.ll_refit_l2_pt()*sin(b.el_phi()->at(b.ll_i2()->at(0)));
+    //}
+    //else {
+    //  mht_x -= b.ll_refit_l1_pt()*cos(b.mu_phi()->at(b.ll_i1()->at(0)));
+    //  mht_y -= b.ll_refit_l1_pt()*sin(b.mu_phi()->at(b.ll_i1()->at(0)));
+    //  mht_x -= b.ll_refit_l2_pt()*cos(b.mu_phi()->at(b.ll_i2()->at(0)));
+    //  mht_y -= b.ll_refit_l2_pt()*sin(b.mu_phi()->at(b.ll_i2()->at(0)));
+    //}
+    //ht0 += b.ll_refit_l1_pt();
+    //ht0 += b.ll_refit_l2_pt();
+    mht_x -= b.ll_refit_pt()*cos(b.ll_refit_phi());
+    mht_y -= b.ll_refit_pt()*sin(b.ll_refit_phi());
+    ht0 += b.ll_refit_pt();
     mht_x -= b.photon_pt()->at(0)*cos(b.photon_phi()->at(0));
     mht_y -= b.photon_pt()->at(0)*sin(b.photon_phi()->at(0));
     ht0 += b.photon_pt()->at(0);
@@ -753,7 +786,7 @@ namespace ZgFunctions {
   //do not fall into another category
   const NamedFunc untagged_category = NamedFunc(
       //2l+b but not enough jets for tth
-      NamedFunc("(nlep==2&&nbdfm>=1&&njet<5)") 
+      NamedFunc("(nlep==2&&nbdfm>=1&&njet<5&&njet>=2)") 
       //3l0b, but not enough met for vh3l
       ||NamedFunc("(nlep>=3&&nbdfm==0&&met<=30)") 
       //3l+b, but not enough jets for tth
@@ -771,6 +804,19 @@ namespace ZgFunctions {
       //fail additional miniso seleciton in tthlep
       ||("((nlep==3&&nbdfm>=1&&njet>=3)||(nlep>=4&&nbdfm>=1))"
          &&max_lep_miniso>=0.1)).Name("untagged_category"); 
+
+  //llphoton_dijet_absdphi
+  const NamedFunc llphoton_dijet_absdphi("llphoton_dijet_absdphi",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return fabs(b.llphoton_refit_dijet_dphi());
+  });
+
+  //dijet_absdphi
+  const NamedFunc dijet_absdphi("dijet_absdphi",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    return fabs(b.dijet_dphi());
+  });
+
 }
 
 

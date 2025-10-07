@@ -9,8 +9,6 @@
 #include <map>
 #include <memory>
 
-#include "RooAbsPdf.h"
-#include "RooRealVar.h"
 #include "TString.h"
 #include "TLorentzVector.h"
 
@@ -78,20 +76,33 @@ namespace ZgUtilities {
   NamedFunc category_vbf4(const NamedFunc &bdt_scores);
 
   //returns XGBoost BDTs
-  const std::vector<fastforest::FastForest> XGBoostBDTs();
+  std::vector<fastforest::FastForest> XGBoostBDTs_2503();
+  //returns XGBoost BDTs
+  std::vector<fastforest::FastForest> XGBoostBDTs();
+  //returns VBF XGBoost BDTs
+  std::vector<fastforest::FastForest> VBFXGBoostBDTs();
+  static const std::vector<float> xgb_ggf_bdt_250923_offsets = 
+      {0.730972, 0.731022, 0.730791, 0.730748};
+  static const std::vector<float> xgb_vbf_bdt_250923_offsets = 
+      {0.865881, 0.866399, 0.863877, 0.865476};
   //Returns NamedFunc that returns XGBoost score
   NamedFunc OldXGBoostBDTScore(
       const std::vector<fastforest::FastForest> &xgb_bdts);
   //Returns NamedFunc that returns XGBoost score
+  //Be careful: xgb_bdt may be allowed to go out of scope
   NamedFunc XGBoostBDTScore(
       const std::vector<fastforest::FastForest> &xgb_bdts, 
-      const std::vector<NamedFunc> &inputs);
+      const std::vector<float> &offsets,
+      const std::vector<NamedFunc> inputs,
+      const std::string &name);
   //Returns NamedFunc that returns XGBoost score
   //Be careful: neither NamedFuncs nor xgb_bdt may be allowed to go out of 
   //scope
   NamedFunc XGBoostBDTScoreCached(
       const std::vector<fastforest::FastForest> &xgb_bdts, 
-      const std::vector<const NamedFunc*> &inputs);
+      const std::vector<float> &offsets,
+      const std::vector<const NamedFunc*> inputs,
+      const std::string &name);
   //returns NamedFunc that selects low BDT score category "ggF 4"
   NamedFunc category_ggf4(const NamedFunc &bdtscore);
   //returns NamedFunc that selects medium BDT score category "ggF 3"

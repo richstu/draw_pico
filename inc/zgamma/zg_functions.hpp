@@ -174,11 +174,20 @@ namespace ZgFunctions {
   //dR between lead jet and photon
   extern const NamedFunc lead_jet_photon_dr;
 
+  //dR between sublead jet and photon
+  extern const NamedFunc sublead_jet_photon_dr;
+
   //deta between jet and photon
   extern const NamedFunc jet_photon_deta;
 
+  //|eta(photon)-eta(jet)/2|
+  extern const NamedFunc jet_photon_deta_half;
+
   //deta between lead jet and photon
   extern const NamedFunc lead_jet_photon_deta;
+
+  //|eta(photon)-eta(jet)/2|
+  extern const NamedFunc lead_jet_photon_deta_half;
 
   //dR between Higgs candidate and leading jet
   extern const NamedFunc lead_jet_llphoton_dr;
@@ -195,6 +204,12 @@ namespace ZgFunctions {
   //selector for untagged category consisting of events that pass baseline but
   //do not fall into another category
   extern const NamedFunc untagged_category;
+
+  //llphoton_dijet_absdphi
+  extern const NamedFunc llphoton_dijet_absdphi;
+
+  //dijet_absdphi
+  extern const NamedFunc dijet_absdphi;
 }
 
 #endif

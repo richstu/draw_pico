@@ -203,7 +203,7 @@ namespace NamedFuncUtilities {
 
   //get the maximum value of a vector
   double reduce_max(std::vector<double> data) {
-    if (data.size()==0) return 0;
+    if (data.size()==0) return -999.0;
     double max = data[0];
     for (double item : data)
       if (item > max)
@@ -213,7 +213,7 @@ namespace NamedFuncUtilities {
 
   //get the second highest value of a vector
   double reduce_sublead(std::vector<double> data) {
-    if (data.size()<2) return 0;
+    if (data.size()<2) return -999.0;
     double max = 0, next = 0;
     if (data[0] > data[1]) {
       max = data[0];
@@ -237,9 +237,9 @@ namespace NamedFuncUtilities {
 
   //return value of second array (data[1]) corresponding to maximum of first array (data[0])
   double reduce_maxfirst(std::vector<std::vector<double>> data) {
-    if (data.size()<2) return 0;
-    if (data[0].size() != data[1].size()) return 0;
-    if (data[0].size()==0) return 0;
+    if (data.size()<2) return -999.0;
+    if (data[0].size() != data[1].size()) return -999.0;
+    if (data[0].size()==0) return -999.0;
     double max = data[0][0];
     double ret = data[1][0];
     for (unsigned i = 1; i < data[0].size(); i++) {
@@ -253,9 +253,9 @@ namespace NamedFuncUtilities {
   
   //return value of second array (data[1]) corresponding to second highest value of first array (data[0])
   double reduce_subleadfirst(std::vector<std::vector<double>> data) {
-    if (data.size()<2) return 0;
-    if (data[0].size() != data[1].size()) return 0;
-    if (data[0].size()<2) return 0;
+    if (data.size()<2) return -999.0;
+    if (data[0].size() != data[1].size()) return -999.0;
+    if (data[0].size()<2) return -999.0;
     double max = 0, next = 0, max_ret = 0, next_ret = 0;
     if (data[0][0] > data[0][1]) {
       max = data[0][0];

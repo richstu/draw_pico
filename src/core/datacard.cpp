@@ -67,6 +67,8 @@
 #include "RooCategory.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TROOT.h"
+#include "TVirtualMutex.h"
 
 #include "core/axis.hpp"
 #include "core/baby.hpp"
@@ -294,6 +296,7 @@ void Datacard::DatacardProcessNonparametric::RecordEvent(const Baby &baby) {
         sumw2_[ichan][isyst] += weight*weight;
         if (datacard->save_shape_[isyst]) {
           float fit_var = datacard->fit_var_[isyst].GetScalar(baby);
+          R__LOCKGUARD(gROOTMutex);
           var_[ichan].setVal(fit_var);
           rrv_weight_.setVal(weight);
           dataset_[ichan][isyst].add(RooArgSet(var_[ichan]),weight);
