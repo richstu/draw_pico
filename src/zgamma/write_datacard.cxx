@@ -724,7 +724,7 @@ int main() {
 
   //Make datacard
   PlotMaker pm;
-  pm.multithreaded_ = true;
+  //pm.multithreaded_ = false;
   pm.min_print_ = true;
   pm.max_threads_ = 16;
 
@@ -737,7 +737,7 @@ int main() {
       .SaveDataAsHist()
       .IncludeStatUncertainties();
 
-  pm.max_entries_ = 500;
+  //pm.max_entries_ = 500;
   pm.MakePlots(1.0);
 
   return 0;

@@ -651,7 +651,70 @@ namespace ZgFunctions {
   });
 
   //for reference, electrons and muons failing eta, dxy, or dz cuts are dropped from pico lists
-  
+
+  //el_pt and variations
+  const NamedFunc sys_el_pt_default = NamedFunc("el_pt");
+  const NamedFunc sys_el_pt_scaleup = NamedFunc("sys_el_pt_scaleup");
+  const NamedFunc sys_el_pt_scaledn = NamedFunc("sys_el_pt_scaledn");
+  const NamedFunc sys_el_pt_resup = NamedFunc("sys_el_pt_resup");
+  const NamedFunc sys_el_pt_resdn = NamedFunc("sys_el_pt_resdn");
+  //const NamedFunc sys_el_pt_scaleup("sys_el_pt_scaleup",
+  //    [](const Baby &b) -> NamedFunc::VectorType{
+  //  vector<double> pt;
+  //  if (!(b.type() >= 200000 && b.type() < 200000)) {
+  //    for (unsigned iel = 0; iel < b.el_pt()->size(); iel++) {
+  //      pt.push_back(b.el_pt()->at(iel));
+  //    }
+  //    return pt;
+  //  }
+  //  for (unsigned iel = 0; iel < b.el_sig()->size(); iel++) {
+  //    pt.push_back(b.sys_el_pt_scaleup()->at(iel));
+  //  }
+  //  return pt;
+  //});
+  //const NamedFunc sys_el_pt_scaledn("sys_el_pt_scaledn",
+  //    [](const Baby &b) -> NamedFunc::VectorType{
+  //  vector<double> pt;
+  //  if (!(b.type() >= 200000 && b.type() < 200000)) {
+  //    for (unsigned iel = 0; iel < b.el_pt()->size(); iel++) {
+  //      pt.push_back(b.el_pt()->at(iel));
+  //    }
+  //    return pt;
+  //  }
+  //  for (unsigned iel = 0; iel < b.el_sig()->size(); iel++) {
+  //    pt.push_back(b.sys_el_pt_scaledn()->at(iel));
+  //  }
+  //  return pt;
+  //});
+  //const NamedFunc sys_el_pt_resup("sys_el_pt_resup",
+  //    [](const Baby &b) -> NamedFunc::VectorType{
+  //  vector<double> pt;
+  //  if (!(b.type() >= 200000 && b.type() < 200000)) {
+  //    for (unsigned iel = 0; iel < b.el_pt()->size(); iel++) {
+  //      pt.push_back(b.el_pt()->at(iel));
+  //    }
+  //    return pt;
+  //  }
+  //  for (unsigned iel = 0; iel < b.el_sig()->size(); iel++) {
+  //    pt.push_back(b.sys_el_pt_resup()->at(iel));
+  //  }
+  //  return pt;
+  //});
+  //const NamedFunc sys_el_pt_resdn("sys_el_pt_resdn",
+  //    [](const Baby &b) -> NamedFunc::VectorType{
+  //  vector<double> pt;
+  //  if (!(b.type() >= 200000 && b.type() < 200000)) {
+  //    for (unsigned iel = 0; iel < b.el_pt()->size(); iel++) {
+  //      pt.push_back(b.el_pt()->at(iel));
+  //    }
+  //    return pt;
+  //  }
+  //  for (unsigned iel = 0; iel < b.el_sig()->size(); iel++) {
+  //    pt.push_back(b.sys_el_pt_resdn()->at(iel));
+  //  }
+  //  return pt;
+  //});
+
   //el_sig and variations
   const NamedFunc sys_el_sig_default = NamedFunc("el_sig");
   const NamedFunc sys_el_sig_scaleup = NamedFunc("(sys_el_pt_scaleup>7)"
@@ -662,37 +725,104 @@ namespace ZgFunctions {
       "&&el_idLoose").Name("sys_el_sig_resup").EnableCaching(true);
   const NamedFunc sys_el_sig_resdn = NamedFunc("(sys_el_pt_resdn>7)"
       "&&el_idLoose").Name("sys_el_sig_resdn").EnableCaching(true);
-
-  //el_pt and variations
-  const NamedFunc sys_el_pt_default = NamedFunc("el_pt");
-  const NamedFunc sys_el_pt_scaleup = NamedFunc("sys_el_pt_scaleup");
-  const NamedFunc sys_el_pt_scaledn = NamedFunc("sys_el_pt_scaledn");
-  const NamedFunc sys_el_pt_resup = NamedFunc("sys_el_pt_resup");
-  const NamedFunc sys_el_pt_resdn = NamedFunc("sys_el_pt_resdn");
-
-  //mu_sig and variations
-  //TODO update with next production
-  const NamedFunc sys_mu_sig_default = NamedFunc("mu_sig");
-  const NamedFunc sys_mu_sig_scaleup = NamedFunc("mu_id&&(mu_reliso<0.35)"
-      "&&(mu_sip3d<4)&&((mu_pt)>5)").Name("sys_mu_sig_scaleup")
-      .EnableCaching(true);
-  const NamedFunc sys_mu_sig_scaledn = NamedFunc("mu_id&&(mu_reliso<0.35)"
-      "&&(mu_sip3d<4)&&((mu_pt)>5)").Name("sys_mu_sig_scaledn")
-      .EnableCaching(true);
-  const NamedFunc sys_mu_sig_resup = NamedFunc("mu_id&&(mu_reliso<0.35)"
-      "&&(mu_sip3d<4)&&((mu_pt+mu_ptErr)>5)").Name("sys_mu_sig_resup")
-      .EnableCaching(true);
-  const NamedFunc sys_mu_sig_resdn = NamedFunc("mu_id&&(mu_reliso<0.35)"
-      "&&(mu_sip3d<4)&&((mu_pt-mu_ptErr)>5)").Name("sys_mu_sig_resdn")
-      .EnableCaching(true);
+  //const NamedFunc sys_el_sig_scaleup = NamedFunc((sys_el_pt_scaleup>7)&&
+  //    "el_idLoose").Name("sys_el_sig_scaleup").EnableCaching(true);
+  //const NamedFunc sys_el_sig_scaledn = NamedFunc((sys_el_pt_scaledn>7)&&
+  //    "el_idLoose").Name("sys_el_sig_scaledn").EnableCaching(true);
+  //const NamedFunc sys_el_sig_resup = NamedFunc((sys_el_pt_resup>7)&&
+  //    "el_idLoose").Name("sys_el_sig_resup").EnableCaching(true);
+  //const NamedFunc sys_el_sig_resdn = NamedFunc((sys_el_pt_resdn>7)&&
+  //    "el_idLoose").Name("sys_el_sig_resdn").EnableCaching(true);
 
   //mu_pt and variations
-  //TODO update with next production
   const NamedFunc sys_mu_pt_default = NamedFunc("mu_pt");
   const NamedFunc sys_mu_pt_scaleup = NamedFunc("sys_mu_pt_scaleup");
   const NamedFunc sys_mu_pt_scaledn = NamedFunc("sys_mu_pt_scaledn");
   const NamedFunc sys_mu_pt_resup = NamedFunc("sys_mu_pt_resup");
   const NamedFunc sys_mu_pt_resdn = NamedFunc("sys_mu_pt_resdn");
+  //const NamedFunc sys_mu_pt_scaleup("sys_mu_pt_scaleup",
+  //    [](const Baby &b) -> NamedFunc::VectorType{
+  //  vector<double> pt;
+  //  if (!(b.type() >= 200000 && b.type() < 200000)) {
+  //    for (unsigned imu = 0; imu < b.mu_pt()->size(); imu++) {
+  //      pt.push_back(b.mu_pt()->at(imu));
+  //    }
+  //    return pt;
+  //  }
+  //  for (unsigned imu = 0; imu < b.mu_sig()->size(); imu++) {
+  //    pt.push_back(b.sys_mu_pt_scaleup()->at(imu));
+  //  }
+  //  return pt;
+  //});
+  //const NamedFunc sys_mu_pt_scaledn("sys_mu_pt_scaledn",
+  //    [](const Baby &b) -> NamedFunc::VectorType{
+  //  vector<double> pt;
+  //  if (!(b.type() >= 200000 && b.type() < 200000)) {
+  //    for (unsigned imu = 0; imu < b.mu_pt()->size(); imu++) {
+  //      pt.push_back(b.mu_pt()->at(imu));
+  //    }
+  //    return pt;
+  //  }
+  //  for (unsigned imu = 0; imu < b.mu_sig()->size(); imu++) {
+  //    pt.push_back(b.sys_mu_pt_scaledn()->at(imu));
+  //  }
+  //  return pt;
+  //});
+  //const NamedFunc sys_mu_pt_resup("sys_mu_pt_resup",
+  //    [](const Baby &b) -> NamedFunc::VectorType{
+  //  vector<double> pt;
+  //  if (!(b.type() >= 200000 && b.type() < 200000)) {
+  //    for (unsigned imu = 0; imu < b.mu_pt()->size(); imu++) {
+  //      pt.push_back(b.mu_pt()->at(imu));
+  //    }
+  //    return pt;
+  //  }
+  //  for (unsigned imu = 0; imu < b.mu_sig()->size(); imu++) {
+  //    pt.push_back(b.sys_mu_pt_resup()->at(imu));
+  //  }
+  //  return pt;
+  //});
+  //const NamedFunc sys_mu_pt_resdn("sys_mu_pt_resdn",
+  //    [](const Baby &b) -> NamedFunc::VectorType{
+  //  vector<double> pt;
+  //  if (!(b.type() >= 200000 && b.type() < 200000)) {
+  //    for (unsigned imu = 0; imu < b.mu_pt()->size(); imu++) {
+  //      pt.push_back(b.mu_pt()->at(imu));
+  //    }
+  //    return pt;
+  //  }
+  //  for (unsigned imu = 0; imu < b.mu_sig()->size(); imu++) {
+  //    pt.push_back(b.sys_mu_pt_resdn()->at(imu));
+  //  }
+  //  return pt;
+  //});
+
+  //mu_sig and variations
+  const NamedFunc sys_mu_sig_default = NamedFunc("mu_sig");
+  const NamedFunc sys_mu_sig_scaleup = NamedFunc("mu_id&&(mu_reliso<0.35)"
+      "&&(mu_sip3d<4)&&((sys_mu_pt_scaleup)>5)").Name("sys_mu_sig_scaleup")
+      .EnableCaching(true);
+  const NamedFunc sys_mu_sig_scaledn = NamedFunc("mu_id&&(mu_reliso<0.35)"
+      "&&(mu_sip3d<4)&&((sys_mu_pt_scaledn)>5)").Name("sys_mu_sig_scaledn")
+      .EnableCaching(true);
+  const NamedFunc sys_mu_sig_resup = NamedFunc("mu_id&&(mu_reliso<0.35)"
+      "&&(mu_sip3d<4)&&((sys_mu_pt_resup)>5)").Name("sys_mu_sig_resup")
+      .EnableCaching(true);
+  const NamedFunc sys_mu_sig_resdn = NamedFunc("mu_id&&(mu_reliso<0.35)"
+      "&&(mu_sip3d<4)&&((sys_mu_pt_resdn)>5)").Name("sys_mu_sig_resdn")
+      .EnableCaching(true);
+  //const NamedFunc sys_mu_sig_scaleup = NamedFunc((sys_mu_pt_scaleup>5.0)&&
+  //    "mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)").Name("sys_mu_sig_scaleup")
+  //    .EnableCaching(true);
+  //const NamedFunc sys_mu_sig_scaledn = NamedFunc((sys_mu_pt_scaledn>5.0)&&
+  //    "mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)").Name("sys_mu_sig_scaledn")
+  //    .EnableCaching(true);
+  //const NamedFunc sys_mu_sig_resup = NamedFunc((sys_mu_pt_resup>5.0)&&
+  //    "mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)").Name("sys_mu_sig_resup")
+  //    .EnableCaching(true);
+  //const NamedFunc sys_mu_sig_resdn = NamedFunc((sys_mu_pt_resdn>5.0)&&
+  //    "mu_id&&(mu_reliso<0.35)&&(mu_sip3d<4)").Name("sys_mu_sig_resdn")
+  //    .EnableCaching(true);
 
   //nel and variations
   const NamedFunc sys_nel_default("nel");
@@ -1972,14 +2102,43 @@ namespace ZgFunctions {
     return NamedFunc(("sys_lep_refit_"+name).c_str(),[variation] 
         (const Baby &b) -> NamedFunc::VectorType{
       vector<double> lep_refit;
-      lep_refit.push_back(b.ll_refit_lep1_pt()->at(variation));
-      lep_refit.push_back(b.ll_refit_lep1_eta()->at(variation));
-      lep_refit.push_back(b.ll_refit_lep1_phi()->at(variation));
-      lep_refit.push_back(b.ll_refit_lep1_m()->at(variation));
-      lep_refit.push_back(b.ll_refit_lep2_pt()->at(variation));
-      lep_refit.push_back(b.ll_refit_lep2_eta()->at(variation));
-      lep_refit.push_back(b.ll_refit_lep2_phi()->at(variation));
-      lep_refit.push_back(b.ll_refit_lep2_m()->at(variation));
+      //if (!(b.type() >= 200000 && b.type() < 200000)) {
+      //  lep_refit.push_back(b.ll_refit_lep1_pt()->at(0));
+      //  lep_refit.push_back(b.ll_refit_lep1_eta()->at(0));
+      //  lep_refit.push_back(b.ll_refit_lep1_phi()->at(0));
+      //  lep_refit.push_back(b.ll_refit_lep1_m()->at(0));
+      //  lep_refit.push_back(b.ll_refit_lep2_pt()->at(0));
+      //  lep_refit.push_back(b.ll_refit_lep2_eta()->at(0));
+      //  lep_refit.push_back(b.ll_refit_lep2_phi()->at(0));
+      //  lep_refit.push_back(b.ll_refit_lep2_m()->at(0));
+      //}
+      //else {
+        //hacky fix for nano2pico bug
+        int missing_vars = 0;
+        for (int ill = 0; ill < variation; ill++) {
+          if (b.ll_lepid()->at(ill) == -1)
+            missing_vars++;
+        }
+        if (b.ll_lepid()->at(variation) == -1) {
+          lep_refit.push_back(b.ll_refit_lep1_pt()->at(0));
+          lep_refit.push_back(b.ll_refit_lep1_eta()->at(0));
+          lep_refit.push_back(b.ll_refit_lep1_phi()->at(0));
+          lep_refit.push_back(b.ll_refit_lep1_m()->at(0));
+          lep_refit.push_back(b.ll_refit_lep2_pt()->at(0));
+          lep_refit.push_back(b.ll_refit_lep2_eta()->at(0));
+          lep_refit.push_back(b.ll_refit_lep2_phi()->at(0));
+          lep_refit.push_back(b.ll_refit_lep2_m()->at(0));
+          return lep_refit;
+        }
+        lep_refit.push_back(b.ll_refit_lep1_pt()->at(variation-missing_vars));
+        lep_refit.push_back(b.ll_refit_lep1_eta()->at(variation-missing_vars));
+        lep_refit.push_back(b.ll_refit_lep1_phi()->at(variation-missing_vars));
+        lep_refit.push_back(b.ll_refit_lep1_m()->at(variation-missing_vars));
+        lep_refit.push_back(b.ll_refit_lep2_pt()->at(variation-missing_vars));
+        lep_refit.push_back(b.ll_refit_lep2_eta()->at(variation-missing_vars));
+        lep_refit.push_back(b.ll_refit_lep2_phi()->at(variation-missing_vars));
+        lep_refit.push_back(b.ll_refit_lep2_m()->at(variation-missing_vars));
+      //}
       return lep_refit;
     }).EnableCaching(true);
   }
