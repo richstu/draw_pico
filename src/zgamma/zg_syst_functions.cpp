@@ -4554,13 +4554,13 @@ namespace ZgFunctions {
           sys_njet_resdn[iyear], sys_lead_jet_eta_resdn[iyear], 
           sys_sublead_jet_eta_resdn[iyear], "jetresdn"));
       sys_bchig_uncorr_up.push_back(assign_sca_variation_year_select(
-          "sys_bchig_uncorr[0]/w_bhig_df","1",year,"sys_bchig_uncorr_up"));
+          "sys_bchig_uncorr[0]/w_btag_df","1",year,"sys_bchig_uncorr_up"));
       sys_bchig_uncorr_dn.push_back(assign_sca_variation_year_select(
-          "sys_bchig_uncorr[1]/w_bhig_df","1",year,"sys_bchig_uncorr_dn"));
+          "sys_bchig_uncorr[1]/w_btag_df","1",year,"sys_bchig_uncorr_dn"));
       sys_udsghig_uncorr_up.push_back(assign_sca_variation_year_select(
-          "sys_udsghig_uncorr[0]/w_bhig_df","1",year,"sys_udsghig_uncorr_up"));
+          "sys_udsghig_uncorr[0]/w_btag_df","1",year,"sys_udsghig_uncorr_up"));
       sys_udsghig_uncorr_dn.push_back(assign_sca_variation_year_select(
-          "sys_udsghig_uncorr[1]/w_bhig_df","1",year,"sys_udsghig_uncorr_dn"));
+          "sys_udsghig_uncorr[1]/w_btag_df","1",year,"sys_udsghig_uncorr_dn"));
       ggf_bdt_inputs_jetscaleup.push_back({
           &sys_llphoton_costheta_default,
           &sys_llphoton_cosTheta_default,

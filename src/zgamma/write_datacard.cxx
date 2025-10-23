@@ -261,17 +261,13 @@ int main() {
                                    {weight*sys_w_tth_xs_up},
                                    {weight*sys_w_tth_xs_dn}));
   systematics.push_back(Systematic("QCD_scale_diff_ggH",{"weight"},
-                                   {weight*sys_diffscale_ggf_up},
-                                   {weight*sys_diffscale_ggf_dn}));
+                                   {weight*sys_diffscale_ggf_up}));
   systematics.push_back(Systematic("QCD_scale_diff_qqH",{"weight"},
-                                   {weight*sys_diffscale_vbf_up},
-                                   {weight*sys_diffscale_vbf_dn}));
+                                   {weight*sys_diffscale_vbf_up}));
   systematics.push_back(Systematic("QCD_scale_diff_VH",{"weight"},
-                                   {weight*sys_diffscale_vh_up},
-                                   {weight*sys_diffscale_vh_dn}));
+                                   {weight*sys_diffscale_vh_up}));
   systematics.push_back(Systematic("QCD_scale_diff_ttH",{"weight"},
-                                   {weight*sys_diffscale_tth_up},
-                                   {weight*sys_diffscale_tth_dn}));
+                                   {weight*sys_diffscale_tth_up}));
   systematics.push_back(Systematic("BR_hzg",{"weight"},
                                    {weight*sys_w_htozg_br}));
   systematics.push_back(Systematic("BR_hmm",{"weight"},
@@ -321,11 +317,11 @@ int main() {
                                    {weight*"(1.5*w_phshape-0.5)/w_phshape"},
                                    {weight*"(0.5*w_phshape+0.5)/w_phshape"}));
   systematics.push_back(Systematic("CMS_btag_heavy",{"weight"},
-                                   {weight*"sys_bchig[0]/w_bhig_df"},
-                                   {weight*"sys_bchig[1]/w_bhig_df"}));
+                                   {weight*"sys_bchig[0]/w_btag_df"},
+                                   {weight*"sys_bchig[1]/w_btag_df"}));
   systematics.push_back(Systematic("CMS_btag_light",{"weight"},
-                                   {weight*"sys_udsghig[0]/w_bhig_df"},
-                                   {weight*"sys_udsghig[1]/w_bhig_df"}));
+                                   {weight*"sys_udsghig[0]/w_btag_df"},
+                                   {weight*"sys_udsghig[1]/w_btag_df"}));
   for (unsigned iyear = 0; iyear < years.size(); iyear++) {
     string year = years[iyear];
     systematics.push_back(Systematic("CMS_btag_heavy_"+year,{"weight"},
@@ -729,7 +725,7 @@ int main() {
   pm.max_threads_ = 16;
 
   //set axis range to be larger than range in any individual category
-  pm.Push<Datacard>("hzg_datacard_v1p0", channels, systematics, 
+  pm.Push<Datacard>("hzg_datacard_v1p1", channels, systematics, 
       processes, weight,
       Axis(340, 95.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)

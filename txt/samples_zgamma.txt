@@ -350,12 +350,12 @@
   [Htozg_el]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
     Selection = hzg_elchannel
   [Htozg_mu]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
     Selection = hzg_muchannel
   [null]
 
@@ -364,12 +364,12 @@
   [Htozg_el]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
     Selection = hzg_elchannel
   [Htozg_mu]
     ProcessType = 2
     Color = 2
-    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
     Selection = hzg_muchannel
   [null]
 
