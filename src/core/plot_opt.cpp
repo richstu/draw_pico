@@ -50,7 +50,8 @@ PlotOpt::PlotOpt():
   show_background_error_(true),
   use_cmyk_(true),
   print_vals_(false),
-  title_in_frame_(false){
+  title_in_frame_(false),
+  display_mc_norm_(false){
 }
 
 PlotOpt::PlotOpt(const string &file_name,
@@ -238,6 +239,15 @@ PlotOpt & PlotOpt::TitleInFrame(bool title_in_frame) {
 
 bool PlotOpt::TitleInFrame() const {
   return title_in_frame_;
+}
+
+PlotOpt & PlotOpt::DisplayMCNorm(bool display_mc_norm) {
+  display_mc_norm_ = display_mc_norm;
+  return *this;
+}
+
+bool PlotOpt::DisplayMCNorm() const {
+  return display_mc_norm_;
 }
 
 PlotOpt & PlotOpt::CanvasSize(int width, int height){
@@ -546,8 +556,8 @@ bool PlotOpt::BackgroundsStacked() const{
 }
 
 bool PlotOpt::DisplayLumiEntry() const{
-  return title_type_ == TitleType::info
-    && BackgroundsStacked();
+  return display_mc_norm_ || (title_type_ == TitleType::info
+                              && BackgroundsStacked());
 }
 
 string PlotOpt::TypeString() const{
@@ -674,6 +684,8 @@ void PlotOpt::SetProperty(const string &property,
     ErrorOnZeroData(stoi(value));
   }else if(property == "TitleInFrame"){
     TitleInFrame(stoi(value));
+  }else if(property == "DisplayMCNorm"){
+    DisplayMCNorm(stoi(value));
   }else{
     DBG("Did not understand property name "<<property);
   }

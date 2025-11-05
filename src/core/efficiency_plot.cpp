@@ -450,12 +450,9 @@ void EfficiencyPlot::Print(double luminosity,
 	t.SetTextAlign(31);
 	t.SetTextSize(0.025);
   TString lumi_string = RoundNumber(luminosity_,1) + " fb^{-1}";
-  if (luminosity_tag_ != "") {
-    if (Contains(luminosity_tag_, "TeV"))
-      lumi_string = luminosity_tag_;
-    else
-      lumi_string = luminosity_tag_ + " fb^{-1} (13 TeV)";
-  }
+  if (energy_tag_ != "") lumi_string = energy_tag_;
+  else if (luminosity_tag_ != "") 
+    lumi_string = luminosity_tag_ + " fb^{-1} (13 TeV)";
 	t.DrawLatexNDC(0.845,0.87,("#font[42]{"+lumi_string+"}").Data());
   if (this_opt_.Title() == TitleType::info) {
 	  t.SetTextAlign(33);
@@ -653,6 +650,10 @@ EfficiencyPlot & EfficiencyPlot::FixTitle(const std::string &title){
 
 void EfficiencyPlot::SetLuminosityTag(const std::string &tag) {
   this->LuminosityTag(tag);
+}
+
+void EfficiencyPlot::SetEnergyTag(const std::string &tag) {
+  energy_tag_ = tag;
 }
 
 void EfficiencyPlot::SetRatioPlotDrawOptions(std::unique_ptr<TGraphAsymmErrors> &ratio_plot, 

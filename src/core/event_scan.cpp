@@ -134,7 +134,13 @@ EventScan & EventScan::Precision(unsigned precision){
 }
 
 void EventScan::SetLuminosityTag(const string &tag){
-  //Lumi not used, but need method for polymorphism and avoid unused errors
+  //dummy logic to avoid unused variable warning
+  string dummy = "";
+  dummy += tag;
+}
+
+void EventScan::SetEnergyTag(const string &tag){
+  //dummy logic to avoid unused variable warning
   string dummy = "";
   dummy += tag;
 }

@@ -98,12 +98,13 @@ int main(int argc, char *argv[]) {
   //Declares the samples
   cout << "Rui" << endl;
   //  vector<shared_ptr<Process>> procs = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMCData");//"MinimalMoreTrigsData");//"AllMoreTrigsData");
-  string plot_names = "_run2";
+  string plot_names = "_run2_1";
   string lumi_label = "137.61";
   vector<shared_ptr<Process>> procs_mc = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMC");//"AllSplit");
   cout << "Rui" << endl;
   if(plot_option=="run3"){
-    procs_mc       = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","AllMoreTrigsDataRun3");
+    //    procs_mc      = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMCDataRun3");
+    procs_mc      = ZgUtilities::ZgSampleLoader().LoadSamples("txt/samples_zgamma_pinnacles.txt","BDTMCRun3");
     plot_names = "_run3";
     lumi_label = "62.32";
     cout << "Plotting Run 3" << endl;
@@ -168,7 +169,7 @@ int main(int argc, char *argv[]) {
 
   //PlotOpt for control regions plots. This should (and soon will) be defined in controlregion_utilities.cpp when I push that.
   //  PlotOpt lin_lumi("txt/plot_styles.txt","Std1D");
-  PlotOpt lin_lumi("txt/plot_styles.txt","CMSPaper2022");
+  PlotOpt lin_lumi("txt/plot_styles.txt","CMSPaper");//2022");
   lin_lumi.Title(TitleType::preliminary)
           .YAxis(YAxisType::linear)
           .Overflow(OverflowType::both)
@@ -251,7 +252,7 @@ int main(int argc, char *argv[]) {
   PlotMaker pm;
 
   //Initial definitions of variables used in the loop
-  NamedFunc selection_blind = "1"; string labels = "VBF";
+  NamedFunc selection_blind = "1"; string labels = "VBF"+plot_names;
   NamedFunc selection_hmass = "1";
   NamedFunc not_hwin = mlly < 120 || mlly > 130; //<------ ALTERNATIVE TO BLIND_DATA. NEEDED IF USING StackType("data_norm")
   NamedFunc hmasswindow = mlly > 120 && mlly < 130; 
@@ -260,12 +261,12 @@ int main(int argc, char *argv[]) {
   selection_blind = cat_VBF && not_hwin;//phmasswindow;
   selection_hmass = cat_VBF && hmasswindow;
   cout << "Rui" << endl;
-  //CatUtilities::VBF_input_plots(pm,selection_blind,procs,ops,wgt,labels);
+  //  CatUtilities::VBF_input_plots(pm,selection_blind,procs,ops,wgt,labels);
   //  for(unsigned int idx_sel = 0; idx_sel < vbf_categories_vector.size(); idx_sel++){
     //    selection = vbf_categories_vector[idx_sel] && blind_data;
     //    labels = vbf_categories_name_vector[idx_sel];  
-    //    CatUtilities::vbf_controlregion_plots(pm,selection,procs,ops,wgt_pin_fix,labels);
-  //  CatUtilities::vbf_input_plots(pm,selection,procs,ops,wgt,labels);
+  //CatUtilities::vbf_controlregion_plots(pm,selection,procs,ops,wgt_pin_fix,labels);
+  //  CatUtilities::vbf_input_plots(pm,selection_blind,procs,ops,wgt,labels);
   cout << "Rui" << endl;
   CatUtilities::VBF_input_plots(pm,selection_hmass,procs_mc,ops_shape,wgt,labels);  
   cout << "Rui" << endl;

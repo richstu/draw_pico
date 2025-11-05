@@ -3444,7 +3444,7 @@ int main(int argc, char *argv[]){
           0,0,"w_lumi"*w_years),
     },procs_sig_pinnacles,false,true,false,false,false,true).Precision(3);
 
-    pm.SetLuminosityTag("138 fb^{-1} (13 TeV) + 62 fb^{-1} (13.6 TeV)");
+    pm.SetEnergyTag("138 fb^{-1} (13 TeV) + 62 fb^{-1} (13.6 TeV)");
   }
 
   if (make_anplots_signal_background) {
@@ -3487,7 +3487,7 @@ int main(int argc, char *argv[]){
         "trig_double_el||trig_double_mu||trig_single_el||trig_single_mu",
         procs_pinnacles_mc, ops_mc)
         .Weight("weight"*w_years*w_sigx100).Tag("zgtrig");
-    pm.SetLuminosityTag("138 fb^{-1} (13 TeV) + 62 fb^{-1} (13.6 TeV)");
+    pm.SetEnergyTag("138 fb^{-1} (13 TeV) + 62 fb^{-1} (13.6 TeV)");
   }
 
   if (plot_associated_acceptance) {

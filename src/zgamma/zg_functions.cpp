@@ -122,13 +122,15 @@ namespace ZgFunctions {
     else if (b.SampleTypeString()=="2018")
       return 59.83;
     else if (b.SampleTypeString()=="2022")
-      return 7.89;
+      return 7.98;
     else if (b.SampleTypeString()=="2022EE")
       return 26.67;
     else if (b.SampleTypeString()=="2023")
-      return 17.68;
-    //else if (b.SampleTypeString()=="2023BPix")
-    return 9.53;
+      return 17.79;
+    else if (b.SampleTypeString()=="2023BPix")
+      return 9.45;
+    else
+      return 1.0;
   });
 
   //Run 3 weight-up
@@ -398,7 +400,10 @@ namespace ZgFunctions {
 
     double w_year = w_years.GetScalar(b);
     if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
-    if(b.SampleType() > 2020){ return b.w_lumi()*w_year;}
+    if(b.SampleType() > 2020){ 
+      if (b.type() == 17302) return b.weight()*w_year;
+      if (b.type() >= 17300 && b.type() <= 17303 && b.SampleType() < 2023) return b.weight()*w_year*0.5;
+      return b.weight()*w_year;}
 
     return b.weight()*w_year;
   });
@@ -422,6 +427,10 @@ namespace ZgFunctions {
   const NamedFunc trig = NamedFunc("trig_single_el||trig_single_mu||trig_double_el||trig_double_mu")
                          .Name("trig");
 
+  NamedFunc add_cut(NamedFunc & current_cut, NamedFunc additional_cut) {
+    current_cut = current_cut && additional_cut;
+    return current_cut;
+  }
 
   //maximum lepton mini isolation
   const NamedFunc max_lep_miniso("max_lep_miniso",[](const Baby &b) -> NamedFunc::ScalarType{

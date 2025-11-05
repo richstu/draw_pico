@@ -1039,6 +1039,16 @@ void Datacard::SetLuminosityTag(const std::string &tag) {
   temp_tag += "";
 }
 
+/*! \brief Dummy logic since this method is just needed for interface
+ 
+  \param[in] tag    -
+*/
+void Datacard::SetEnergyTag(const std::string &tag) {
+  //dummy logic to avoid unusued variable warning
+  std::string temp_tag = tag;
+  temp_tag += "";
+}
+
 /*! \brief returns the set of processes (not including parametric processes)
  
 */

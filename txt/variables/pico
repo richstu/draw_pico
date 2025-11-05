@@ -185,6 +185,9 @@ int nbdfl
 int nbdfm
 int nbdft
 
+bool ishemvetoevt
+bool ismapvetoevt
+
 std::vector<float> jet_pt
 std::vector<float> jet_eta
 std::vector<float> jet_phi
@@ -203,6 +206,9 @@ std::vector<bool>  jet_islep
 std::vector<bool>  jet_isvlep
 std::vector<bool>  jet_isphoton
 std::vector<bool>  jet_isgood
+std::vector<bool>  jet_isgood_min
+std::vector<bool>  jet_isvetomap
+std::vector<bool>  jet_isvetohem
 std::vector<bool>  jet_id
 std::vector<int>   jet_hflavor
 std::vector<int>   jet_pflavor
@@ -217,6 +223,7 @@ std::vector<float> jet_m_nosmear
 std::vector<bool>  jet_isgood_min
 std::vector<bool>  jet_isvetomap
 std::vector<bool>  jet_isvetohem
+
 
 int ngenjet
 std::vector<float> genjet_pt
@@ -337,6 +344,7 @@ std::vector<int>   el_fsrphotonidx
 
 ##################   Di-Leptons   ################
 int nll
+std::vector<int>   ll_charge
 std::vector<float> ll_pt
 std::vector<float> ll_eta
 std::vector<float> ll_phi
@@ -493,6 +501,7 @@ float w_el
 float w_mu
 float w_fs_lep
 float w_photon
+float w_phshape
 float w_photon_id
 float w_photon_csev
 float w_btag
@@ -506,7 +515,6 @@ float w_prefire
 float w_trig
 float w_trig_singlemu
 float w_trig_doublemu
-float w_phshape
 float w_fakephoton
 float w_nnlo
 
@@ -551,6 +559,7 @@ bool HLT_Mu50_IsoVVVL_PFHT450
 # some info here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/Egamma2017DataRecommendations#Single_Electron_Triggers
 # Ele27_WPTight unprescaled in 2016, Ele32_WPTight unprescaled in 2018, Ele35_WPTight unprescaled 2017/18
 # Ele115_CaloIdVT unprescaled all years
+bool HLT_Ele20_WPLoose_Gsf
 bool HLT_Ele25_WPTight_Gsf
 bool HLT_Ele27_WPTight_Gsf
 bool HLT_Ele28_WPTight_Gsf
@@ -559,7 +568,6 @@ bool HLT_Ele32_WPTight_Gsf_L1DoubleEG
 bool HLT_Ele32_WPTight_Gsf_Emu
 bool HLT_Ele32_WPTight_Gsf
 bool HLT_Ele35_WPTight_Gsf
-bool HLT_Ele20_WPLoose_Gsf
 bool HLT_Ele45_WPLoose_Gsf
 bool HLT_Ele8_CaloIdL_TrackIdL_IsoVL_PFJet30
 bool HLT_Ele8_CaloIdM_TrackIdM_PFJet30

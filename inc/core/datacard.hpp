@@ -209,6 +209,7 @@ public:
   void Print(double luminosity,
              const std::string &subdir) final;
   void SetLuminosityTag(const std::string &tag) final;
+  void SetEnergyTag(const std::string &tag) final;
   std::set<const Process*> GetProcesses() const final;
   std::string GetTag() const final {return "";}
   FigureComponent * GetComponent(const Process *process) final;

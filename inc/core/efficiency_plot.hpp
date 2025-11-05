@@ -73,6 +73,7 @@ public:
   EfficiencyPlot & YAxisMax(const double ymax);
 
   void SetLuminosityTag(const std::string &tag);
+  void SetEnergyTag(const std::string &tag);
 
   Axis xaxis_;//!<Specification of content: plotted variable, binning, etc.
   NamedFunc cut_;//!<Event selection
@@ -84,6 +85,7 @@ public:
   std::string tag_;//!<Filename tag to identify plot
   std::string ytitle_;//!<Title used on y-axis of plot
   std::string luminosity_tag_;//!<Filename tag to identify plot
+  std::string energy_tag_;//!<Lumi+energy string
   std::string fixed_title_;//!<title fixed using FixTitle method, empty string indicates default
 
   std::unique_ptr<TGraphAsymmErrors> background_ratio_plot_;

@@ -30,6 +30,7 @@ public:
                  const std::string &subdir = "");
 
   PlotMaker & SetLuminosityTag(const std::string &lumi_tag);
+  PlotMaker & SetEnergyTag(const std::string &energy_tag);
 
   const std::unique_ptr<Figure> & GetFigure(std::string tag) const;
   const std::vector<std::unique_ptr<Figure> > & Figures() const;
@@ -54,7 +55,8 @@ public:
 
 private:
   std::vector<std::unique_ptr<Figure> > figures_;//!<Figures to be produced
-
+  
+  void GenerateGradient();
   void GetYields();
   long GetYield(Baby *baby_ptr);
 
