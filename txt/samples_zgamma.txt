@@ -93,11 +93,13 @@
 #add FILENAMES_BAK_NONZ *ZZZ*.root
 
 #add FILENAMES_BAK_ALL *ZGToLLG_01J_5f_lowMLL*.root
-#add FILENAMES_BAK_ALL *DYGto2LG*.root
+#add FILENAMES_BAK_ALL *DYGto2LG-1Jets_MLL-50_PTG-10to100*.root
+#add FILENAMES_BAK_ALL *DYGto2LG-1Jets_MLL-50_PTG-100to200*.root
+#add FILENAMES_BAK_ALL *DYGto2LG-1Jets_MLL-50_PTG-200to400*.root
+#add FILENAMES_BAK_ALL *DYGto2LG-1Jets_MLL-50_PTG-400to600*.root
+#add FILENAMES_BAK_ALL *DYGto2LG-1Jets_MLL-50_PTG-600*.root
 #add FILENAMES_BAK_ALL *DYJetsToLL_M-50_TuneCP5_13TeV-amcatnlo*.root
-#add FILENAMES_BAK_ALL *DYto2L*.root
-#add FILENAMES_BAK_ALL *WJetsToLNu_Tune*.root
-#add FILENAMES_BAK_ALL *WGToLNuG*.root
+#add FILENAMES_BAK_ALL *DYto2L-2Jets*.root
 #add FILENAMES_BAK_ALL *EWKZ2Jets*.root
 #add FILENAMES_BAK_ALL *ZGamma2JToGamma2L2J_EWK*.root
 #add FILENAMES_BAK_ALL *ZG2JtoG2L2J_EWK*.root
@@ -737,3 +739,30 @@
     Color = 1
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_DILEP/$FILENAMES_HMUMU
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+
+[[DatacardPlusBkg]]
+  [data_obs]
+    ProcessType = 0
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$DATA_SLIM_LLG/$FILENAMES_DATA
+    Selection = 1
+  [Htozg_el]
+    ProcessType = 2
+    Color = 2
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Selection = hzg_elchannel
+  [Htozg_mu]
+    ProcessType = 2
+    Color = 2
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Selection = hzg_muchannel
+  [Htomm]
+    ProcessType = 1
+    Color = 1
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMUMU_ALL
+    Selection = use_event
+  [Background]
+    ProcessType = 1
+    PaletteColor = zgtollg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_BAK_ALL
+    Selection = use_event

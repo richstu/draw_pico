@@ -3,15 +3,16 @@
 from statistics import mean, stdev
 #from argparse import ArgumentParser
 
-def line_item(str_list: list[str], idx: int) -> str:
+#def line_item(str_list: list[str], idx: int) -> str:
+def line_item(str_list, idx):
   if idx >= len(str_list):
     return ''
   return str_list[idx]
 
 if __name__ == '__main__':
   #todo add arguments
-  input_filename = 'hzg_datacard_v1p1.txt'
-  output_filename = 'hzg_datacard_v1p1_cleaned.txt'
+  input_filename = 'datacards/hzg_datacard_v1p2.txt'
+  output_filename = 'datacards/hzg_datacard_v1p2_cleaned.txt'
   output_content = ''
   with open(input_filename, 'r') as datacard:
     input_content = datacard.read().split('\n')

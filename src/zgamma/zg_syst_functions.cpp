@@ -364,9 +364,28 @@ namespace ZgFunctions {
   //weight implementing upward variation in electron weights (efficiency)
   const NamedFunc sys_w_el_up("sys_w_el_up",
       [](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString().Contains("-"))
+      return 1.0; //data
     if (isinf(b.sys_el()->at(0)) || isnan(b.sys_el()->at(0))) 
       return 1.0;
-    return b.sys_el()->at(0)/b.w_el();
+    float norm = 1.0;
+    if (b.SampleTypeString() == "2016APV")
+      norm = 1.0/0.9501814;
+    else if (b.SampleTypeString() == "2016")
+      norm = 1.0/0.9488912;
+    else if (b.SampleTypeString() == "2017")
+      norm = 1.0/0.9691222;
+    else if (b.SampleTypeString() == "2018")
+      norm = 1.0/0.9618777;
+    else if (b.SampleTypeString() == "2022")
+      norm = 1.0/0.9533039;
+    else if (b.SampleTypeString() == "2022EE")
+      norm = 1.0/0.9268326;
+    else if (b.SampleTypeString() == "2023")
+      norm = 1.0/0.9152783;
+    else if (b.SampleTypeString() == "2023BPix")
+      norm = 1.0/0.9166964;
+    return norm*b.sys_el()->at(0)/b.w_el();
   });
 
   //weight implementing downward variation in electron weights (efficiency)
@@ -374,7 +393,24 @@ namespace ZgFunctions {
       [](const Baby &b) -> NamedFunc::ScalarType{
     if (isinf(b.sys_el()->at(1)) || isnan(b.sys_el()->at(1))) 
       return 1.0;
-    return b.sys_el()->at(1)/b.w_el();
+    float norm = 1.0;
+    if (b.SampleTypeString() == "2016APV")
+      norm = 1.0/1.0688421;
+    else if (b.SampleTypeString() == "2016")
+      norm = 1.0/1.0631350;
+    else if (b.SampleTypeString() == "2017")
+      norm = 1.0/1.0597554;
+    else if (b.SampleTypeString() == "2018")
+      norm = 1.0/1.0604887;
+    else if (b.SampleTypeString() == "2022")
+      norm = 1.0/1.0836153;
+    else if (b.SampleTypeString() == "2022EE")
+      norm = 1.0/1.0834069;
+    else if (b.SampleTypeString() == "2023")
+      norm = 1.0/1.0938820;
+    else if (b.SampleTypeString() == "2023BPix")
+      norm = 1.0/1.0953372;
+    return norm*b.sys_el()->at(1)/b.w_el();
   });
 
   //weight implementing upward variation in muon weights (efficiency)
