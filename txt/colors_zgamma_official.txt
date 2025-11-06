@@ -1,0 +1,11 @@
+[default]
+ data       0   0   0
+ zgtollg   63 144 218
+ dyjets   255 169  14
+ tt       231  99   0
+ ttg      169 107  89 
+ vbszg    146 218 221
+ htozg    189  31   1
+ ttx      148 164 162
+ vv       131  45 182
+ fakelep  185 172 112
