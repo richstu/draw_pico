@@ -83,7 +83,7 @@ public:
   Hist1D & DrawPlot(const bool &draw_plot);
 
   void SetLuminosityTag(const std::string &tag); 
-  void SetEnergyLabel(const std::string &tag);
+  void SetEnergyTag(const std::string &tag);
 
   Axis xaxis_;//!<Specification of content: plotted variable, binning, etc.
   NamedFunc cut_;//!<Event selection

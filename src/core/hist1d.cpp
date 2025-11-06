@@ -636,7 +636,7 @@ void Hist1D::SetLuminosityTag(const string &tag) {
   this->LuminosityTag(tag);
 }
 
-void Hist1D::SetEnergyLabel(const string &tag) {
+void Hist1D::SetEnergyTag(const string &tag) {
   this->EnergyLabel(tag);
 }
 

@@ -497,7 +497,7 @@ void Hist2D::SetLuminosityTag(const string &tag) {
   this->LuminosityTag(tag);
 }
 
-void Hist2D::SetEnergyLabel(const string &tag) {
+void Hist2D::SetEnergyTag(const string &tag) {
   this->EnergyLabel(tag);
 }
 

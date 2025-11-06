@@ -725,7 +725,7 @@ int main() {
   pm.max_threads_ = 16;
 
   //set axis range to be larger than range in any individual category
-  pm.Push<Datacard>("hzg_datacard_v1p2", channels, systematics, 
+  pm.Push<Datacard>("hzg_datacard_v1p2_test", channels, systematics, 
       processes, weight,
       Axis(340, 95.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)

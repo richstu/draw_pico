@@ -62,7 +62,7 @@ public:
   Hist2D & EnergyLabel(const std::string &tag);
 
   void SetLuminosityTag(const std::string &tag);
-  void SetEnergyLabel(const std::string &tag);
+  void SetEnergyTag(const std::string &tag);
 
   Axis xaxis_, yaxis_;
   NamedFunc cut_, weight_;
