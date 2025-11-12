@@ -259,7 +259,7 @@ namespace ZgFunctions {
   const NamedFunc zg_baseline_run2 = NamedFunc((zg_el_cuts || zg_mu_cuts) && zg_baseline_nolep).Name("baseline_run2");
 
   //new working baseline selection
-  const NamedFunc zg_baseline = NamedFunc("nll>=1 && nphoton>=1 && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ll_m[0]>80 && ll_m[0]<100 && ((llphoton_m[0]+ll_m[0])>=185)"&&trig_plateau_cuts).Name("baseline");
+  const NamedFunc zg_baseline = NamedFunc("nll>=1 && nphoton>=1 && ((photon_pt[0]/llphoton_m[0])>=15.0/110.0) && ll_m[0]>80 && ll_m[0]<100 && ((llphoton_m[0]+ll_m[0])>=185) && llphoton_refit_m>95 && llphoton_refit_m<180"&&trig_plateau_cuts).Name("baseline");
 
   //master stitch variable, updated for KingsCanyon_v0, later to be updated for v1
   const NamedFunc stitch("stitch",[](const Baby &b) -> NamedFunc::ScalarType{
