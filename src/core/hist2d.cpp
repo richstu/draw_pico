@@ -16,6 +16,7 @@
 #include "TColor.h"
 #include "TArrow.h"
 #include "core/named_func.hpp"
+#include "core/utilities.hpp"
 
 using namespace std;
 using namespace PlotOptTypes;
@@ -409,6 +410,7 @@ vector<shared_ptr<TLatex> > Hist2D::GetLabels(bool bkg_is_hist) const{
   case TitleType::simulation_preliminary: extra = "#splitline{Simulation}{Preliminary}"; break;
   case TitleType::simulation_supplementary: extra = "#splitline{Simulation}{Supplementary}"; break;
   case TitleType::supplementary: extra = "Supplementary"; break;
+  case TitleType::private_work: extra = "Private Work"; break;
   case TitleType::data: extra = ""; break;
   case TitleType::info: extra = ""; break;
   default:
@@ -495,7 +497,7 @@ void Hist2D::SetLuminosityTag(const string &tag) {
   this->LuminosityTag(tag);
 }
 
-void Hist2D::SetEnergyLabel(const string &tag) {
+void Hist2D::SetEnergyTag(const string &tag) {
   this->EnergyLabel(tag);
 }
 
@@ -505,6 +507,7 @@ void Hist2D::AddEntry(TLegend &l, const SingleHist2D &h, const TGraph &g) const{
   oss << name;
   bool print_rho;
   switch(this_opt_.Title()){
+  case TitleType::private_work:
   case TitleType::info:
     print_rho = true;
     break;

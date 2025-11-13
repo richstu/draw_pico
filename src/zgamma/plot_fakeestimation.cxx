@@ -65,10 +65,10 @@ using ZgUtilities::get_costheta;
 using ZgUtilities::get_cosTheta;
 using ZgUtilities::ZgSampleLoader;
 using ZgUtilities::KinematicBdt;
-using ZgUtilities::category_ggh4;
-using ZgUtilities::category_ggh3;
-using ZgUtilities::category_ggh2;
-using ZgUtilities::category_ggh1;
+using ZgUtilities::category_ggh4_old;
+using ZgUtilities::category_ggh3_old;
+using ZgUtilities::category_ggh2_old;
+using ZgUtilities::category_ggh1_old;
 using PlotOptTypes::OverflowType;
 //const Process::Type data = Process::Type::data;
 const Process::Type signal = Process::Type::signal;
@@ -623,10 +623,10 @@ int main() {
   shared_ptr<MVAWrapper> kinematic_bdt = KinematicBdt();
   NamedFunc kinematic_bdt_score = kinematic_bdt->GetDiscriminant();
   NamedFunc gghall = NamedFunc(kinematic_bdt_score>-0.1);
-  NamedFunc ggh4 = category_ggh4(kinematic_bdt);
-  NamedFunc ggh3 = category_ggh3(kinematic_bdt);
-  NamedFunc ggh2 = category_ggh2(kinematic_bdt);
-  NamedFunc ggh1 = category_ggh1(kinematic_bdt);
+  NamedFunc ggh4 = category_ggh4_old(kinematic_bdt);
+  NamedFunc ggh3 = category_ggh3_old(kinematic_bdt);
+  NamedFunc ggh2 = category_ggh2_old(kinematic_bdt);
+  NamedFunc ggh1 = category_ggh1_old(kinematic_bdt);
 
   std::shared_ptr<MVAWrapper> loose_bdt = std::make_shared<MVAWrapper>("loose_bdt");
   loose_bdt->SetVariable("photon_mva",lead_loosephoton_idmva);
@@ -642,10 +642,10 @@ int main() {
   loose_bdt->SetVariable("l2_rapidity",sublead_lepton_eta);
   loose_bdt->BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
   NamedFunc loose_bdt_score = loose_bdt->GetDiscriminant();
-  NamedFunc ggh4_loose = category_ggh4(loose_bdt);
-  NamedFunc ggh3_loose = category_ggh3(loose_bdt);
-  NamedFunc ggh2_loose = category_ggh2(loose_bdt);
-  NamedFunc ggh1_loose = category_ggh1(loose_bdt);
+  NamedFunc ggh4_loose = category_ggh4_old(loose_bdt);
+  NamedFunc ggh3_loose = category_ggh3_old(loose_bdt);
+  NamedFunc ggh2_loose = category_ggh2_old(loose_bdt);
+  NamedFunc ggh1_loose = category_ggh1_old(loose_bdt);
 
   std::shared_ptr<MVAWrapper> fake_bdt = std::make_shared<MVAWrapper>("fake_bdt");
   fake_bdt->SetVariable("photon_mva",lead_loosephoton_randomidmva);
@@ -662,10 +662,10 @@ int main() {
   fake_bdt->BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
   NamedFunc fake_bdt_score = fake_bdt->GetDiscriminant();
   NamedFunc gghall_fake = NamedFunc(fake_bdt_score>-0.1);
-  NamedFunc ggh4_fake = category_ggh4(fake_bdt);
-  NamedFunc ggh3_fake = category_ggh3(fake_bdt);
-  NamedFunc ggh2_fake = category_ggh2(fake_bdt);
-  NamedFunc ggh1_fake = category_ggh1(fake_bdt);
+  NamedFunc ggh4_fake = category_ggh4_old(fake_bdt);
+  NamedFunc ggh3_fake = category_ggh3_old(fake_bdt);
+  NamedFunc ggh2_fake = category_ggh2_old(fake_bdt);
+  NamedFunc ggh1_fake = category_ggh1_old(fake_bdt);
   
   //------------------------------------------------------------------------------------
   //                                   plots and tables

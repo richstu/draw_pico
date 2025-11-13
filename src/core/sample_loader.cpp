@@ -180,6 +180,9 @@ SampleLoader & SampleLoader::ParseFile(const string &file_name,
       end = line.find("]");
       if(start<end && start != string::npos && end != string::npos){
         current_sample = line.substr(start+1, end-start-1);
+        if (current_sample=="null") {
+          samples_.push_back(DataSample("null"));
+        }
         if (!SampleExists(current_sample)) {
           samples_.push_back(DataSample(current_sample));
         }
@@ -203,20 +206,25 @@ vector<shared_ptr<Process>> SampleLoader::GetSamples(
   vector<shared_ptr<Process>> processes;
   for (DataSample this_sample : samples_) {
     //currently only picos supported; easy enough to add more Baby children, though
-    if (this_sample.ntuple_type_ == "Baby_pico") {
-      if (verbose_) {
-        std::cout << this_sample.name_ << "\n";
-      }
-      if (types.count(this_sample.type_)>0) {
-        processes.push_back(Process::MakeShared<Baby_pico>(this_sample.name_,
-            this_sample.type_, this_sample.color_, this_sample.files_, 
-            this_sample.selection_));
-        processes.back()->SetLineColor(this_sample.color_);
-      }
+    if (this_sample.name_ == "null") {
+      processes.push_back(nullptr);
     }
     else {
-      std::cout << "ERROR: SampleLoader found non-pico n-tuple" << std::endl;
-      throw;
+      if (this_sample.ntuple_type_ == "Baby_pico") {
+        if (verbose_) {
+          std::cout << this_sample.name_ << "\n";
+        }
+        if (types.count(this_sample.type_)>0) {
+          processes.push_back(Process::MakeShared<Baby_pico>(this_sample.name_,
+              this_sample.type_, this_sample.color_, this_sample.files_, 
+              this_sample.selection_));
+          processes.back()->SetLineColor(this_sample.color_);
+        }
+      }
+      else {
+        std::cout << "ERROR: SampleLoader found non-pico n-tuple" << std::endl;
+        throw;
+      }
     }
   }
   return processes;
