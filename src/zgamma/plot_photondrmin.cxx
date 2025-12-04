@@ -328,10 +328,10 @@ int main() {
   const NamedFunc blind_sr = NamedFunc("(llphoton_m[0]<120||llphoton_m[0]>130)").Name("blind_sr"); //n.b. doesn't work for run 3
 
   shared_ptr<MVAWrapper> kinematic_bdt = KinematicBdt();
-  NamedFunc ggh4 = category_ggh4(kinematic_bdt);
-  NamedFunc ggh3 = category_ggh3(kinematic_bdt);
-  NamedFunc ggh2 = category_ggh2(kinematic_bdt);
-  NamedFunc ggh1 = category_ggh1(kinematic_bdt);
+  NamedFunc ggh4 = category_ggh4_old(kinematic_bdt);
+  NamedFunc ggh3 = category_ggh3_old(kinematic_bdt);
+  NamedFunc ggh2 = category_ggh2_old(kinematic_bdt);
+  NamedFunc ggh1 = category_ggh1_old(kinematic_bdt);
 
   std::shared_ptr<MVAWrapper> drloose_bdt = std::make_shared<MVAWrapper>("drloose_bdt");
   drloose_bdt->SetVariable("photon_mva",lead_drphoton_idmva);
@@ -347,10 +347,10 @@ int main() {
   drloose_bdt->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
   drloose_bdt->BookMVA("/homes/oshiro/analysis/small_phys_utils/dataset/weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
   NamedFunc drloose_bdt_score = drloose_bdt->GetDiscriminant();
-  NamedFunc ggh4_drloose = category_ggh4(drloose_bdt);
-  NamedFunc ggh3_drloose = category_ggh3(drloose_bdt);
-  NamedFunc ggh2_drloose = category_ggh2(drloose_bdt);
-  NamedFunc ggh1_drloose = category_ggh1(drloose_bdt);
+  NamedFunc ggh4_drloose = category_ggh4_old(drloose_bdt);
+  NamedFunc ggh3_drloose = category_ggh3_old(drloose_bdt);
+  NamedFunc ggh2_drloose = category_ggh2_old(drloose_bdt);
+  NamedFunc ggh1_drloose = category_ggh1_old(drloose_bdt);
   
   //------------------------------------------------------------------------------------
   //                                   plots and tables

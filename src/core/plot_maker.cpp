@@ -57,6 +57,7 @@ PlotMaker::PlotMaker():
   min_print_(false),
   print_2d_figures_(true),
   max_entries_(-1),
+  max_threads_(999),
   figures_(){
 }
 
@@ -91,6 +92,17 @@ void PlotMaker::MakePlots(double luminosity,
 PlotMaker & PlotMaker::SetLuminosityTag(const string &lumi_tag) {
   for(auto &figure: figures_){
     figure->SetLuminosityTag(lumi_tag);
+  }
+  return *this;
+}
+
+/*!\brief Sets energy tag for all plots
+
+  \param[in] energy_tag string to display for luminosity
+*/
+PlotMaker & PlotMaker::SetEnergyTag(const string &energy_tag) {
+  for(auto &figure: figures_){
+    figure->SetEnergyTag(energy_tag);
   }
   return *this;
 }
@@ -139,6 +151,8 @@ void PlotMaker::GetYields(){
 
   auto babies = GetBabies();
   size_t num_threads = multithreaded_ ? min(babies.size(), static_cast<size_t>(thread::hardware_concurrency())) : 1;
+  if (num_threads > max_threads_)
+    num_threads = max_threads_;
   cout << "Processing " << babies.size() << " babies with " << num_threads << " threads." << endl;
 
   long num_entries = 0;

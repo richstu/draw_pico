@@ -36,6 +36,8 @@
 #include "RooFFTConvPdf.h"
 #include "RooFitResult.h"
 #include "RooVoigtian.h"
+#include "RooMsgService.h"
+
 
 // fit result covariance matrix
 #include <TMatrixDSym.h>
@@ -44,28 +46,22 @@
 //#include "HelperFunction/interface/HelperFunction.h"
 //#include "DataFormats/Candidate/interface/Candidate.h"
 
-#include <iostream>
-#include <map>
-
-
-using namespace std;
-
 class KinZfitter {
  public:
 
   //Constructors
-  KinZfitter(bool isData);
-  KinZfitter(bool isData, TString pdf);
+  KinZfitter();
+  KinZfitter(TString pdf_filename);
 
   /// Kinematic fit of lepton momenta
-  void Setup(std::map<unsigned int, TLorentzVector> selectedLeptons, std::map<unsigned int, TLorentzVector> selectedFsrPhotons, std::map<unsigned int, double> errorLeptons, int lepFlav,TString year);
+  void Setup(std::map<unsigned int, TLorentzVector> selectedLeptons, std::map<unsigned int, TLorentzVector> selectedFsrPhotons, std::map<unsigned int, double> errorLeptons);
 
   ///
   void KinRefitZ1();
 
   int  PerZ1Likelihood(double & l1, double & l2, double & lph1, double & lph2);
   void SetZ1Result(double l1, double l2, double lph1, double lph2);
-  double lep_pterr(TLorentzVector lepton, double leptonError, int & lepFlav, TString & year);
+  double lep_pterr(TLorentzVector lepton, double leptonError);
   double pterr(TLorentzVector fsrPhoton);
   double masserror(std::vector<TLorentzVector> p4s, std::vector<double> pTErrs);
   double masserrorFullCov(std::vector<TLorentzVector> p4s, TMatrixDSym covMatrix);
@@ -80,6 +76,10 @@ class KinZfitter {
   double GetM4lErr();
   double GetRefitM4lErrFullCov();
 
+  float GetMinNll();
+  int   GetStatus();
+  int   GetCovMatStatus();
+
   std::vector<TLorentzVector> GetRefitP4s();
   std::vector<TLorentzVector> GetP4s();
 
@@ -90,8 +90,8 @@ class KinZfitter {
 
  private:
 
-  /// True mZ/mZ1 shape, final states
-  TString PDFName_, fs_;
+  /// True mZ/mZ1 shape
+  TString PDFName_;
 
   /// debug flag
   bool debug_;
@@ -101,10 +101,8 @@ class KinZfitter {
   /// whether use data or mc correction
   bool isData_;
 
-  void initZs(std::map<unsigned int, TLorentzVector> selectedLeptons, std::map<unsigned int, TLorentzVector> selectedFsrPhoton, std::map<unsigned int, double> errorLeptons, int lepFlav, TString year);
+  void initZs(std::map<unsigned int, TLorentzVector> selectedLeptons, std::map<unsigned int, TLorentzVector> selectedFsrPhoton, std::map<unsigned int, double> errorLeptons);
 
-  /// lepton ids for Z1
-  std::vector<int> idsZ1_;
   /// lepton ids that fsr photon associated to
   std::vector<int> idsFsrZ1_;
   /// (Four) TLorentzVectors that form the Higgs Candidate
@@ -118,6 +116,11 @@ class KinZfitter {
   // covariance matrix
   // what directly coming from Refit
   TMatrixDSym covMatrixZ1_;
+
+  //status' returned for fits
+  int status_;
+  int covmat_status_;
+  double minnll_;
 
   // refit energy scale with respect to reco pT
   double lZ1_l1_, lZ1_l2_;

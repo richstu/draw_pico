@@ -9,11 +9,10 @@
 #include <map>
 #include <memory>
 
-#include "RooAbsPdf.h"
-#include "RooRealVar.h"
 #include "TString.h"
 #include "TLorentzVector.h"
 
+#include "core/fastforest.hpp"
 #include "core/gamma_params.hpp"
 #include "core/mva_wrapper.hpp"
 #include "core/named_func.hpp"
@@ -23,6 +22,7 @@
 #include "core/sample_loader.hpp"
 #include "core/table.hpp"
 #include "core/table_row.hpp"
+#include "zgamma/KinZfitter.hpp"
 
 namespace ZgUtilities {
   TLorentzVector AssignL1(const Baby &b, bool gen = false);
@@ -48,26 +48,69 @@ namespace ZgUtilities {
   double get_cosTheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
   double get_costheta(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
   double get_phi(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);
+  std::vector<double> CalculateAngles(TLorentzVector lplus, 
+      TLorentzVector lminus, TLorentzVector ph);
 
   //returns working version of kinematic BDT
   std::shared_ptr<MVAWrapper> KinematicBdt();
   //returns NamedFunc that selects low BDT score category "ggF/untagged 4"
-  NamedFunc category_ggh4(std::shared_ptr<MVAWrapper> kinematic_bdt);
+  NamedFunc category_ggh4_old(std::shared_ptr<MVAWrapper> kinematic_bdt);
   //returns NamedFunc that selects medium BDT score category "ggF/untagged 3"
-  NamedFunc category_ggh3(std::shared_ptr<MVAWrapper> kinematic_bdt);
+  NamedFunc category_ggh3_old(std::shared_ptr<MVAWrapper> kinematic_bdt);
   //returns NamedFunc that selects high BDT score category "ggF/untagged 2"
-  NamedFunc category_ggh2(std::shared_ptr<MVAWrapper> kinematic_bdt);
+  NamedFunc category_ggh2_old(std::shared_ptr<MVAWrapper> kinematic_bdt);
   //returns NamedFunc that selects very high BDT score category "ggF/untagged 1"
-  NamedFunc category_ggh1(std::shared_ptr<MVAWrapper> kinematic_bdt);
+  NamedFunc category_ggh1_old(std::shared_ptr<MVAWrapper> kinematic_bdt);
 
   //returns working version of dijet BDT
-  std::shared_ptr<MVAWrapper> VbfBdt();
-  //returns NamedFunc that selects high BDT score VBF category "VBF/dijet 1"
-  NamedFunc category_vbf1(std::shared_ptr<MVAWrapper> vbf_bdt);
-  //returns NamedFunc that selects medium BDT score VBF category "VBF/dijet 2"
-  NamedFunc category_vbf2(std::shared_ptr<MVAWrapper> vbf_bdt);
-  //returns NamedFunc that selects low BDT score VBF category "VBF/dijet 3"
-  NamedFunc category_vbf3(std::shared_ptr<MVAWrapper> vbf_bdt);
+  std::vector<std::shared_ptr<MVAWrapper>> VbfBdts();
+  //returns NamedFunc that returns VBF score
+  NamedFunc vbf_bdt_score(std::string variation="");
+  //returns NamedFunc that selects very high BDT score VBF category 
+  NamedFunc category_vbf1(const NamedFunc &bdt_scores);
+  //returns NamedFunc that selects high BDT score VBF category 
+  NamedFunc category_vbf2(const NamedFunc &bdt_scores);
+  //returns NamedFunc that selects medium BDT score VBF category
+  NamedFunc category_vbf3(const NamedFunc &bdt_scores);
+  //returns NamedFunc that selects low BDT score VBF category 
+  NamedFunc category_vbf4(const NamedFunc &bdt_scores);
+
+  //returns XGBoost BDTs
+  std::vector<fastforest::FastForest> XGBoostBDTs_2503();
+  //returns XGBoost BDTs
+  std::vector<fastforest::FastForest> XGBoostBDTs();
+  //returns VBF XGBoost BDTs
+  std::vector<fastforest::FastForest> VBFXGBoostBDTs();
+  static const std::vector<float> xgb_ggf_bdt_250923_offsets = 
+      {0.730972, 0.731022, 0.730791, 0.730748};
+  static const std::vector<float> xgb_vbf_bdt_250923_offsets = 
+      {0.865881, 0.866399, 0.863877, 0.865476};
+  //Returns NamedFunc that returns XGBoost score
+  NamedFunc OldXGBoostBDTScore(
+      const std::vector<fastforest::FastForest> &xgb_bdts);
+  //Returns NamedFunc that returns XGBoost score
+  //Be careful: xgb_bdt may be allowed to go out of scope
+  NamedFunc XGBoostBDTScore(
+      const std::vector<fastforest::FastForest> &xgb_bdts, 
+      const std::vector<float> &offsets,
+      const std::vector<NamedFunc> inputs,
+      const std::string &name);
+  //Returns NamedFunc that returns XGBoost score
+  //Be careful: neither NamedFuncs nor xgb_bdt may be allowed to go out of 
+  //scope
+  NamedFunc XGBoostBDTScoreCached(
+      const std::vector<fastforest::FastForest> &xgb_bdts, 
+      const std::vector<float> &offsets,
+      const std::vector<const NamedFunc*> inputs,
+      const std::string &name);
+  //returns NamedFunc that selects low BDT score category "ggF 4"
+  NamedFunc category_ggf4(const NamedFunc &bdtscore);
+  //returns NamedFunc that selects medium BDT score category "ggF 3"
+  NamedFunc category_ggf3(const NamedFunc &bdtscore);
+  //returns NamedFunc that selects high BDT score category "ggF 2"
+  NamedFunc category_ggf2(const NamedFunc &bdtscore);
+  //returns NamedFunc that selects very high BDT score category "ggF 1"
+  NamedFunc category_ggf1(const NamedFunc &bdtscore);
 
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader();
@@ -80,20 +123,20 @@ namespace ZgUtilities {
   //Kinematic Refit Functions
   bool isFSRphoton(const Baby &b);
   std::map<unsigned int, TLorentzVector> fsrphoton_ret(const Baby &b);
+  std::map<unsigned int, TLorentzVector> fsrphoton_ret_customll(const Baby &b,
+      int lepid, int i1, int i2);
   double KinRefit(const Baby &b);
-  double KinRefit(const Baby &b,TString txtFile);
   std::vector<TLorentzVector> RefitP4(const Baby &b);
-  std::vector<TLorentzVector> RefitP4(const Baby &b,TString txtFile);
   double AssignL1Error(const Baby &b);
   double AssignL2Error(const Baby &b);
-  double difference_check(const Baby &b,TString txtFile);
-  double difference_check_lly(const Baby &b,TString txtFile);
+  double difference_check(const Baby &b);
+  double difference_check_lly(const Baby &b);
 
   //Functions to test the mu_correctedPt
   TLorentzVector AssignCorrL1(const Baby &b);
   TLorentzVector AssignCorrL2(const Baby &b);
-  double KinRefitCorrected(const Baby &b, TString txtFile);
-  std::vector<TLorentzVector> RefitP4Corr(const Baby &b, TString txtFile); 
+  double KinRefitCorrected(const Baby &b);
+  std::vector<TLorentzVector> RefitP4Corr(const Baby &b); 
 
   //returns WP. 1 is loose, 2 is medium, 3 is tight
   float get_btag_wp_deepjet(const std::string& year, int wp);
@@ -102,20 +145,8 @@ namespace ZgUtilities {
   void SetProcessesBackground(
       std::vector<std::shared_ptr<Process>> &processes);
 
-  //Adds second order exponential function convoluted with a Gaussian
-  void AddGaussStepExponential(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
-                               std::vector<std::shared_ptr<RooAbsPdf>> &aux_pdfs,
-                               std::vector<std::shared_ptr<RooRealVar>> &vars,
-                               std::shared_ptr<RooRealVar> &mllg,
-                               std::string category,
-                               unsigned int order);
-
-  //Adds Bernstein polynomial times a step function convoluted with a 
-  //Gaussian to the list of RooAbsPdfs
-  void AddGaussStepBernstein(std::vector<std::shared_ptr<RooAbsPdf>> &pdfs, 
-                             std::vector<std::shared_ptr<RooRealVar>> &vars,
-                             std::shared_ptr<RooRealVar> &mllg,
-                             std::string category,
-                             unsigned int order);
+  //returns lepton (pt1, eta1, phi1, m1, pt2, eta2, phi2, m2) with custom refit
+  std::vector<double> get_lep_custom_refit(const Baby &b, 
+      NamedFunc el_pt, NamedFunc mu_pt, int ll_lepid, int ll_i1, int ll_i2);
 }
 #endif

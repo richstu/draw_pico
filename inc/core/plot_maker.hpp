@@ -30,6 +30,7 @@ public:
                  const std::string &subdir = "");
 
   PlotMaker & SetLuminosityTag(const std::string &lumi_tag);
+  PlotMaker & SetEnergyTag(const std::string &energy_tag);
 
   const std::unique_ptr<Figure> & GetFigure(std::string tag) const;
   const std::vector<std::unique_ptr<Figure> > & Figures() const;
@@ -50,6 +51,7 @@ public:
   bool print_2d_figures_;
   long max_entries_;
   void * event_veto_data_;
+  size_t max_threads_;
 
 private:
   std::vector<std::unique_ptr<Figure> > figures_;//!<Figures to be produced
