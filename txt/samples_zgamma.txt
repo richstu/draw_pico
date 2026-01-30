@@ -1,5 +1,7 @@
 #add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v0/
 #add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v0/
+#add NEW_SIGNAL_PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v1/
+#add NEW_SIGNAL_PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v1/
 #add SIGNAL_PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v0_systsignal/
 #add SIGNAL_PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v0_systsignal/
 #add DATA_PRODUCTION_YEARS /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v0/2016APV/
@@ -251,11 +253,28 @@
 #add FILENAMES_HZG_TUNEDN *ttHtoZG_Zto2L_M-125_CP5TuneDown*.root
 
 #add FILENAMES_HMUMU_ALL *GluGluHToMuMu*.root
+#add FILENAMES_HMUMU_ALL *GluGluHto2Mu*.root
 #add FILENAMES_HMUMU_ALL *VBFHToMuMu*.root
+#add FILENAMES_HMUMU_ALL *VBFHto2Mu*.root
 #add FILENAMES_HMUMU_ALL *WminusHToMuMu*.root
+#add FILENAMES_HMUMU_ALL *WminusH_Hto2Mu*.root
 #add FILENAMES_HMUMU_ALL *WplusHToMuMu*.root
+#add FILENAMES_HMUMU_ALL *WplusH_Hto2Mu*.root
 #add FILENAMES_HMUMU_ALL *ZHToMuMu*.root
+#add FILENAMES_HMUMU_ALL *ZH_Hto2Mu*.root
 #add FILENAMES_HMUMU_ALL *ttHToMuMu*.root
+
+#add FILENAMES_HMUMU_GGF *GluGluHToMuMu*.root
+#add FILENAMES_HMUMU_GGF *GluGluHto2Mu*.root
+#add FILENAMES_HMUMU_VBF *VBFHToMuMu*.root
+#add FILENAMES_HMUMU_VBF *VBFHto2Mu*.root
+#add FILENAMES_HMUMU_WH *WminusHToMuMu*.root
+#add FILENAMES_HMUMU_WH *WminusH_Hto2Mu*.root
+#add FILENAMES_HMUMU_WH *WplusHToMuMu*.root
+#add FILENAMES_HMUMU_WH *WplusH_Hto2Mu*.root
+#add FILENAMES_HMUMU_ZH *ZHToMuMu*.root
+#add FILENAMES_HMUMU_ZH *ZH_Hto2Mu*.root
+#add FILENAMES_HMUMU_TTH *ttHToMuMu*.root.
 
 [[All]]
   [Z+Fake Photon]
@@ -293,10 +312,15 @@
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_MULTIBOSON
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [H#rightarrow #mu#mu]
+    ProcessType = 1
+    Color = 2
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMUMU_ALL
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
     PaletteColor = htozg
-    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Data]
     ProcessType = 0

@@ -11,8 +11,8 @@ def line_item(str_list, idx):
 
 if __name__ == '__main__':
   #todo add arguments
-  input_filename = 'datacards/hzg_datacard_v1p2.txt'
-  output_filename = 'datacards/hzg_datacard_v1p2_cleaned.txt'
+  input_filename = 'datacards/hzg_datacard_v1p3.txt'
+  output_filename = 'datacards/hzg_datacard_v1p3_cleaned.txt'
   output_content = ''
   with open(input_filename, 'r') as datacard:
     input_content = datacard.read().split('\n')
@@ -23,7 +23,7 @@ if __name__ == '__main__':
         output_content += line
         output_content += '\n'
       else:
-        output_content += line_split[0].ljust(35)
+        output_content += line_split[0].ljust(55)
         output_content += line_split[1].ljust(9)
         for icat in range(2, len(line_split)):
           if not ('/' in line_split[icat]):

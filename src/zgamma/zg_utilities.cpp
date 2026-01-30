@@ -606,7 +606,7 @@ namespace ZgUtilities {
     kin_bdt_reader->SetVariable("photon_rapidity","photon_eta[0]");
     kin_bdt_reader->SetVariable("l1_rapidity",ZgFunctions::lead_lepton_eta);
     kin_bdt_reader->SetVariable("l2_rapidity",ZgFunctions::sublead_lepton_eta);
-    kin_bdt_reader->BookMVA("/homes/oshiro/public_weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
+    kin_bdt_reader->BookMVA("/net/cms37/data2/oshiro/public_weights/shuffled_phidcomp_post_phidcomp_post_BDT.weights.xml");
     return kin_bdt_reader;
   }
 
@@ -819,15 +819,15 @@ namespace ZgUtilities {
     //in order vars are photon_mva, photon_res, max_dR, min_dR, pt_mass, 
     //cosTheta, costheta, phi, l1_rapidity, l2_rapidity, and photon_rapidity
     cout << "Loading XGBoost BDTs from "
-         << "/homes/oshiro/public_weights/xgb_bdt_*.txt" << endl;
+         << "/net/cms37/data2/oshiro/public_weights/xgb_bdt_*.txt" << endl;
     return {fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_bdt_0.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_bdt_0.txt", xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_bdt_1.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_bdt_1.txt", xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_bdt_2.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_bdt_2.txt", xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_bdt_3.txt", xgb_features)};
+        "/net/cms37/data2/oshiro/public_weights/xgb_bdt_3.txt", xgb_features)};
   }
 
   //returns XGBoost BDTs
@@ -838,15 +838,19 @@ namespace ZgUtilities {
         "photon_jet1_dr", "photon_zeppenfeld", "llphoton_dijet_dphi", 
         "llphoton_dijet_balance", "j1_eta", "j1_m", "j1_pt", "njet"};
     cout << "Loading XGBoost BDTs from "
-         << "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_*.txt" << endl;
+         << "/net/cms37/data2/oshiro/public_weights/xgb_ggf_bdt_250923_*.txt" 
+         << endl;
     return {fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_0.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_ggf_bdt_250923_0.txt", 
+        xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_1.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_ggf_bdt_250923_1.txt", 
+        xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_2.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_ggf_bdt_250923_2.txt", 
+        xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_ggf_bdt_250923_3.txt", 
+        "/net/cms37/data2/oshiro/public_weights/xgb_ggf_bdt_250923_3.txt", 
         xgb_features)};
   }
 
@@ -859,15 +863,19 @@ namespace ZgUtilities {
         "dijet_dphi", "photon_zeppenfeld", "photon_jet1_dr", "photon_jet2_dr", 
         "j1_pt", "j2_pt", "llphoton_hmiss_photon_dphi"};
     cout << "Loading XGBoost BDTs from "
-         << "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_*.txt" << endl;
+         << "/net/cms37/data2/oshiro/public_weights/xgb_vbf_bdt_250923_*.txt" 
+         << endl;
     return {fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_0.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_vbf_bdt_250923_0.txt", 
+        xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_1.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_vbf_bdt_250923_1.txt", 
+        xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_2.txt", xgb_features),
+        "/net/cms37/data2/oshiro/public_weights/xgb_vbf_bdt_250923_2.txt", 
+        xgb_features),
         fastforest::load_txt(
-        "/homes/oshiro/public_weights/xgb_vbf_bdt_250923_3.txt", 
+        "/net/cms37/data2/oshiro/public_weights/xgb_vbf_bdt_250923_3.txt", 
         xgb_features)};
   }
 

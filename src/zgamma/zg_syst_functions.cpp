@@ -14,8 +14,9 @@
 #include "core/fastforest.hpp"
 #include "core/named_func.hpp"
 #include "core/named_func_utilities.hpp"
-#include "zgamma/photon_weighter.hpp"
 #include "zgamma/KinZfitter.hpp"
+#include "zgamma/photon_weighter.hpp"
+#include "zgamma/scalesmear.hpp"
 #include "zgamma/zg_syst_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
 
@@ -369,22 +370,22 @@ namespace ZgFunctions {
     if (isinf(b.sys_el()->at(0)) || isnan(b.sys_el()->at(0))) 
       return 1.0;
     float norm = 1.0;
-    if (b.SampleTypeString() == "2016APV")
-      norm = 1.0/0.9501814;
-    else if (b.SampleTypeString() == "2016")
-      norm = 1.0/0.9488912;
-    else if (b.SampleTypeString() == "2017")
-      norm = 1.0/0.9691222;
-    else if (b.SampleTypeString() == "2018")
-      norm = 1.0/0.9618777;
-    else if (b.SampleTypeString() == "2022")
-      norm = 1.0/0.9533039;
-    else if (b.SampleTypeString() == "2022EE")
-      norm = 1.0/0.9268326;
-    else if (b.SampleTypeString() == "2023")
-      norm = 1.0/0.9152783;
-    else if (b.SampleTypeString() == "2023BPix")
-      norm = 1.0/0.9166964;
+    //if (b.SampleTypeString() == "2016APV")
+    //  norm = 1.0/0.9501814;
+    //else if (b.SampleTypeString() == "2016")
+    //  norm = 1.0/0.9488912;
+    //else if (b.SampleTypeString() == "2017")
+    //  norm = 1.0/0.9691222;
+    //else if (b.SampleTypeString() == "2018")
+    //  norm = 1.0/0.9618777;
+    //else if (b.SampleTypeString() == "2022")
+    //  norm = 1.0/0.9533039;
+    //else if (b.SampleTypeString() == "2022EE")
+    //  norm = 1.0/0.9268326;
+    //else if (b.SampleTypeString() == "2023")
+    //  norm = 1.0/0.9152783;
+    //else if (b.SampleTypeString() == "2023BPix")
+    //  norm = 1.0/0.9166964;
     return norm*b.sys_el()->at(0)/b.w_el();
   });
 
@@ -1423,19 +1424,19 @@ namespace ZgFunctions {
 
   //photon relpterr variations
   const NamedFunc sys_lead_photon_relpterr_default = 
-      assign_variation_lead_photon_relpterr(sys_photon_sig_default, 
+      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_default, 
       sys_photon_pt_default, "default");
   const NamedFunc sys_lead_photon_relpterr_scaleup = 
-      assign_variation_lead_photon_relpterr(sys_photon_sig_scaleup, 
+      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_scaleup, 
       sys_photon_pt_scaleup, "scaleup");
   const NamedFunc sys_lead_photon_relpterr_scaledn = 
-      assign_variation_lead_photon_relpterr(sys_photon_sig_scaledn, 
+      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_scaledn, 
       sys_photon_pt_scaledn, "scaledn");
   const NamedFunc sys_lead_photon_relpterr_resup = 
-      assign_variation_lead_photon_relpterr(sys_photon_sig_resup, 
+      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_resup, 
       sys_photon_pt_resup, "resup");
   const NamedFunc sys_lead_photon_relpterr_resdn = 
-      assign_variation_lead_photon_relpterr(sys_photon_sig_resdn, 
+      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_resdn, 
       sys_photon_pt_resdn, "resdn");
 
   //get Z candidate properties with variation
@@ -2902,6 +2903,28 @@ namespace ZgFunctions {
         }).EnableCaching(true);
   }
 
+  const NamedFunc jet_puid_loose = NamedFunc("jet_puid_loose",
+      [](const Baby &b) -> NamedFunc::VectorType{
+    vector<double> puid_loose;
+    for (unsigned ijet = 0; ijet < b.jet_pt()->size(); ijet++) {
+      //bool this_puid_loose = true;
+      //TODO make this vary with pt variations??
+      //if (b.jet_pt()->at(ijet) < 50) {
+      //  if (b.SampleTypeString().Contains("2016")) {
+      //    this_puid_loose = ((b.jet_puid()->at(ijet) & 0x1) != 0);
+      //  }
+      //  else if (b.SampleTypeString().Contains("2017") || 
+      //           b.SampleTypeString().Contains("2018")) {
+      //    this_puid_loose = ((b.jet_puid()->at(ijet) & 0x4) != 0);
+      //  }
+      //}
+      //if (this_puid_loose) puid_loose.push_back(1);
+      //else puid_loose.push_back(0);
+      puid_loose.push_back(1);
+    }
+    return puid_loose;
+  }).EnableCaching(true);
+
   //jet variations separated by era
   const NamedFunc sys_jet_pt_default("jet_pt");
   vector<NamedFunc> sys_jet_pt_scaleup;
@@ -2913,7 +2936,8 @@ namespace ZgFunctions {
   vector<NamedFunc> sys_jet_m_scaledn;
   vector<NamedFunc> sys_jet_m_resup;
   vector<NamedFunc> sys_jet_m_resdn;
-  const NamedFunc sys_jet_isgood_default("jet_isgood");
+  //const NamedFunc sys_jet_isgood_default("jet_isgood");
+  const NamedFunc sys_jet_isgood_default = NamedFunc("jet_isgood"&&jet_puid_loose).EnableCaching(true);
   vector<NamedFunc> sys_jet_isgood_scaleup;
   vector<NamedFunc> sys_jet_isgood_scaledn;
   vector<NamedFunc> sys_jet_isgood_resup;
@@ -2999,12 +3023,16 @@ namespace ZgFunctions {
   vector<NamedFunc> sys_sublead_jet_phi_scaledn;
   vector<NamedFunc> sys_sublead_jet_phi_resup;
   vector<NamedFunc> sys_sublead_jet_phi_resdn;
-  const NamedFunc sys_njet_default("njet");
+  //const NamedFunc sys_njet_default("njet");
+  const NamedFunc sys_njet_default = ReduceNamedFuncCached(
+      sys_jet_isgood_default,reduce_sum).Name("sys_njet_default");
   vector<NamedFunc> sys_njet_scaleup;
   vector<NamedFunc> sys_njet_scaledn;
   vector<NamedFunc> sys_njet_resup;
   vector<NamedFunc> sys_njet_resdn;
-  const NamedFunc sys_nbdfm_default("nbdfm");
+  //const NamedFunc sys_nbdfm_default("nbdfm");
+  const NamedFunc sys_nbdfm_default = assign_variation_nbdfm(
+      sys_jet_isgood_default, "default");
   vector<NamedFunc> sys_nbdfm_scaleup;
   vector<NamedFunc> sys_nbdfm_scaledn;
   vector<NamedFunc> sys_nbdfm_resup;
@@ -4127,19 +4155,19 @@ namespace ZgFunctions {
       //sys_jet_isgood_resdn.push_back(assign_isgood_pinnacles(
       //    sys_jet_pt_resdn[iyear], "resdn"+year));
       sys_jet_isgood_scaleup.push_back(NamedFunc(
-          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"&&jet_puid_loose
           &&sys_jet_pt_scaleup[iyear]>30.0).Name("sys_jet_isgood_scaleup"+year)
           .EnableCaching(true));
       sys_jet_isgood_scaledn.push_back(NamedFunc(
-          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"&&jet_puid_loose
           &&sys_jet_pt_scaledn[iyear]>30.0).Name("sys_jet_isgood_scaledn"+year)
           .EnableCaching(true));
       sys_jet_isgood_resup.push_back(NamedFunc(
-          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"&&jet_puid_loose
           &&sys_jet_pt_resup[iyear]>30.0).Name("sys_jet_isgood_resup"+year)
           .EnableCaching(true));
       sys_jet_isgood_resdn.push_back(NamedFunc(
-          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"&&jet_puid_loose
           &&sys_jet_pt_resdn[iyear]>30.0).Name("sys_jet_isgood_resdn"+year)
           .EnableCaching(true));
       sys_sig_jet_pt_scaleup.push_back(FilterNamedFuncCached(

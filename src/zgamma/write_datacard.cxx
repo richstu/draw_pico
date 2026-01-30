@@ -20,6 +20,7 @@
 #include "core/plot_maker.hpp"
 #include "core/process.hpp"
 #include "core/utilities.hpp"
+#include "zgamma/scalesmear.hpp"
 #include "zgamma/zg_functions.hpp"
 #include "zgamma/zg_syst_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
@@ -72,9 +73,13 @@ int main() {
   NamedFunc mllg = NamedFunc("llphoton_refit_m").Name("mllg");
   NamedFunc untagged_category_cached = NamedFunc(untagged_category)
       .EnableCaching(true);
+  cs_setter();
   initialize_jetvariations();
   const vector<string> years = {"2016APV", "2016", "2017", "2018", 
                                 "2022", "2022EE", "2023", "2023BPix"};
+  const vector<string> years_syst = {"2016preVFP", "2016postVFP", "2017", 
+                                     "2018", "2022", "2022EE", "2023", 
+                                     "2023BPix"};
 
   const vector<FastForest> ggf_bdts = XGBoostBDTs();
   const vector<FastForest> vbf_bdts = VBFXGBoostBDTs();
@@ -172,6 +177,19 @@ int main() {
       "weight_reg",[](const Baby &b) -> NamedFunc::ScalarType{
     if (b.SampleTypeString().Contains("-")) 
       return 1.; //data
+    //fix for Hto2Mu in redwood_v0
+    if (abs(b.SampleType())>2020) {
+      if (b.type() == -28999) 
+        return b.weight()/(-999999.0)*52.23*0.000218;
+      if (b.type() == -29999) 
+        return b.weight()/(-999999.0)*4.078*0.000218;
+      if (b.type() == 29500)
+        return b.weight()*0.000218;
+      if (b.type() == -12999 || b.type() == 12500) 
+        return b.weight()*0.000218;
+      if (b.type() == -13999 || b.type() == 13500) 
+        return b.weight()*0.000218;
+    }
     if (fabs(b.weight()/b.w_lumi()) > 10) return b.w_lumi()*10.0;
     return b.weight();
   });
@@ -203,34 +221,41 @@ int main() {
   SelectionList cat_tthlep("cat_tthlep",baseline);
   SelectionList cat_untagged("cat_untagged",baseline);
 
-  cat_ggf4.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
+  cat_ggf4.AddSelection("ggfobjectreq","nlep==2&&met<90"&&sys_njet_default<2);
   cat_ggf4.AddSelection("ggf4bdtcuts",category_ggf4(ggf_score_default));
-  cat_ggf3.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
+  cat_ggf3.AddSelection("ggfobjectreq","nlep==2&&met<90"&&sys_njet_default<2);
   cat_ggf3.AddSelection("ggf3bdtcuts",category_ggf3(ggf_score_default));
-  cat_ggf2.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
+  cat_ggf2.AddSelection("ggfobjectreq","nlep==2&&met<90"&&sys_njet_default<2);
   cat_ggf2.AddSelection("ggf2bdtcuts",category_ggf2(ggf_score_default));
-  cat_ggf1.AddSelection("ggfobjectreq","nlep==2&&njet<2&&met<90");
+  cat_ggf1.AddSelection("ggfobjectreq","nlep==2&&met<90"&&sys_njet_default<2);
   cat_ggf1.AddSelection("ggf1bdtcuts",category_ggf1(ggf_score_default));
 
-  cat_vbf4.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
+  cat_vbf4.AddSelection("vbfobjectreq","nlep==2"&&sys_nbdfm_default==0.0
+                                       &&sys_njet_default>=2);
   cat_vbf4.AddSelection("vbf4bdtcuts",category_vbf4(vbf_score_default));
-  cat_vbf3.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
+  cat_vbf3.AddSelection("vbfobjectreq","nlep==2"&&sys_nbdfm_default==0.0
+                                       &&sys_njet_default>=2);
   cat_vbf3.AddSelection("vbf3bdtcuts",category_vbf3(vbf_score_default));
-  cat_vbf2.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
+  cat_vbf2.AddSelection("vbfobjectreq","nlep==2"&&sys_nbdfm_default==0.0
+                                       &&sys_njet_default>=2);
   cat_vbf2.AddSelection("vbf2bdtcuts",category_vbf2(vbf_score_default));
-  cat_vbf1.AddSelection("vbfobjectreq","nlep==2&&njet>=2&&nbdfm==0");
+  cat_vbf1.AddSelection("vbfobjectreq","nlep==2"&&sys_nbdfm_default==0.0
+                                       &&sys_njet_default>=2);
   cat_vbf1.AddSelection("vbf1bdtcuts",category_vbf1(vbf_score_default));
 
-  cat_vhmet.AddSelection("vhmetobjectreq","nlep==2&&njet<2&&met>90");
+  cat_vhmet.AddSelection("vhmetobjectreq","nlep==2&&met>90"
+                                          &&sys_njet_default<2);
   cat_vhmet.AddSelection("vhmetptllgreq","llphoton_pt[0]/llphoton_m[0]>0.4");
-  cat_vh3l.AddSelection("vh3lobjectreq","nlep>=3&&nbdfm==0&&met>30");
+  cat_vh3l.AddSelection("vh3lobjectreq","nlep>=3&&met>30"
+                                        &&sys_nbdfm_default==0.0);
   cat_vh3l.AddSelection("vh3lminisoreq",max_lep_miniso<0.15);
   cat_vh3l.AddSelection("vh3lptllgreq","llphoton_pt[0]/llphoton_m[0]>0.3");
 
-  cat_tthhad.AddSelection("tthhadobjectreq","nlep==2&&njet>=5&&nbdfm>=1");
+  cat_tthhad.AddSelection("tthhadobjectreq","nlep==2"&&sys_nbdfm_default>=1
+                                            &&sys_njet_default>=5);
   cat_tthhad.AddSelection("tthhadzmassreq","ll_m[0]>85&&ll_m[0]<95");
   cat_tthlep.AddSelection("tthlepobjectreq",
-      "(nlep==3&&njet>=3&&nbdfm>=1)||(nlep>=4&&njet>=1&&nbdfm>=1)");
+      ("nlep==3"&&sys_nbdfm_default>=1&&sys_njet_default>=3)||("nlep>=4"&&sys_nbdfm_default>=1&&sys_njet_default>=1));
   cat_tthlep.AddSelection("tthlepminisoreq",max_lep_miniso<0.1);
 
   cat_untagged.AddSelection("untagged",untagged_category_cached);
@@ -249,24 +274,24 @@ int main() {
                                    {weight*sys_w_pdf_qq}));
   systematics.push_back(Systematic("pdf_Higgs_ttH",{"weight"},
                                    {weight*sys_w_pdf_tth}));
-  systematics.push_back(Systematic("QCD_scale_ggH",{"weight"},
+  systematics.push_back(Systematic("QCDscale_ggH",{"weight"},
                                    {weight*sys_w_ggf_xs}));
-  systematics.push_back(Systematic("QCD_scale_qqH",{"weight"},
+  systematics.push_back(Systematic("QCDscale_qqH",{"weight"},
                                    {weight*sys_w_vbf_xs_up},
                                    {weight*sys_w_vbf_xs_dn}));
-  systematics.push_back(Systematic("QCD_scale_VH",{"weight"},
+  systematics.push_back(Systematic("QCDscale_VH",{"weight"},
                                    {weight*sys_w_wh_xs_up*sys_w_zh_xs_up},
                                    {weight*sys_w_wh_xs_dn*sys_w_zh_xs_dn}));
-  systematics.push_back(Systematic("QCD_scale_ttH",{"weight"},
+  systematics.push_back(Systematic("QCDscale_ttH",{"weight"},
                                    {weight*sys_w_tth_xs_up},
                                    {weight*sys_w_tth_xs_dn}));
-  systematics.push_back(Systematic("QCD_scale_diff_ggH",{"weight"},
+  systematics.push_back(Systematic("QCDscale_ggH_diff",{"weight"},
                                    {weight*sys_diffscale_ggf_up}));
-  systematics.push_back(Systematic("QCD_scale_diff_qqH",{"weight"},
+  systematics.push_back(Systematic("QCDscale_qqH_diff",{"weight"},
                                    {weight*sys_diffscale_vbf_up}));
-  systematics.push_back(Systematic("QCD_scale_diff_VH",{"weight"},
+  systematics.push_back(Systematic("QCDscale_VH_diff",{"weight"},
                                    {weight*sys_diffscale_vh_up}));
-  systematics.push_back(Systematic("QCD_scale_diff_ttH",{"weight"},
+  systematics.push_back(Systematic("QCDscale_ttH_diff",{"weight"},
                                    {weight*sys_diffscale_tth_up}));
   systematics.push_back(Systematic("BR_hzg",{"weight"},
                                    {weight*sys_w_htozg_br}));
@@ -288,9 +313,9 @@ int main() {
   //no lumi correlation yet, waiting on official recos from LUM
   systematics.push_back(Systematic("lumi_13TeV",{"weight"},
                                    {weight*sys_w_lumi_run2}));
-  systematics.push_back(Systematic("lumi_2022",{"weight"},
+  systematics.push_back(Systematic("lumi_13p6TeV_2022",{"weight"},
                                    {weight*sys_w_lumi_2022}));
-  systematics.push_back(Systematic("lumi_2023",{"weight"},
+  systematics.push_back(Systematic("lumi_13p6TeV_2023",{"weight"},
                                    {weight*sys_w_lumi_2023}));
   systematics.push_back(Systematic("CMS_pileup",{"weight"},
                                    {weight*"sys_pu[0]/w_pu"},
@@ -307,29 +332,33 @@ int main() {
   systematics.push_back(Systematic("CMS_eff_g",{"weight"},
                                    {weight*"sys_photon[0]/w_photon"},
                                    {weight*"sys_photon[1]/w_photon"}));
-  systematics.push_back(Systematic("CMS_trigger_e",{"weight"},
+  systematics.push_back(Systematic("CMS_eff_e_trigger_total",{"weight"},
                                    {weight*sys_trig_el_up},
                                    {weight*sys_trig_el_dn}));
-  systematics.push_back(Systematic("CMS_trigger_m",{"weight"},
+  systematics.push_back(Systematic("CMS_eff_m_trigger_total",{"weight"},
                                    {weight*sys_trig_mu_up},
                                    {weight*sys_trig_mu_dn}));
   systematics.push_back(Systematic("CMS_quality_g",{"weight"},
                                    {weight*"(1.5*w_phshape-0.5)/w_phshape"},
                                    {weight*"(0.5*w_phshape+0.5)/w_phshape"}));
-  systematics.push_back(Systematic("CMS_btag_heavy",{"weight"},
+  systematics.push_back(Systematic("CMS_btag_fixedWP_comb_bc_correlated",
+                                   {"weight"},
                                    {weight*"sys_bchig[0]/w_btag_df"},
                                    {weight*"sys_bchig[1]/w_btag_df"}));
-  systematics.push_back(Systematic("CMS_btag_light",{"weight"},
+  systematics.push_back(Systematic("CMS_btag_fixedWP_incl_light_correlated",
+                                   {"weight"},
                                    {weight*"sys_udsghig[0]/w_btag_df"},
                                    {weight*"sys_udsghig[1]/w_btag_df"}));
   for (unsigned iyear = 0; iyear < years.size(); iyear++) {
-    string year = years[iyear];
-    systematics.push_back(Systematic("CMS_btag_heavy_"+year,{"weight"},
-                                     {weight*sys_bchig_uncorr_up[iyear]},
-                                     {weight*sys_bchig_uncorr_dn[iyear]}));
-    systematics.push_back(Systematic("CMS_btag_light_"+year,{"weight"},
-                                     {weight*sys_udsghig_uncorr_up[iyear]},
-                                     {weight*sys_udsghig_uncorr_up[iyear]}));
+    string year = years_syst[iyear];
+    systematics.push_back(Systematic(
+        "CMS_btag_fixedWP_comb_bc_uncorrelated_"+year,{"weight"},
+        {weight*sys_bchig_uncorr_up[iyear]},
+        {weight*sys_bchig_uncorr_dn[iyear]}));
+    systematics.push_back(Systematic(
+        "CMS_btag_fixedWP_incl_light_uncorrelated_"+year,{"weight"},
+        {weight*sys_udsghig_uncorr_up[iyear]},
+        {weight*sys_udsghig_uncorr_up[iyear]}));
   }
   systematics.push_back(Systematic("CMS_scale_e",
       {"objectreq","lepptcuts","zmassreq","photonptreq","mllmllgreq",
@@ -343,13 +372,13 @@ int main() {
        sys_ll_m_elscaleup>80&&sys_ll_m_elscaleup<100, 
        "photon_pt[0]"/sys_llphoton_m_elscaleup>(15.0/110.0),
        (sys_ll_m_elscaleup+sys_llphoton_m_elscaleup)>185.0,
-       sys_nlep_elscaleup==2&&"njet<2&&met<90",
-       sys_nlep_elscaleup==2&&"njet>=2&&nbdfm==0",
-       sys_nlep_elscaleup==2&&"njet<2&&met>90",
-       sys_nlep_elscaleup>=3&&"nbdfm==0&&met>30",
-       sys_nlep_elscaleup==2&&"nbdfm>=1&&njet>=5",
-       ((sys_nlep_elscaleup==3&&"njet>=3")||(sys_nlep_elscaleup>=4))
-         &&"nbdfm>=1",
+       sys_nlep_elscaleup==2&&sys_njet_default<2&&"met<90",
+       sys_nlep_elscaleup==2&&sys_njet_default>=2&&sys_nbdfm_default==0.0,
+       sys_nlep_elscaleup==2&&sys_njet_default<2&&"met>90",
+       sys_nlep_elscaleup>=3&&sys_nbdfm_default==0.0&&"met>30",
+       sys_nlep_elscaleup==2&&sys_njet_default>=5&&sys_nbdfm_default>=1,
+       ((sys_nlep_elscaleup==3&&sys_njet_default>=3)||(sys_nlep_elscaleup>=4))
+         &&sys_nbdfm_default>=1,
        untagged_category_elscaleup,
        sys_llphoton_pt_elscaleup/sys_llphoton_m_elscaleup>0.4,
        sys_max_lep_miniso_elscaleup<0.15,
@@ -370,13 +399,13 @@ int main() {
        sys_ll_m_elscaledn>80&&sys_ll_m_elscaledn<100, 
        "photon_pt[0]"/sys_llphoton_m_elscaledn>(15.0/110.0),
        (sys_ll_m_elscaledn+sys_llphoton_m_elscaledn)>185.0,
-       sys_nlep_elscaledn==2&&"njet<2&&met<90",
-       sys_nlep_elscaledn==2&&"njet>=2&&nbdfm==0",
-       sys_nlep_elscaledn==2&&"njet<2&&met>90",
-       sys_nlep_elscaledn>=3&&"nbdfm==0&&met>30",
-       sys_nlep_elscaledn==2&&"nbdfm>=1&&njet>=5",
-       ((sys_nlep_elscaledn==3&&"njet>=3")||(sys_nlep_elscaledn>=4))
-         &&"nbdfm>=1",
+       sys_nlep_elscaledn==2&&sys_njet_default<2&&"met<90",
+       sys_nlep_elscaledn==2&&sys_njet_default>=2&&sys_nbdfm_default==0.0,
+       sys_nlep_elscaledn==2&&sys_njet_default<2&&"met>90",
+       sys_nlep_elscaledn>=3&&sys_nbdfm_default==0.0&&"met>30",
+       sys_nlep_elscaledn==2&&sys_nbdfm_default>=1&&sys_njet_default>=5,
+       ((sys_nlep_elscaledn==3&&sys_njet_default>=3)||(sys_nlep_elscaledn>=4))
+         &&sys_nbdfm_default>=1,
        untagged_category_elscaledn,
        sys_llphoton_pt_elscaledn/sys_llphoton_m_elscaledn>0.4,
        sys_max_lep_miniso_elscaledn<0.15,
@@ -404,12 +433,12 @@ int main() {
        sys_ll_m_elresup>80&&sys_ll_m_elresup<100, 
        "photon_pt[0]"/sys_llphoton_m_elresup>(15.0/110.0),
        (sys_ll_m_elresup+sys_llphoton_m_elresup)>185.0,
-       sys_nlep_elresup==2&&"njet<2&&met<90",
-       sys_nlep_elresup==2&&"njet>=2&&nbdfm==0",
-       sys_nlep_elresup==2&&"njet<2&&met>90",
-       sys_nlep_elresup>=3&&"nbdfm==0&&met>30",
-       sys_nlep_elresup==2&&"nbdfm>=1&&njet>=5",
-       ((sys_nlep_elresup==3&&"njet>=3")||(sys_nlep_elresup>=4))&&"nbdfm>=1",
+       sys_nlep_elresup==2&&sys_njet_default<2&&"met<90",
+       sys_nlep_elresup==2&&sys_njet_default>=2&&sys_nbdfm_default==0.0,
+       sys_nlep_elresup==2&&sys_njet_default<2&&"met>90",
+       sys_nlep_elresup>=3&&sys_nbdfm_default==0.0&&"met>30",
+       sys_nlep_elresup==2&&sys_nbdfm_default>=1&&sys_njet_default>=5,
+       ((sys_nlep_elresup==3&&sys_njet_default>=3)||(sys_nlep_elresup>=4))&&sys_nbdfm_default>=1,
        untagged_category_elresup,
        sys_llphoton_pt_elresup/sys_llphoton_m_elresup>0.4,
        sys_max_lep_miniso_elresup<0.15,
@@ -430,12 +459,12 @@ int main() {
        sys_ll_m_elresdn>80&&sys_ll_m_elresdn<100, 
        "photon_pt[0]"/sys_llphoton_m_elresdn>(15.0/110.0),
        (sys_ll_m_elresdn+sys_llphoton_m_elresdn)>185.0,
-       sys_nlep_elresdn==2&&"njet<2&&met<90",
-       sys_nlep_elresdn==2&&"njet>=2&&nbdfm==0",
-       sys_nlep_elresdn==2&&"njet<2&&met>90",
-       sys_nlep_elresdn>=3&&"nbdfm==0&&met>30",
-       sys_nlep_elresdn==2&&"nbdfm>=1&&njet>=5",
-       ((sys_nlep_elresdn==3&&"njet>=3")||(sys_nlep_elresdn>=4))&&"nbdfm>=1",
+       sys_nlep_elresdn==2&&sys_njet_default<2&&"met<90",
+       sys_nlep_elresdn==2&&sys_njet_default>=2&&sys_nbdfm_default==0.0,
+       sys_nlep_elresdn==2&&sys_njet_default<2&&"met>90",
+       sys_nlep_elresdn>=3&&sys_nbdfm_default==0.0&&"met>30",
+       sys_nlep_elresdn==2&&sys_nbdfm_default>=1&&sys_njet_default>=5,
+       ((sys_nlep_elresdn==3&&sys_njet_default>=3)||(sys_nlep_elresdn>=4))&&sys_nbdfm_default>=1,
        untagged_category_elresdn,
        sys_llphoton_pt_elresdn/sys_llphoton_m_elresdn>0.4,
        sys_max_lep_miniso_elresdn<0.15,
@@ -463,13 +492,13 @@ int main() {
        sys_ll_m_muscaleup>80&&sys_ll_m_muscaleup<100, 
        "photon_pt[0]"/sys_llphoton_m_muscaleup>(15.0/110.0),
        (sys_ll_m_muscaleup+sys_llphoton_m_muscaleup)>185.0,
-       sys_nlep_muscaleup==2&&"njet<2&&met<90",
-       sys_nlep_muscaleup==2&&"njet>=2&&nbdfm==0",
-       sys_nlep_muscaleup==2&&"njet<2&&met>90",
-       sys_nlep_muscaleup>=3&&"nbdfm==0&&met>30",
-       sys_nlep_muscaleup==2&&"nbdfm>=1&&njet>=5",
-       ((sys_nlep_muscaleup==3&&"njet>=3")||(sys_nlep_muscaleup>=4))
-           &&"nbdfm>=1",
+       sys_nlep_muscaleup==2&&sys_njet_default<2&&"met<90",
+       sys_nlep_muscaleup==2&&sys_njet_default>=2&&sys_nbdfm_default==0.0,
+       sys_nlep_muscaleup==2&&sys_njet_default<2&&"met>90",
+       sys_nlep_muscaleup>=3&&sys_nbdfm_default==0.0&&"met>30",
+       sys_nlep_muscaleup==2&&sys_nbdfm_default>=1&&sys_njet_default>=5,
+       ((sys_nlep_muscaleup==3&&sys_njet_default>=3)||(sys_nlep_muscaleup>=4))
+           &&sys_nbdfm_default>=1,
        untagged_category_muscaleup,
        sys_llphoton_pt_muscaleup/sys_llphoton_m_muscaleup>0.4,
        sys_max_lep_miniso_muscaleup<0.15,
@@ -490,13 +519,13 @@ int main() {
        sys_ll_m_muscaledn>80&&sys_ll_m_muscaledn<100, 
        "photon_pt[0]"/sys_llphoton_m_muscaledn>(15.0/110.0),
        (sys_ll_m_muscaledn+sys_llphoton_m_muscaledn)>185.0,
-       sys_nlep_muscaledn==2&&"njet<2&&met<90",
-       sys_nlep_muscaledn==2&&"njet>=2&&nbdfm==0",
-       sys_nlep_muscaledn==2&&"njet<2&&met>90",
-       sys_nlep_muscaledn>=3&&"nbdfm==0&&met>30",
-       sys_nlep_muscaledn==2&&"nbdfm>=1&&njet>=5",
-       ((sys_nlep_muscaledn==3&&"njet>=3")||(sys_nlep_muscaledn>=4))
-           &&"nbdfm>=1",
+       sys_nlep_muscaledn==2&&sys_njet_default<2&&"met<90",
+       sys_nlep_muscaledn==2&&sys_njet_default>=2&&sys_nbdfm_default==0.0,
+       sys_nlep_muscaledn==2&&sys_njet_default<2&&"met>90",
+       sys_nlep_muscaledn>=3&&sys_nbdfm_default==0.0&&"met>30",
+       sys_nlep_muscaledn==2&&sys_nbdfm_default>=1&&sys_njet_default>=5,
+       ((sys_nlep_muscaledn==3&&sys_njet_default>=3)||(sys_nlep_muscaledn>=4))
+           &&sys_nbdfm_default>=1,
        untagged_category_muscaledn,
        sys_llphoton_pt_muscaledn/sys_llphoton_m_muscaledn>0.4,
        sys_max_lep_miniso_muscaledn<0.15,
@@ -524,12 +553,12 @@ int main() {
        sys_ll_m_muresup>80&&sys_ll_m_muresup<100, 
        "photon_pt[0]"/sys_llphoton_m_muresup>(15.0/110.0),
        (sys_ll_m_muresup+sys_llphoton_m_muresup)>185.0,
-       sys_nlep_muresup==2&&"njet<2&&met<90",
-       sys_nlep_muresup==2&&"njet>=2&&nbdfm==0",
-       sys_nlep_muresup==2&&"njet<2&&met>90",
-       sys_nlep_muresup>=3&&"nbdfm==0&&met>30",
-       sys_nlep_muresup==2&&"nbdfm>=1&&njet>=5",
-       ((sys_nlep_muresup==3&&"njet>=3")||(sys_nlep_muresup>=4))&&"nbdfm>=1",
+       sys_nlep_muresup==2&&sys_njet_default<2&&"met<90",
+       sys_nlep_muresup==2&&sys_njet_default>=2&&sys_nbdfm_default==0.0,
+       sys_nlep_muresup==2&&sys_njet_default<2&&"met>90",
+       sys_nlep_muresup>=3&&sys_nbdfm_default==0.0&&"met>30",
+       sys_nlep_muresup==2&&sys_nbdfm_default>=1&&sys_njet_default>=5,
+       ((sys_nlep_muresup==3&&sys_njet_default>=3)||(sys_nlep_muresup>=4))&&sys_nbdfm_default>=1,
        untagged_category_muresup,
        sys_llphoton_pt_muresup/sys_llphoton_m_muresup>0.4,
        sys_max_lep_miniso_muresup<0.15,
@@ -550,12 +579,12 @@ int main() {
        sys_ll_m_muresdn>80&&sys_ll_m_muresdn<100, 
        "photon_pt[0]"/sys_llphoton_m_muresdn>(15.0/110.0),
        (sys_ll_m_muresdn+sys_llphoton_m_muresdn)>185.0,
-       sys_nlep_muresdn==2&&"njet<2&&met<90",
-       sys_nlep_muresdn==2&&"njet>=2&&nbdfm==0",
-       sys_nlep_muresdn==2&&"njet<2&&met>90",
-       sys_nlep_muresdn>=3&&"nbdfm==0&&met>30",
-       sys_nlep_muresdn==2&&"nbdfm>=1&&njet>=5",
-       ((sys_nlep_muresdn==3&&"njet>=3")||(sys_nlep_muresdn>=4))&&"nbdfm>=1",
+       sys_nlep_muresdn==2&&sys_njet_default<2&&"met<90",
+       sys_nlep_muresdn==2&&sys_njet_default>=2&&sys_nbdfm_default==0.0,
+       sys_nlep_muresdn==2&&sys_njet_default<2&&"met>90",
+       sys_nlep_muresdn>=3&&sys_nbdfm_default==0.0&&"met>30",
+       sys_nlep_muresdn==2&&sys_nbdfm_default>=1&&sys_njet_default>=5,
+       ((sys_nlep_muresdn==3&&sys_njet_default>=3)||(sys_nlep_muresdn>=4))&&sys_nbdfm_default>=1,
        untagged_category_muresdn,
        sys_llphoton_pt_muresdn/sys_llphoton_m_muresdn>0.4,
        sys_max_lep_miniso_muresdn<0.15,
@@ -640,7 +669,7 @@ int main() {
        category_vbf1(vbf_score_phresdn),
        sys_llphoton_refit_m_phresdn},true));
   for (unsigned iyear = 0; iyear < years.size(); iyear++) {
-    string year = years[iyear];
+    string year = years_syst[iyear];
     systematics.push_back(Systematic("CMS_scale_j_"+year,
         {"ggfobjectreq","vbfobjectreq","vhmetobjectreq","vh3lobjectreq",
          "tthhadobjectreq","tthlepobjectreq","untagged","ggf4bdtcuts",
@@ -725,9 +754,9 @@ int main() {
   pm.max_threads_ = 16;
 
   //set axis range to be larger than range in any individual category
-  pm.Push<Datacard>("hzg_datacard_v1p2_test", channels, systematics, 
+  pm.Push<Datacard>("hzg_datacard_v1p3", channels, systematics, 
       processes, weight,
-      Axis(340, 95.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
+      Axis(360, 90.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)
       .AddParametricProcess("background")
       .SaveDataAsHist()

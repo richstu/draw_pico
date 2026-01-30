@@ -768,7 +768,7 @@ void Datacard::Print(double luminosity, const std::string &subdir) {
   datacard_file << "----------------------------------------------------------"
                    "----------------------------------------------------------"
                    "--------------\n";
-  const int w_name = 35;
+  const int w_name = 55;
   const int w_type = 8;
   const int w_entry = 19;
   //process rates
