@@ -42,6 +42,7 @@ PlotOpt::PlotOpt():
   legend_left_pad_(0.),
   legend_left_column_offset_(0.),
   log_minimum_(0.),
+  log_maximum_(1e20), //1e20 is just assumed to never be reached
   ratio_minimum_(0.1),
   ratio_maximum_(1.9),
   n_divisions_(606),
@@ -426,6 +427,15 @@ double PlotOpt::LogMinimum() const{
   return log_minimum_;
 }
 
+PlotOpt & PlotOpt::LogMaximum(double log_maximum){
+  log_maximum_ = log_maximum;
+  return *this;
+}
+
+double PlotOpt::LogMaximum() const{
+  return log_maximum_;
+}
+
 PlotOpt & PlotOpt::RatioMinimum(double ratio_minimum){
   ratio_minimum_ = ratio_minimum;
   return *this;
@@ -557,7 +567,8 @@ bool PlotOpt::BackgroundsStacked() const{
 
 bool PlotOpt::DisplayLumiEntry() const{
   return display_mc_norm_ || (title_type_ == TitleType::info
-                              && BackgroundsStacked());
+                              && BackgroundsStacked())
+                          || title_type_ == TitleType::preliminary_validation;
 }
 
 string PlotOpt::TypeString() const{
