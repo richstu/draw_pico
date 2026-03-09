@@ -9,7 +9,7 @@
 namespace PlotOptTypes{
   enum class BottomType{off, ratio, diff, sorb, sorb_cut_upper};
   enum class YAxisType{linear, log};
-  enum class TitleType{info, preliminary, simulation, simulation_preliminary, simulation_supplementary, supplementary, data, private_work};
+  enum class TitleType{info, preliminary, simulation, simulation_preliminary, simulation_supplementary, supplementary, data, private_work, preliminary_validation};
   enum class StackType{signal_overlay, signal_on_top, data_norm, lumi_shapes, shapes, prop_shape_stack};
   enum class OverflowType{none, underflow, overflow, both};
 }
@@ -120,6 +120,9 @@ public:
   PlotOpt & LogMinimum(double log_minimum);
   double LogMinimum() const;
 
+  PlotOpt & LogMaximum(double log_maximum);
+  double LogMaximum() const;
+
   PlotOpt & RatioMinimum(double ratio_minimum);
   double RatioMinimum() const;
   PlotOpt & RatioMaximum(double ratio_maximum);
@@ -178,6 +181,7 @@ private:
   double legend_marker_width_, legend_pad_, legend_density_;
   double legend_left_pad_, legend_left_column_offset_;
   double log_minimum_;
+  double log_maximum_;
   double ratio_minimum_, ratio_maximum_;
   int n_divisions_, n_divisions_bottom_;
   int font_;

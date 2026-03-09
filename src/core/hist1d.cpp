@@ -1088,6 +1088,7 @@ vector<shared_ptr<TLatex> > Hist1D::GetTitleTexts() const{
     string extra;
     switch(this_opt_.Title()){
     case TitleType::preliminary: extra = "Preliminary"; break;
+    case TitleType::preliminary_validation: extra = "Preliminary"; break;
     case TitleType::simulation: extra = "Simulation"; break;
     case TitleType::simulation_preliminary: extra = "Simulation Preliminary"; break;
     case TitleType::simulation_supplementary: extra = "Simulation Supplementary"; break;
@@ -1628,7 +1629,7 @@ void Hist1D::AddEntries(vector<shared_ptr<TLegend> > &legends,
     TLegend &legend = *legends.at(legend_index);
     string label = " ";
     label += (*h)->process_->name_.c_str();
-    if(this_opt_.Title() == TitleType::info || this_opt_.DisplayMCNorm()){
+    if(this_opt_.Title() == TitleType::info || this_opt_.DisplayMCNorm() || this_opt_.Title() == TitleType::preliminary_validation){
       double value;
       switch(this_opt_.Stack()){
       default:

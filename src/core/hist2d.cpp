@@ -406,6 +406,7 @@ vector<shared_ptr<TLatex> > Hist2D::GetLabels(bool bkg_is_hist) const{
   string extra;
   switch(this_opt_.Title()){
   case TitleType::preliminary: extra = "Preliminary"; break;
+  case TitleType::preliminary_validation: extra = "Preliminary"; break; 
   case TitleType::simulation: extra = "Simulation"; break;
   case TitleType::simulation_preliminary: extra = "#splitline{Simulation}{Preliminary}"; break;
   case TitleType::simulation_supplementary: extra = "#splitline{Simulation}{Supplementary}"; break;
@@ -512,6 +513,9 @@ void Hist2D::AddEntry(TLegend &l, const SingleHist2D &h, const TGraph &g) const{
     print_rho = true;
     break;
   case TitleType::preliminary:
+    print_rho = false;
+    break;
+  case TitleType::preliminary_validation:
     print_rho = false;
     break;
   case TitleType::simulation:

@@ -138,6 +138,7 @@ namespace ZgFunctions {
 
   //Below functions are related to weighting of samples or naming based off of weighting
   extern const NamedFunc wgt;
+  extern const NamedFunc wgt10; 
   extern const NamedFunc wgt_pin_fix;
   
   NamedFunc add_cut(NamedFunc & current_cut, NamedFunc additional_cut);

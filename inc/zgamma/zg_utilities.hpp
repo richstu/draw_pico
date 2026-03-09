@@ -40,6 +40,7 @@ namespace ZgUtilities {
   double cos_Theta(const Baby &b, bool gen = false);
   double Getphi(const Baby &b, bool gen = false);
   double pdrmax(const Baby &b);
+  double dR(double eta1, double eta2,double phi1,double phi2);
 
   //correct angle functions from Jaebak
   TLorentzVector get_q1(TLorentzVector const & lep_minus, TLorentzVector const & lep_plus, TLorentzVector const & gamma);

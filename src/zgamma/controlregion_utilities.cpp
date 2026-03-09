@@ -47,9 +47,19 @@ namespace CRUtilities{
   const NamedFunc hasNll("hasNll",[](const Baby &b) -> NamedFunc::ScalarType{ return b.nll() > 0; });
   const NamedFunc Nllgamma_g0_minsel = hasNll && hasNanoPhoton;
 
+  const NamedFunc blind_data("blind_data", [](const Baby &b) -> NamedFunc::ScalarType{
+    if(b.SampleTypeString().Contains("-") && b.nllphoton() > 0 && b.llphoton_m()->at(0) > 120 && b.llphoton_m()->at(0) < 130){return false;}
+    return true;
+  });
+
+  const NamedFunc blind_refit_data("blind_refit_data", [](const Baby &b) -> NamedFunc::ScalarType{
+    if(b.SampleTypeString().Contains("-") && b.nllphoton() > 0 && b.llphoton_refit_m() > 120 && b.llphoton_refit_m() < 130){return false;}
+    return true;
+  });
 
   const NamedFunc higgs_window = "llphoton_m[0] < 120 || llphoton_m[0] > 130";
-  const NamedFunc cr_sideband = ZgFunctions::tightened_baseline && !higgs_window;
+  const NamedFunc higgs_window_refit =  "llphoton_refit_m > 120 && llphoton_refit_m < 130";
+  const NamedFunc cr_sideband = ZgFunctions::tightened_baseline && !higgs_window_refit;
   const NamedFunc cr_fake_photon = Nllgamma_g0_minsel && Nreplace1(ZgFunctions::vector_tightened_baseline, hasNanoPhoton && "photon_pt[0] > 15 && photon_drmin[0] > 0.3 && !photon_id80[0]",3);
   const NamedFunc cr_Zfsr_photon = Nllgamma_g0_minsel && Nminusk(ZgFunctions::vector_tightened_baseline,{5,6,7}) && "ll_m[0] < 80 && llphoton_m[0] < 100";
   const NamedFunc cr_soft_photon = Nllgamma_g0_minsel && Nreverse1(ZgFunctions::vector_tightened_baseline, 4);
@@ -64,7 +74,10 @@ namespace CRUtilities{
 
   const std::vector<NamedFunc> controlregions_refit_vec = {cr_sideband_refit, cr_soft_photon_refit, cr_Zfsr_photon_refit, cr_fake_photon_refit};  
 
-
+  const std::string SamplesFile = "txt/samples_zgamma_redwood.txt";
+  const std::string R2Lumi = "138";
+  const std::string R3Lumi = ",62";
+  const std::string R23Lumi = "138,62";
 
 
   //This code defines additional control regions split by the selections listed below
@@ -113,25 +126,30 @@ namespace CRUtilities{
         PlotOpt an_cr_plot("txt/plot_styles.txt","CMSPaper");
         an_cr_plot.YAxis(PlotOptTypes::YAxisType::linear)
                 .Stack(PlotOptTypes::StackType::data_norm)
+                .Title(PlotOptTypes::TitleType::preliminary_validation)
                 .YTitleOffset(1.75)
                 .AutoYAxis(false)
                 .UseCMYK(false)
                 .LeftMargin(0.17)
                 .CanvasWidth(800)
                 .CanvasHeight(800)
+                .ErrorOnZeroData(1)
+                .Bottom(PlotOptTypes::BottomType::ratio)
                 .FileExtensions({"pdf"});
         ops = {an_cr_plot};
     } else if(select_options=="2D"){
         PlotOpt an_2D_hist("txt/plot_styles.txt","Eff2D");
         an_2D_hist().Stack(PlotOptTypes::StackType::data_norm)
              .YTitleOffset(1.)
+             .Title(PlotOptTypes::TitleType::simulation)
              .LabelSize(0.04)
-             .UseCMYK(true); 
+             .UseCMYK(true);
         ops = {an_2D_hist};
     } else if(select_options == "1D root"){
         PlotOpt an_cr_plot("txt/plot_styles.txt","CMSPaper");
         an_cr_plot.YAxis(PlotOptTypes::YAxisType::linear)
                 .YTitleOffset(1.75)
+                .Overflow(PlotOptTypes::OverflowType::none)
                 .AutoYAxis(false)
                 .UseCMYK(false)
                 .LeftMargin(0.17)
@@ -149,42 +167,102 @@ namespace CRUtilities{
           .AutoYAxis(true)
           .UseCMYK(false)
           .LeftMargin(0.17)
-          .LegendColumns(1)
+          .LegendColumns(2)
           .CanvasWidth(900)
           .Bottom(PlotOptTypes::BottomType::sorb)
           .FileExtensions({"pdf"});
       ops = {soverb};
     } else if(select_options == "soverb upper"){
       PlotOpt soverb_upper("txt/plot_styles.txt","CMSPaper");
-      soverb_upper.Title(PlotOptTypes::TitleType::info)
-          .YAxis(PlotOptTypes::YAxisType::log)
+      soverb_upper.YAxis(PlotOptTypes::YAxisType::log)
           .Stack(PlotOptTypes::StackType::signal_overlay)
           .Overflow(PlotOptTypes::OverflowType::both)
           .YTitleOffset(1.)
           .LogMinimum(0.001)
-          .AutoYAxis(true)
+          .AutoYAxis(false)
           .UseCMYK(false)
           .LeftMargin(0.17)
-          .LegendColumns(1)
+          .LegendColumns(2)
           .CanvasWidth(900)
           .Bottom(PlotOptTypes::BottomType::sorb_cut_upper)
+          .Title(PlotOptTypes::TitleType::preliminary)
           .FileExtensions({"pdf"});
       ops = {soverb_upper};
-    } else {
-        PlotOpt an_1D_plot("txt/plot_styles.txt","CMSPaper");
+    }else if(select_options == "shapes"){
+    PlotOpt an_1D_plot("txt/plot_styles.txt","Shapes");
         an_1D_plot.YAxis(PlotOptTypes::YAxisType::linear)
                 .YTitleOffset(1.75)
+                .LegendColumns(2)
                 .AutoYAxis(false)
                 .UseCMYK(false)
                 .LeftMargin(0.17)
                 .CanvasWidth(800)
                 .CanvasHeight(800)
+                .Bottom(PlotOptTypes::BottomType::ratio)
+                .Title(PlotOptTypes::TitleType::simulation)
+                .FileExtensions({"pdf"});
+         ops = {an_1D_plot};
+    } else {
+        PlotOpt an_1D_plot("txt/plot_styles.txt","CMSPaper");
+        an_1D_plot.YAxis(PlotOptTypes::YAxisType::linear)
+                .YTitleOffset(1.75)
+                .Overflow(PlotOptTypes::OverflowType::none)
+                .AutoYAxis(false)
+                .UseCMYK(false)
+                .LeftMargin(0.17)
+                .CanvasWidth(800)
+                .CanvasHeight(800)
+                .Title(PlotOptTypes::TitleType::simulation)
                 .FileExtensions({"pdf"});
          ops = {an_1D_plot};
     }
- 
     return ops;
  }
+
+std::tuple<std::vector<NamedFunc>,std::vector<std::string>> create_control_region_selections_and_labels(int category){//, bool plot_all, int category){
+
+  //Standard lepton flavor splits and string for each split
+  std::vector<NamedFunc>   lep_flavor = {"ll_lepid[0] == 11", "ll_lepid[0] == 13",   "1"};
+  std::vector<std::string> lep_str    = {              "_ee",             "_mumu", "_ll"};
+
+  std::cout << "Making vector with each control region" << std::endl;
+
+  //Makes 1D vector for plotting. As long as inner most loop is the categories can take %Ncategories to get correct plots for each category
+  std::vector<NamedFunc> NamedFunc_vector = {};
+  std::vector<std::string>    string_vector    = {};
+  NamedFunc control_region_selection = "1";
+  NamedFunc category_specific_control_region_selection = "1";
+
+  std::string control_region_name = "";
+  std::string category_specific_control_region_name = "";
+
+  //Loop that handles the addition of all the different control regions to plot
+  for(unsigned int idx_cr = 0; idx_cr < controlregions_vec.size(); idx_cr++){
+    for(unsigned int idx_lep = 0; idx_lep < lep_flavor.size(); idx_lep++){
+        control_region_name = "an_controlregions_" + run3_category_labels[category] ;//+ control_region_name;
+
+        //FSR photon control region requires the categories to have the mll selections not applied.
+        if(idx_cr==2){
+          //control_region_selection = controlregions_vec[idx_cr] && lep_flavor[idx_lep] && CatUtilities::run3_catwsel_nomll_vector[category];
+          NamedFunc_vector.push_back(controlregions_vec[idx_cr] && lep_flavor[idx_lep] && CatUtilities::run3_catwsel_nomll_vector[category]);
+        //Otherwise set the selection to the full category specific selection
+        } else {
+          //control_region_selection = controlregions_vec[idx_cr] && lep_flavor[idx_lep]  && CatUtilities::run3_catwsel_vector[category];
+          NamedFunc_vector.push_back(controlregions_vec[idx_cr] && lep_flavor[idx_lep]  && CatUtilities::run3_catwsel_vector[category]);
+        }
+
+        //Adding this control region to the ones that we want to plot
+        //NamedFunc_vector.push_back(control_region_selection);
+        string_vector.push_back(control_region_name);
+
+    }
+  }
+
+  //Piece of code that returns a tuple with the control region NamedFuncs and labels
+  return make_tuple(NamedFunc_vector,string_vector);
+
+}
+
 
 /*
 std::tuple<std::vector<NamedFunc>,std::vector<std::string>> create_control_region_selections_and_labels(std::string label, bool plot_all, int category){

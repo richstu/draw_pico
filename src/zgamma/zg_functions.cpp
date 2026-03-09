@@ -409,6 +409,16 @@ namespace ZgFunctions {
   });
 
 
+  const NamedFunc wgt10("wgt10",[](const Baby &b) -> NamedFunc::ScalarType{ 
+    if(b.SampleTypeString().Contains("-")) {return 1;}
+
+    double w_year = w_years.GetScalar(b);
+    if( b.type() >= 200000 && b.type() <= 200500 ){ w_year=w_year*10;}
+    if(std::isnan(b.weight())){ return b.w_lumi()*w_year;}
+    return b.weight()*w_year;
+  });
+
+
 
   const NamedFunc wgt_pin_fix("wgt_pin_fix",[](const Baby &b) -> NamedFunc::ScalarType{ 
     if(b.SampleTypeString().Contains("-")) {
