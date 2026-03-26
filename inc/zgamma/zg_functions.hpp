@@ -7,6 +7,11 @@
 #include "core/named_func.hpp"
 
 namespace ZgFunctions {
+ 
+  //Function returning if at truth level Z-->ee for SIGNAL (very basic implementation)
+  extern const NamedFunc Zee;
+  extern const NamedFunc Zmumu;
+  
   //isolated dielectron triggers for run 2
   extern const NamedFunc HLT_pass_dielectron;
 

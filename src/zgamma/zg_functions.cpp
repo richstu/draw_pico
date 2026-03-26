@@ -20,6 +20,22 @@ using NamedFuncUtilities::reduce_subleadfirst;
 
 namespace ZgFunctions {
 
+  //Checking the flavor of the parent particle for Z to ll events.
+  int Zchild(const Baby &b){
+    for(size_t i = 0; i < b.mc_id()->size(); i++){
+      int mcid = abs(b.mc_id()->at(i));
+      int mcmom= b.mc_mom()->at(i);
+      if( !(mcid == 11 || mcid == 13 || mcid==15) ){ continue;}
+      if(mcmom == 23) { return mcid; }
+    }
+    return -1;
+  }
+
+
+  //What flavor the truth Z decays to
+  const NamedFunc Zee("Zee",[](const Baby &b) -> NamedFunc::ScalarType{ return Zchild(b)==11; });
+  const NamedFunc Zmumu("Zmumu",[](const Baby &b) -> NamedFunc::ScalarType{ return Zchild(b)==13; });
+
   //isolated dielectron triggers for run 2
   const NamedFunc HLT_pass_dielectron("dielectron triggers",[](const Baby &b) -> NamedFunc::ScalarType{
     if (abs(b.SampleType())==2016)

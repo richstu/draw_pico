@@ -88,7 +88,7 @@ NamedFunc lep_eta_tr("lep_eta_tr",[](const Baby &b) -> NamedFunc::VectorType{
   double l2eta = AssignL2(b,true).Eta();
   return {l1eta,l2eta}; 
 });
-
+/*
 int Zchild(const Baby &b){
   for(size_t i = 0; i < b.mc_id()->size(); i++){
     int mcid = abs(b.mc_id()->at(i));
@@ -98,7 +98,7 @@ int Zchild(const Baby &b){
   }
   return -1;
 }
-
+*/
 //Get the truth photon index
 int ph_trmatch(const Baby &b){
   //Get truth photon index
@@ -130,8 +130,8 @@ int ph_trmatch(const Baby &b){
   return idx_trmatch;
 }
 
-NamedFunc Zee("Zee",[](const Baby &b) -> NamedFunc::ScalarType{ return Zchild(b)==11; });
-NamedFunc Zmumu("Zmumu",[](const Baby &b) -> NamedFunc::ScalarType{ return Zchild(b)==13; });
+//NamedFunc Zee("Zee",[](const Baby &b) -> NamedFunc::ScalarType{ return Zchild(b)==11; });
+//NamedFunc Zmumu("Zmumu",[](const Baby &b) -> NamedFunc::ScalarType{ return Zchild(b)==13; });
 
 //Functions to get idmva for a truth matched photon
 NamedFunc has_trmatch("has_trmatch",[](const Baby &b) -> NamedFunc::ScalarType{ return ph_trmatch(b) != -1; });
@@ -272,51 +272,4 @@ int main() {
   pm.MakePlots(1); 
 }
 
-  /*
-   
-  vector<NamedFunc> weight_list  = {"w_lep", "w_el", "w_mu", "w_fs_lep", "w_photon", "w_photon_id", "w_photon_csev", 
-                                    "w_btag", "w_btag_df", "w_bhig", "w_bhig_df", "w_isr", "w_btag_dc", "w_pu", "w_prefire", "w_trig"};
 
-  vector<string> weight_labels  = {"w_lep", "w_el", "w_mu", "w_fs_lep", "w_photon", "w_photon_id", "w_photon_csev", 
-                                      "w_btag", "w_btag_df", "w_bhig", "w_bhig_df", "w_isr", "w_btag_dc", "w_pu", "w_prefire", "w_trig"};
-
-  vector<string> weight_names = {"w_{eID}#cdot w_{eImini} #cdot w_{#mu ID} #cdot w_{#mu Imini}", "w_{e}", "w_{#mu}", "w_{fs,lep}", "w_{#gamma}", "w_{#gamma,id}", "w_{#gamma,csev}", 
-                                 "w_{btag}", "w_{b-tag,df}", "w_{b,hig}", "w_{b,hig df}", "w_{isr}", "w_{b-tag,dc}", "w_{PU}", "w_{pre-fire}", "w_{trig}"};
-
-
-     pm.Push<Hist1D>(Axis(80, -4.0,  4.0, l1_eta_tr,  "#eta(#mu_{1})",        {-2.4,2.4}), selection && Zmumu, procs_r2, ops).Weight(wgt).Tag("ShortName:an_objectdef_mu1_eta_r2").LuminosityTag(lumi_r23);; 
-  pm.Push<Hist1D>(Axis(80, -4.0,  4.0, l2_eta_tr,  "#eta(#mu_{2})",        {-2.4,2.4}), selection && Zmumu, procs_r2, ops).Weight(wgt).Tag("ShortName:an_objectdef_mu2_eta_r2").LuminosityTag(lumi_r23);;
-  pm.Push<Hist1D>(Axis(80, -4.0,  4.0, l1_eta_tr,  "#eta(#mu_{1})",        {-2.5,2.5}), selection && Zee, procs_r2, ops).Weight(wgt).Tag("ShortName:an_objectdef_e1_eta_r2").LuminosityTag(lumi_r23);; 
-  pm.Push<Hist1D>(Axis(80, -4.0,  4.0, l2_eta_tr,  "#eta(#mu_{2})",        {-2.5,2.5}), selection && Zee, procs_r2, ops).Weight(wgt).Tag("ShortName:an_objectdef_e2_eta_r2").LuminosityTag(lumi_r23);;
- 
-  pm.Push<Hist1D>(Axis(80, -4.0,  4.0, l1_eta_tr,  "#eta(#mu_{1})",        {-2.4,2.4}), selection && Zmumu, procs_r3, ops).Weight(wgt).Tag("ShortName:an_objectdef_mu1_eta_r3").LuminosityTag(lumi_r23);; 
-  pm.Push<Hist1D>(Axis(80, -4.0,  4.0, l2_eta_tr,  "#eta(#mu_{2})",        {-2.4,2.4}), selection && Zmumu, procs_r3, ops).Weight(wgt).Tag("ShortName:an_objectdef_mu2_eta_r3").LuminosityTag(lumi_r23);;
-  pm.Push<Hist1D>(Axis(80, -4.0,  4.0, l1_eta_tr,  "#eta(#mu_{1})",        {-2.5,2.5}), selection && Zee, procs_r3, ops).Weight(wgt).Tag("ShortName:an_objectdef_e1_eta_r3").LuminosityTag(lumi_r23);; 
-  pm.Push<Hist1D>(Axis(80, -4.0,  4.0, l2_eta_tr,  "#eta(#mu_{2})",        {-2.5,2.5}), selection && Zee, procs_r3, ops).Weight(wgt).Tag("ShortName:an_objectdef_e2_eta_r3").LuminosityTag(lumi_r23);;
- 
-
-
-   pm.Push<Hist1D>(Axis(50, 0, 2.5, "weight/w_lumi", "w_{total}/w_{lumi}", {}), Zee && selection,   procs_r2, ops).Weight(wgt).Tag("ShortName:an_objectdef_weight_ee_run2");
-  pm.Push<Hist1D>(Axis(50, 0, 2.5, "weight/w_lumi", "w_{total}/w_{lumi}", {}), Zee && selection,   procs_r3, ops).Weight(wgt).Tag("ShortName:an_objectdef_weight_ee_run3");
-
-  pm.Push<Hist1D>(Axis(50, 0, 2.5, "weight/w_lumi", "w_{total}/w_{lumi}", {}), Zmumu && selection, procs_r2, ops).Weight(wgt).Tag("ShortName:an_objectdef_weight_mumu_run2");
-  pm.Push<Hist1D>(Axis(50, 0, 2.5, "weight/w_lumi", "w_{total}/w_{lumi}", {}), Zmumu && selection, procs_r3, ops).Weight(wgt).Tag("ShortName:an_objectdef_weight_mumu_run3");
-
-  pm.Push<Hist1D>(Axis(50, 0, 2.5, "weight/w_lumi", "w_{total}/w_{lumi}", {}), Zee && ZgFunctions::tightened_baseline,   procs_r2, ops).Weight(wgt).Tag("ShortName:an_objectdef_weight_ee_wbs_run2");
-  pm.Push<Hist1D>(Axis(50, 0, 2.5, "weight/w_lumi", "w_{total}/w_{lumi}", {}), Zee && ZgFunctions::tightened_baseline,   procs_r3, ops).Weight(wgt).Tag("ShortName:an_objectdef_weight_ee_wbs_run3");
-
-  pm.Push<Hist1D>(Axis(50, 0, 2.5, "weight/w_lumi", "w_{total}/w_{lumi}", {}), Zmumu && ZgFunctions::tightened_baseline, procs_r2, ops).Weight(wgt).Tag("ShortName:an_objectdef_weight_mumu_wbs_run2");
-  pm.Push<Hist1D>(Axis(50, 0, 2.5, "weight/w_lumi", "w_{total}/w_{lumi}", {}), Zmumu && ZgFunctions::tightened_baseline, procs_r3, ops).Weight(wgt).Tag("ShortName:an_objectdef_weight_mumu_wbs_run3");
-
- 
-  
-  pm.Push<Hist1D>(Axis(40,   80,  100, "ll_m[0]",   "m_{ll} [GeV]",    {}), selection, procs, ops).Weight(wgt).Tag("ShortName:an_sigkin_ll_m");
-  pm.Push<Hist1D>(Axis(80,    0,  180, "ll_pt[0]",  "p_{T}(ll) [GeV]", {}), selection, procs, ops).Weight(wgt).Tag("ShortName:an_sigkin_ll_pt");
-  pm.Push<Hist1D>(Axis(80, -5.0,  5.0, "ll_eta[0]", "#eta(ll)",        {}), selection, procs, ops).Weight(wgt).Tag("ShortName:an_sigkin_ll_eta");
-  pm.Push<Hist1D>(Axis(63,-3.15, 3.15, "ll_phi[0]", "#phi(ll)",        {}), selection, procs, ops).Weight(wgt).Tag("ShortName:an_sigkin_ll_phi");
- 
-  pm.Push<Hist1D>(Axis(80,    0,   80, "photon_pt[0]", "p_{T}(#gamma) [GeV]", {}), selection, procs, ops).Weight(wgt).Tag("ShortName:an_sigkin_photon_pt");
-  pm.Push<Hist1D>(Axis(80, -2.5,  2.5, "photon_eta[0]","#eta(#gamma)",        {}), selection, procs, ops).Weight(wgt).Tag("ShortName:an_sigkin_photon_eta");
-  pm.Push<Hist1D>(Axis(63,-3.15, 3.15, "photon_phi[0]","#phi(#gamma)",        {}), selection, procs, ops).Weight(wgt).Tag("ShortName:an_sigkin_photon_phi");
-  pm.Push<Hist1D>(Axis(80,    0,    1, "photon_idmva[0]", "#gamma IDMVA",     {}), selection, procs, ops).Weight(wgt).Tag("ShortName:an_sigkin_photon_idmva");
-  */
