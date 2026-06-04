@@ -200,6 +200,7 @@ std::vector<float> jet_btagpnetb
 std::vector<float> jet_btagak4b
 std::vector<int>   jet_puid
 std::vector<float> jet_puid_disc
+std::vector<bool>  jet_puid_pass
 std::vector<float> jet_ne_emef
 std::vector<float> jet_qgl
 std::vector<bool>  jet_islep
@@ -394,6 +395,7 @@ std::vector<float> photon_pterr
 std::vector<float> photon_energyErr
 std::vector<float> photon_energy_raw
 std::vector<float> photon_origin_eta
+std::vector<bool> photon_hardprocess
 std::vector<float> photon_hoe
 std::vector<float> photon_esoversc
 std::vector<float> photon_essigmarr
@@ -508,6 +510,7 @@ float w_btag
 float w_btag_df
 float w_bhig
 float w_bhig_df
+float w_jetpuid
 float w_isr
 float w_btag_dc
 float w_pu
@@ -705,6 +708,8 @@ std::vector<float> sys_fs_udsghig
 std::vector<float> sys_bchig_uncorr
 std::vector<float> sys_udsghig_uncorr
 
+std::vector<float> sys_jetpuid
+
 std::vector<float> sys_trig
 std::vector<float> sys_trig_el
 std::vector<float> sys_trig_mu
@@ -733,18 +738,40 @@ std::vector<float> sys_el_pt_scaleup
 std::vector<float> sys_el_pt_scaledn
 std::vector<float> sys_el_pt_resup
 std::vector<float> sys_el_pt_resdn
+std::vector<bool>  sys_el_sig_scaleup
+std::vector<bool>  sys_el_sig_scaledn
+std::vector<bool>  sys_el_sig_resup
+std::vector<bool>  sys_el_sig_resdn
+
+std::vector<float> sys_el_enerr_scaleup
+std::vector<float> sys_el_enerr_scaledn
+std::vector<float> sys_el_enerr_resup
+std::vector<float> sys_el_enerr_resdn
 
 #index matches mu_*
 std::vector<float> sys_mu_pt_scaleup
 std::vector<float> sys_mu_pt_scaledn
 std::vector<float> sys_mu_pt_resup
 std::vector<float> sys_mu_pt_resdn
+std::vector<bool>  sys_mu_sig_scaleup
+std::vector<bool>  sys_mu_sig_scaledn
+std::vector<bool>  sys_mu_sig_resup
+std::vector<bool>  sys_mu_sig_resdn
 
 #index matches photon_*
 std::vector<float> sys_photon_pt_scaleup
 std::vector<float> sys_photon_pt_scaledn
 std::vector<float> sys_photon_pt_resup
 std::vector<float> sys_photon_pt_resdn
+std::vector<bool>  sys_photon_sig_scaleup
+std::vector<bool>  sys_photon_sig_scaledn
+std::vector<bool>  sys_photon_sig_resup
+std::vector<bool>  sys_photon_sig_resdn
+
+std::vector<float> sys_photon_enerr_scaleup
+std::vector<float> sys_photon_enerr_scaledn
+std::vector<float> sys_photon_enerr_resup
+std::vector<float> sys_photon_enerr_resdn
 
 # variations have index 0 (JER smearing up), 1 (JER smearing down), 2 (JES up) and 3 (JES down)
 # for met_phi only: indxes 4 (unclustered up) 5 (unclustered down) 6 (lepton photon up) 7 (lepton photon down)

@@ -885,6 +885,10 @@ namespace ZgFunctions {
   extern std::vector<NamedFunc> sys_met_scaledn;
   extern std::vector<NamedFunc> sys_met_resup;
   extern std::vector<NamedFunc> sys_met_resdn;
+  extern std::vector<NamedFunc> sys_jetpuid_up;
+  extern std::vector<NamedFunc> sys_jetpuid_dn;
+
+  extern const NamedFunc sys_met_veto;
 
   //dijet variations
   extern const NamedFunc sys_dijet_default;

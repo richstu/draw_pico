@@ -1,7 +1,5 @@
-#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v0/
-#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v0/
-#add NEW_SIGNAL_PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v1/
-#add NEW_SIGNAL_PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v1/
+#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v1/
+#add PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v1/
 #add SIGNAL_PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v0_systsignal/
 #add SIGNAL_PRODUCTION_NAME /net/cms11/cms11r0/pico/NanoAODv12/htozgamma_redwood_v0_systsignal/
 #add DATA_PRODUCTION_YEARS /net/cms11/cms11r0/pico/NanoAODv9/htozgamma_redwood_v0/2016APV/
@@ -103,6 +101,8 @@
 #add FILENAMES_BAK_ALL *DYGto2LG-1Jets_MLL-50_PTG-600*.root
 #add FILENAMES_BAK_ALL *DYJetsToLL_M-50_TuneCP5_13TeV-amcatnlo*.root
 #add FILENAMES_BAK_ALL *DYto2L-2Jets*.root
+#add FILENAMES_BAK_ALL *WJetsToLNu_Tune*.root
+#add FILENAMES_BAK_ALL *WGToLNuG*.root
 #add FILENAMES_BAK_ALL *EWKZ2Jets*.root
 #add FILENAMES_BAK_ALL *ZGamma2JToGamma2L2J_EWK*.root
 #add FILENAMES_BAK_ALL *ZG2JtoG2L2J_EWK*.root
@@ -312,20 +312,15 @@
     PaletteColor = vv
     Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_MULTIBOSON
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
-  [H#rightarrow #mu#mu]
-    ProcessType = 1
-    Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMUMU_ALL
-    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [H#rightarrow Z#gamma]
     ProcessType = 2
     PaletteColor = htozg
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
   [Data]
     ProcessType = 0
     Color = 1
-    Files = $PRODUCTION_NAME/$YEARS/$DATA_SLIM_LLG/$FILENAMES_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$DATA_SLIM_LLG/$FILENAMES_DATA
     Selection = trig_single_el||trig_single_mu||trig_double_el||trig_double_mu
 
 [[CondensedMC]]
@@ -349,6 +344,53 @@
     PaletteColor = htozg
     Files = $PRODUCTION_NAME/$YEARS/$SKIM_LLG/$FILENAMES_HZG_ALL
     Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+
+[[YieldsTable]]
+  [Nonresonant background]
+    ProcessType = 1
+    PaletteColor = dyjets
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_BAK_ALL
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [H#rightarrow#mu#mu]
+    ProcessType = 1
+    Color = 2
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMUMU_ALL
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [ggF H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = htozg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_GGF
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [VBF H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = htozg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_VBF
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [W^{+}H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = htozg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_WPH
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [W^{-}H#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = htozg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_WMH
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [ZH#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = htozg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ZH
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [ttH#rightarrow Z#gamma]
+    ProcessType = 2
+    PaletteColor = htozg
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TTH
+    Selection = use_event&&(trig_single_el||trig_single_mu||trig_double_el||trig_double_mu)
+  [Data]
+    ProcessType = 0
+    Color = 1
+    Files = $PRODUCTION_NAME/$YEARS/$DATA_SLIM_LLG/$FILENAMES_DATA
+    Selection = trig_single_el||trig_single_mu||trig_double_el||trig_double_mu
 
 [[MCtest]]
   [ggF]
@@ -382,17 +424,17 @@
   [Htozg_el]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
     Selection = hzg_elchannel
   [Htozg_mu]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_ALL
     Selection = hzg_muchannel
   [Htomm]
     ProcessType = 1
     Color = 1
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMUMU_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HMUMU_ALL
     Selection = use_event
 
 [[DatacardTuneUp]]
@@ -400,12 +442,12 @@
   [Htozg_el]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
     Selection = hzg_elchannel
   [Htozg_mu]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEUP
     Selection = hzg_muchannel
   [null]
 
@@ -414,12 +456,12 @@
   [Htozg_el]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
     Selection = hzg_elchannel
   [Htozg_mu]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG_TUNEDN
     Selection = hzg_muchannel
   [null]
 
@@ -427,22 +469,22 @@
   [Htozg120_el]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_ALL
     Selection = hzg_elchannel
   [Htozg120_mu]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG120_ALL
     Selection = hzg_muchannel
   [Htozg130_el]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_ALL
     Selection = hzg_elchannel
   [Htozg130_mu]
     ProcessType = 2
     Color = 2
-    Files = $SIGNAL_PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_ALL
+    Files = $PRODUCTION_NAME/$YEARS/$SLIM_LLG/$FILENAMES_HZG130_ALL
     Selection = hzg_muchannel
 
 [[VerboseMC]]

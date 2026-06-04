@@ -1,4 +1,5 @@
 // Joseph's code implementing on-the-fly energy error scale and smear for run 3
+// Now with more on-the-fly corrections from updated electron SFs
 
 #include "core/correction.hpp"
 #include "core/named_func.hpp"
@@ -147,3 +148,4 @@ NamedFunc assign_variation_lead_photon_relpterr_corrected(
     return energyErr_corrected/(lead_photon_pt*TMath::CosH(lead_photon_eta));
   }).EnableCaching(true);
 }
+

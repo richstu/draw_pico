@@ -20,11 +20,14 @@
 #include "core/plot_maker.hpp"
 #include "core/process.hpp"
 #include "core/utilities.hpp"
+#include "zgamma/eventweighter.hpp"
 #include "zgamma/scalesmear.hpp"
 #include "zgamma/zg_functions.hpp"
 #include "zgamma/zg_syst_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
 
+using std::cout;
+using std::endl;
 using std::make_shared;
 using std::set;
 using std::shared_ptr;
@@ -60,13 +63,17 @@ int main() {
   gErrorIgnoreLevel = 6000;
 
   //Define processes
-  vector<shared_ptr<Process>> processes = ZgSampleLoader() 
+  vector<shared_ptr<Process>> processes = ZgSampleLoader()
+        .SetMacro("YEARS",{"2016APV","2016","2017","2018"})
         .LoadSamples("txt/samples_zgamma.txt","Datacard");
   vector<shared_ptr<Process>> processes_tuneup = ZgSampleLoader() 
+        .SetMacro("YEARS",{"2016APV","2016","2017","2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardTuneUp");
   vector<shared_ptr<Process>> processes_tunedn = ZgSampleLoader() 
+        .SetMacro("YEARS",{"2016APV","2016","2017","2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardTuneDown");
   vector<shared_ptr<Process>> processes_aux = ZgSampleLoader() 
+        .SetMacro("YEARS",{"2016APV","2016","2017","2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardAux"); //m120, m130
 
   //Define NamedFuncs
@@ -177,25 +184,28 @@ int main() {
       "weight_reg",[](const Baby &b) -> NamedFunc::ScalarType{
     if (b.SampleTypeString().Contains("-")) 
       return 1.; //data
-    //fix for Hto2Mu in redwood_v0
+    //fix for WplusHto2Mu in redwood_v1
     if (abs(b.SampleType())>2020) {
-      if (b.type() == -28999) 
-        return b.weight()/(-999999.0)*52.23*0.000218;
-      if (b.type() == -29999) 
-        return b.weight()/(-999999.0)*4.078*0.000218;
-      if (b.type() == 29500)
-        return b.weight()*0.000218;
-      if (b.type() == -12999 || b.type() == 12500) 
-        return b.weight()*0.000218;
-      if (b.type() == -13999 || b.type() == 13500) 
+      if (b.type() == 12500)
         return b.weight()*0.000218;
     }
     if (fabs(b.weight()/b.w_lumi()) > 10) return b.w_lumi()*10.0;
     return b.weight();
   });
 
+  //const NamedFunc weight(
+  //    "weight",[weight_reg](const Baby &b) -> NamedFunc::ScalarType{
+  //  float we_years = w_years.GetScalar(b);
+  //  float we_reg = weight_reg.GetScalar(b);
+  //  float we_el = w_el.GetScalar(b);
+  //  float we_comb = we_years*we_reg*we_el;
+  //  if (b.SampleTypeString().Contains("-")) 
+  //    cout << "DEBUG: " << we_comb << endl;
+  //  return we_comb;
+  //});
+
   //Define weight
-  NamedFunc weight(w_years*weight_reg); 
+  NamedFunc weight(w_years*weight_reg*w_el); 
 
   //Define channels
   SelectionList baseline("baseline");
@@ -221,13 +231,17 @@ int main() {
   SelectionList cat_tthlep("cat_tthlep",baseline);
   SelectionList cat_untagged("cat_untagged",baseline);
 
-  cat_ggf4.AddSelection("ggfobjectreq","nlep==2&&met<90"&&sys_njet_default<2);
+  cat_ggf4.AddSelection("ggfobjectreq","nlep==2"&&sys_met_default<90
+                        &&sys_njet_default<2);
   cat_ggf4.AddSelection("ggf4bdtcuts",category_ggf4(ggf_score_default));
-  cat_ggf3.AddSelection("ggfobjectreq","nlep==2&&met<90"&&sys_njet_default<2);
+  cat_ggf3.AddSelection("ggfobjectreq","nlep==2"&&sys_met_default<90
+                        &&sys_njet_default<2);
   cat_ggf3.AddSelection("ggf3bdtcuts",category_ggf3(ggf_score_default));
-  cat_ggf2.AddSelection("ggfobjectreq","nlep==2&&met<90"&&sys_njet_default<2);
+  cat_ggf2.AddSelection("ggfobjectreq","nlep==2"&&sys_met_default<90
+                        &&sys_njet_default<2);
   cat_ggf2.AddSelection("ggf2bdtcuts",category_ggf2(ggf_score_default));
-  cat_ggf1.AddSelection("ggfobjectreq","nlep==2&&met<90"&&sys_njet_default<2);
+  cat_ggf1.AddSelection("ggfobjectreq","nlep==2"&&sys_met_default<90
+                        &&sys_njet_default<2);
   cat_ggf1.AddSelection("ggf1bdtcuts",category_ggf1(ggf_score_default));
 
   cat_vbf4.AddSelection("vbfobjectreq","nlep==2"&&sys_nbdfm_default==0.0
@@ -243,10 +257,10 @@ int main() {
                                        &&sys_njet_default>=2);
   cat_vbf1.AddSelection("vbf1bdtcuts",category_vbf1(vbf_score_default));
 
-  cat_vhmet.AddSelection("vhmetobjectreq","nlep==2&&met>90"
+  cat_vhmet.AddSelection("vhmetobjectreq","nlep==2"&&sys_met_default>90
                                           &&sys_njet_default<2);
   cat_vhmet.AddSelection("vhmetptllgreq","llphoton_pt[0]/llphoton_m[0]>0.4");
-  cat_vh3l.AddSelection("vh3lobjectreq","nlep>=3&&met>30"
+  cat_vh3l.AddSelection("vh3lobjectreq","nlep>=3"&&sys_met_default>30
                                         &&sys_nbdfm_default==0.0);
   cat_vh3l.AddSelection("vh3lminisoreq",max_lep_miniso<0.15);
   cat_vh3l.AddSelection("vh3lptllgreq","llphoton_pt[0]/llphoton_m[0]>0.3");
@@ -255,7 +269,8 @@ int main() {
                                             &&sys_njet_default>=5);
   cat_tthhad.AddSelection("tthhadzmassreq","ll_m[0]>85&&ll_m[0]<95");
   cat_tthlep.AddSelection("tthlepobjectreq",
-      ("nlep==3"&&sys_nbdfm_default>=1&&sys_njet_default>=3)||("nlep>=4"&&sys_nbdfm_default>=1&&sys_njet_default>=1));
+      ("nlep==3"&&sys_nbdfm_default>=1&&sys_njet_default>=3)
+      ||("nlep>=4"&&sys_nbdfm_default>=1&&sys_njet_default>=1));
   cat_tthlep.AddSelection("tthlepminisoreq",max_lep_miniso<0.1);
 
   cat_untagged.AddSelection("untagged",untagged_category_cached);
@@ -324,8 +339,8 @@ int main() {
                                    {weight*"sys_prefire[0]/w_prefire"},
                                    {weight*"sys_prefire[1]/w_prefire"}));
   systematics.push_back(Systematic("CMS_eff_e",{"weight"},
-                                   {weight*sys_w_el_up},
-                                   {weight*sys_w_el_dn}));
+                                   {weight*sys_el_up},
+                                   {weight*sys_el_dn}));
   systematics.push_back(Systematic("CMS_eff_m",{"weight"},
                                    {weight*sys_w_mu_up},
                                    {weight*sys_w_mu_dn}));
@@ -339,8 +354,8 @@ int main() {
                                    {weight*sys_trig_mu_up},
                                    {weight*sys_trig_mu_dn}));
   systematics.push_back(Systematic("CMS_quality_g",{"weight"},
-                                   {weight*"(1.5*w_phshape-0.5)/w_phshape"},
-                                   {weight*"(0.5*w_phshape+0.5)/w_phshape"}));
+                                   {weight*"(2.0*w_phshape-1.0)/w_phshape"},
+                                   {weight*"1.0/w_phshape"}));
   systematics.push_back(Systematic("CMS_btag_fixedWP_comb_bc_correlated",
                                    {"weight"},
                                    {weight*"sys_bchig[0]/w_btag_df"},
@@ -351,6 +366,12 @@ int main() {
                                    {weight*"sys_udsghig[1]/w_btag_df"}));
   for (unsigned iyear = 0; iyear < years.size(); iyear++) {
     string year = years_syst[iyear];
+    if (iyear <= 4) {
+      systematics.push_back(Systematic("CMS_eff_j_PUJetID_eff_"+year,
+          {"weight"},
+          {weight*sys_jetpuid_up[iyear]},
+          {weight*sys_jetpuid_dn[iyear]}));
+    }
     systematics.push_back(Systematic(
         "CMS_btag_fixedWP_comb_bc_uncorrelated_"+year,{"weight"},
         {weight*sys_bchig_uncorr_up[iyear]},
@@ -745,7 +766,11 @@ int main() {
          category_vbf2(vbf_score_jetresdn[iyear]),
          category_vbf1(vbf_score_jetresdn[iyear])},false));
   }
-
+  systematics.push_back(Systematic("CMS_metveto",
+      {"ggfobjectreq","vhmetobjectreq","vh3lobjectreq"},
+      {"nlep==2"&&sys_njet_default<2&&sys_met_veto<90,
+       "nlep==2"&&sys_njet_default<2&&sys_met_veto>90,
+       "nlep>=3"&&sys_nbdfm_default==0.0&&sys_met_veto>30},false));
 
   //Make datacard
   PlotMaker pm;
@@ -754,7 +779,7 @@ int main() {
   pm.max_threads_ = 16;
 
   //set axis range to be larger than range in any individual category
-  pm.Push<Datacard>("hzg_datacard_v1p3", channels, systematics, 
+  pm.Push<Datacard>("hzg_datacard_v1p4p1_run2", channels, systematics, 
       processes, weight,
       Axis(360, 90.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)

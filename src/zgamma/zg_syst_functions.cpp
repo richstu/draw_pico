@@ -1401,11 +1401,14 @@ namespace ZgFunctions {
 
   //get photon rel pt error with variation
   NamedFunc assign_variation_lead_photon_relpterr(const NamedFunc &ph_sig,
-      const NamedFunc &ph_pt, const string &name) {
+      const NamedFunc &ph_pt, const NamedFunc ph_energyErr, 
+      const string &name) {
     return NamedFunc(("sys_lead_photon_relpterr_"+name).c_str(),
-        [&ph_sig, &ph_pt](const Baby &b) -> NamedFunc::ScalarType{
+        [&ph_sig, &ph_pt, ph_energyErr](const Baby &b) 
+        -> NamedFunc::ScalarType{
       vector<double> photon_pt = ph_pt.GetVector(b);
       vector<double> photon_sig = ph_sig.GetVector(b);
+      vector<double> photon_energyErr = ph_energyErr.GetVector(b);
       double lead_photon_eta(0.0), lead_photon_pt(-999.0);
       double lead_photon_energyErr(0.0);
       for (unsigned iph = 0; iph < photon_sig.size(); iph++) {
@@ -1413,7 +1416,7 @@ namespace ZgFunctions {
           if (lead_photon_pt < photon_pt[iph]) {
             lead_photon_pt = photon_pt[iph];
             lead_photon_eta = b.photon_eta()->at(iph);
-            lead_photon_energyErr = b.photon_energyErr()->at(iph);
+            lead_photon_energyErr = photon_energyErr[iph];
           }
         }
       }
@@ -1424,20 +1427,20 @@ namespace ZgFunctions {
 
   //photon relpterr variations
   const NamedFunc sys_lead_photon_relpterr_default = 
-      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_default, 
-      sys_photon_pt_default, "default");
+      assign_variation_lead_photon_relpterr(sys_photon_sig_default, 
+      sys_photon_pt_default, "photon_energyErr", "default");
   const NamedFunc sys_lead_photon_relpterr_scaleup = 
-      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_scaleup, 
-      sys_photon_pt_scaleup, "scaleup");
+      assign_variation_lead_photon_relpterr(sys_photon_sig_scaleup, 
+      sys_photon_pt_scaleup, "sys_photon_enerr_scaleup", "scaleup");
   const NamedFunc sys_lead_photon_relpterr_scaledn = 
-      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_scaledn, 
-      sys_photon_pt_scaledn, "scaledn");
+      assign_variation_lead_photon_relpterr(sys_photon_sig_scaledn, 
+      sys_photon_pt_scaledn, "sys_photon_enerr_scaledn", "scaledn");
   const NamedFunc sys_lead_photon_relpterr_resup = 
-      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_resup, 
-      sys_photon_pt_resup, "resup");
+      assign_variation_lead_photon_relpterr(sys_photon_sig_resup, 
+      sys_photon_pt_resup, "sys_photon_enerr_resup", "resup");
   const NamedFunc sys_lead_photon_relpterr_resdn = 
-      assign_variation_lead_photon_relpterr_corrected(sys_photon_sig_resdn, 
-      sys_photon_pt_resdn, "resdn");
+      assign_variation_lead_photon_relpterr(sys_photon_sig_resdn, 
+      sys_photon_pt_resdn, "sys_photon_enerr_resdn", "resdn");
 
   //get Z candidate properties with variation
   //returns (pt, eta, phi, m, lepid, i1, i2, idx)
@@ -2925,6 +2928,28 @@ namespace ZgFunctions {
     return puid_loose;
   }).EnableCaching(true);
 
+  //Assigns variation met
+  NamedFunc assign_variation_met(const NamedFunc met, 
+      const string &name) {
+    return NamedFunc(("sys_met_"+name).c_str(),[met]
+        (const Baby &b) -> NamedFunc::ScalarType{
+      if (!b.ismapvetoevt() && !b.ishemvetoevt()) {
+        //no horn veto, which would cause large data/MC discrepancy in MET
+        return met.GetScalar(b);
+      }
+      return 0.0;
+    }).EnableCaching(true);
+  }
+
+  //Assigns met but only vetoing half as many jets
+  const NamedFunc sys_met_veto = NamedFunc("sys_met_veto",[]
+        (const Baby &b) -> NamedFunc::ScalarType{
+    if ((!b.ismapvetoevt() && !b.ishemvetoevt()) || (b.event()%2)==0) {
+      return b.met();
+    }
+    return 0.0;
+  }).EnableCaching(true);
+
   //jet variations separated by era
   const NamedFunc sys_jet_pt_default("jet_pt");
   vector<NamedFunc> sys_jet_pt_scaleup;
@@ -2936,8 +2961,10 @@ namespace ZgFunctions {
   vector<NamedFunc> sys_jet_m_scaledn;
   vector<NamedFunc> sys_jet_m_resup;
   vector<NamedFunc> sys_jet_m_resdn;
-  //const NamedFunc sys_jet_isgood_default("jet_isgood");
-  const NamedFunc sys_jet_isgood_default = NamedFunc("jet_isgood"&&jet_puid_loose).EnableCaching(true);
+  const NamedFunc sys_jet_isgood_default("jet_isgood");
+  //Redwood v0 and earlier don't have jet ID
+  //const NamedFunc sys_jet_isgood_default = NamedFunc("jet_isgood"
+  //    &&jet_puid_loose).EnableCaching(true);
   vector<NamedFunc> sys_jet_isgood_scaleup;
   vector<NamedFunc> sys_jet_isgood_scaledn;
   vector<NamedFunc> sys_jet_isgood_resup;
@@ -3023,25 +3050,27 @@ namespace ZgFunctions {
   vector<NamedFunc> sys_sublead_jet_phi_scaledn;
   vector<NamedFunc> sys_sublead_jet_phi_resup;
   vector<NamedFunc> sys_sublead_jet_phi_resdn;
-  //const NamedFunc sys_njet_default("njet");
-  const NamedFunc sys_njet_default = ReduceNamedFuncCached(
-      sys_jet_isgood_default,reduce_sum).Name("sys_njet_default");
+  const NamedFunc sys_njet_default("njet");
+  //const NamedFunc sys_njet_default = ReduceNamedFuncCached(
+  //    sys_jet_isgood_default,reduce_sum).Name("sys_njet_default");
   vector<NamedFunc> sys_njet_scaleup;
   vector<NamedFunc> sys_njet_scaledn;
   vector<NamedFunc> sys_njet_resup;
   vector<NamedFunc> sys_njet_resdn;
-  //const NamedFunc sys_nbdfm_default("nbdfm");
-  const NamedFunc sys_nbdfm_default = assign_variation_nbdfm(
-      sys_jet_isgood_default, "default");
+  const NamedFunc sys_nbdfm_default("nbdfm");
+  //const NamedFunc sys_nbdfm_default = assign_variation_nbdfm(
+  //    sys_jet_isgood_default, "default");
   vector<NamedFunc> sys_nbdfm_scaleup;
   vector<NamedFunc> sys_nbdfm_scaledn;
   vector<NamedFunc> sys_nbdfm_resup;
   vector<NamedFunc> sys_nbdfm_resdn;
-  const NamedFunc sys_met_default("met");
+  const NamedFunc sys_met_default = assign_variation_met("met","default");
   vector<NamedFunc> sys_met_scaleup;
   vector<NamedFunc> sys_met_scaledn;
   vector<NamedFunc> sys_met_resup;
   vector<NamedFunc> sys_met_resdn;
+  vector<NamedFunc> sys_jetpuid_up;
+  vector<NamedFunc> sys_jetpuid_dn;
 
   //dijet variations
   const NamedFunc sys_dijet_default = assign_variation_dijet(
@@ -3961,6 +3990,20 @@ namespace ZgFunctions {
   std::vector<std::vector<const NamedFunc*>> vbf_bdt_inputs_jetresup;
   std::vector<std::vector<const NamedFunc*>> vbf_bdt_inputs_jetresdn;
 
+  const NamedFunc sys_jetpuid_up_all(
+      "sys_jetpuid_up_all",[](const Baby &b) -> NamedFunc::ScalarType{
+    double w = b.sys_jetpuid()->at(0)/b.w_jetpuid();
+    if (isinf(w) || isnan(w)) w = 1.0;
+    return w;
+  });
+
+  const NamedFunc sys_jetpuid_dn_all(
+      "sys_jetpuid_dn_all",[](const Baby &b) -> NamedFunc::ScalarType{
+    double w = b.sys_jetpuid()->at(1)/b.w_jetpuid();
+    if (isinf(w) || isnan(w)) w = 1.0;
+    return w;
+  });
+
   //isgood requires !invetomap !inhemveto !inetahornveto !islep !isphoton eta 
   //fixedjetid pt
   //isgood_min includes !islep !isphoton eta fixedjetid !inethornveto
@@ -4043,6 +4086,8 @@ namespace ZgFunctions {
     sys_met_scaledn.reserve(years.size());
     sys_met_resup.reserve(years.size());
     sys_met_resdn.reserve(years.size());
+    sys_jetpuid_up.reserve(years.size());
+    sys_jetpuid_dn.reserve(years.size());
     sys_dijet_scaleup.reserve(years.size());
     sys_dijet_scaledn.reserve(years.size());
     sys_dijet_resup.reserve(years.size());
@@ -4155,19 +4200,19 @@ namespace ZgFunctions {
       //sys_jet_isgood_resdn.push_back(assign_isgood_pinnacles(
       //    sys_jet_pt_resdn[iyear], "resdn"+year));
       sys_jet_isgood_scaleup.push_back(NamedFunc(
-          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"&&jet_puid_loose
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem&&jet_puid_pass"
           &&sys_jet_pt_scaleup[iyear]>30.0).Name("sys_jet_isgood_scaleup"+year)
           .EnableCaching(true));
       sys_jet_isgood_scaledn.push_back(NamedFunc(
-          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"&&jet_puid_loose
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem&&jet_puid_pass"
           &&sys_jet_pt_scaledn[iyear]>30.0).Name("sys_jet_isgood_scaledn"+year)
           .EnableCaching(true));
       sys_jet_isgood_resup.push_back(NamedFunc(
-          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"&&jet_puid_loose
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem&&jet_puid_pass"
           &&sys_jet_pt_resup[iyear]>30.0).Name("sys_jet_isgood_resup"+year)
           .EnableCaching(true));
       sys_jet_isgood_resdn.push_back(NamedFunc(
-          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem"&&jet_puid_loose
+          "jet_isgood_min&&!jet_isvetomap&&!jet_isvetohem&&jet_puid_pass"
           &&sys_jet_pt_resdn[iyear]>30.0).Name("sys_jet_isgood_resdn"+year)
           .EnableCaching(true));
       sys_sig_jet_pt_scaleup.push_back(FilterNamedFuncCached(
@@ -4335,14 +4380,22 @@ namespace ZgFunctions {
           sys_jet_isgood_resup[iyear], "resup"+year));
       sys_nbdfm_resdn.push_back(assign_variation_nbdfm(
           sys_jet_isgood_resdn[iyear], "resdn"+year));
-      sys_met_scaleup.push_back(assign_sca_variation_year_select("sys_met[2]",
+      sys_met_scaleup.push_back(assign_sca_variation_year_select(
+          assign_variation_met("sys_met[2]","scaleupall"),
           "met", year, "sys_met_scaleup"));
-      sys_met_scaledn.push_back(assign_sca_variation_year_select("sys_met[3]",
+      sys_met_scaledn.push_back(assign_sca_variation_year_select(
+          assign_variation_met("sys_met[3]","scalednall"),
           "met", year, "sys_met_scaledn"));
-      sys_met_resup.push_back(assign_sca_variation_year_select("sys_met[0]",
+      sys_met_resup.push_back(assign_sca_variation_year_select(
+          assign_variation_met("sys_met[0]","resupall"),
           "met", year, "sys_met_resup"));
-      sys_met_resdn.push_back(assign_sca_variation_year_select("sys_met[1]",
+      sys_met_resdn.push_back(assign_sca_variation_year_select(
+          assign_variation_met("sys_met[1]","resdnall"),
           "met", year, "sys_met_resdn"));
+      sys_jetpuid_up.push_back(assign_sca_variation_year_select(
+          sys_jetpuid_up_all, "1", year, "sys_jetpuid_up"));
+      sys_jetpuid_dn.push_back(assign_sca_variation_year_select(
+          sys_jetpuid_dn_all, "1", year, "sys_jetpuid_dn"));
       sys_dijet_scaleup.push_back(assign_variation_dijet(
           sys_jet_isgood_scaleup[iyear], sys_jet_pt_scaleup[iyear], 
           sys_jet_m_scaleup[iyear], "scaleup"));
@@ -6182,7 +6235,5 @@ namespace ZgFunctions {
       &sys_sublead_jet_pt_default,
       &sys_photon_mht_dphi_phresdn
       };
-
-  //check other stuff for redwood changes... TODO
   
 }

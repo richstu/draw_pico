@@ -1587,7 +1587,8 @@ vector<shared_ptr<TLegend> > Hist1D::GetLegends(){
   if(this_opt_.DisplayLumiEntry()){
     auto &leg = legends.at(GetLegendIndex(entries_added, n_entries, legends.size()));
     ostringstream label;
-    if (luminosity_tag_ != "") label << fixed  << "L=" << setprecision(1) << luminosity_tag_ << " fb^{-1}";
+    if (energy_label_ != "") label << fixed << energy_label_;
+    else if (luminosity_tag_ != "") label << fixed  << "L=" << setprecision(1) << luminosity_tag_ << " fb^{-1}";
     else if(luminosity_ != 1.0) label << fixed  << "L=" << setprecision(1) << luminosity_ << " fb^{-1}";
     else label << fixed << setprecision(1) << "L=137 fb^{-1}";
     //else label << fixed << setprecision(1) << "L=" << 36.8 << " fb^{-1}";
