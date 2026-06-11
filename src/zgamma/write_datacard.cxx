@@ -64,16 +64,12 @@ int main() {
 
   //Define processes
   vector<shared_ptr<Process>> processes = ZgSampleLoader()
-        .SetMacro("YEARS",{"2016APV","2016","2017","2018"})
         .LoadSamples("txt/samples_zgamma.txt","Datacard");
   vector<shared_ptr<Process>> processes_tuneup = ZgSampleLoader() 
-        .SetMacro("YEARS",{"2016APV","2016","2017","2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardTuneUp");
   vector<shared_ptr<Process>> processes_tunedn = ZgSampleLoader() 
-        .SetMacro("YEARS",{"2016APV","2016","2017","2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardTuneDown");
   vector<shared_ptr<Process>> processes_aux = ZgSampleLoader() 
-        .SetMacro("YEARS",{"2016APV","2016","2017","2018"})
         .LoadSamples("txt/samples_zgamma.txt","DatacardAux"); //m120, m130
 
   //Define NamedFuncs
@@ -317,6 +313,8 @@ int main() {
                                    {weight*sys_w_alphas}));
   systematics.push_back(Systematic("param_mq",{"weight"},
                                    {weight*sys_w_mq}));
+  systematics.push_back(Systematic("nonres_interf",{"weight"},
+                                   {weight*sys_w_interference}));
   systematics.push_back(Systematic("ps_isr",{"weight"},
                                    {weight*"sys_ps[0]"},
                                    {weight*"sys_ps[2]"}));
@@ -779,7 +777,7 @@ int main() {
   pm.max_threads_ = 16;
 
   //set axis range to be larger than range in any individual category
-  pm.Push<Datacard>("hzg_datacard_v1p4p1_run2", channels, systematics, 
+  pm.Push<Datacard>("hzg_datacard_v1p4p2", channels, systematics, 
       processes, weight,
       Axis(360, 90.0, 180.0, mllg, "m_{ll#gamma} [GeV]", {}))
       .AddHistOnlyProcesses(processes_aux)

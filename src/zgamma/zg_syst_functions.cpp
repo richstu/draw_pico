@@ -127,6 +127,17 @@ namespace ZgFunctions {
     return 1.0+unc;
   });
 
+  //weight implementing interference for ggF
+  const NamedFunc sys_w_interference("sys_w_interference",
+      [](const Baby &b) -> NamedFunc::ScalarType{
+    float unc = 0.0;
+    //in linear approximation N=xs*BR implies dN/N=dxs/xs+dBR/BR
+    //TODO add 13.6 TeV uncertainties and year check
+    if (b.type() == 200000 || (b.type() >= 28000 && b.type() < 29000)) //ggF
+      unc = 0.03;
+    return 1.0+unc;
+  });
+
   //weight implementing variations in PDFs for ggF
   const NamedFunc sys_w_pdf_ggf("sys_w_pdf_ggf",
       [](const Baby &b) -> NamedFunc::ScalarType{

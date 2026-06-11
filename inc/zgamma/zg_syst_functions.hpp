@@ -30,6 +30,9 @@ namespace ZgFunctions {
   //weight implementing variations in alphaS
   extern const NamedFunc sys_w_alphas;
 
+  //weight implementing interference for ggF
+  extern const NamedFunc sys_w_interference;
+
   //weight implementing variations in PDFs for ggF
   extern const NamedFunc sys_w_pdf_ggf;
 

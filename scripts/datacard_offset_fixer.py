@@ -11,8 +11,8 @@ def line_item(str_list, idx):
 
 if __name__ == '__main__':
   #todo add arguments
-  input_filename = 'datacards/hzg_datacard_v1p4p1_run2.txt'
-  output_filename = 'datacards/hzg_datacard_v1p4p1_run2_cleaned.txt'
+  input_filename = 'datacards/hzg_datacard_v1p4p2.txt'
+  output_filename = 'datacards/hzg_datacard_v1p4p2_cleaned.txt'
   output_content = ''
   with open(input_filename, 'r') as datacard:
     input_content = datacard.read().split('\n')
