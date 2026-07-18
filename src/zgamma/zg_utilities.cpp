@@ -997,6 +997,17 @@ namespace ZgUtilities {
     }).EnableCaching(true);
   }
 
+  //returns NamedFunc that multiplies signal by fixed ratio
+  NamedFunc get_w_sigscale(float scale) {
+    return NamedFunc(("w_sigscale" + to_string(scale)).c_str(),[scale]
+                     (const Baby &b) 
+        -> NamedFunc::ScalarType{
+      if(b.type() >= 200000 && b.type() < 201000)
+        return scale;
+      return 1.0;
+    }).EnableCaching(true);
+  }
+
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader() {
     SampleLoader zg_sample_loader;

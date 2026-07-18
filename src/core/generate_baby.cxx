@@ -902,6 +902,8 @@ void WriteBaseSource(const set<Variable> &vars){
   file << "  if(filename.Contains(\"/2018/\"))      samp_type = 2018;\n";
   file << "  if(filename.Contains(\"/2022\"))       samp_type = 2022;\n";
   file << "  if(filename.Contains(\"/2023\"))       samp_type = 2023;\n";
+  file << "  if(filename.Contains(\"/2024\"))       samp_type = 2024;\n";
+  file << "  if(filename.Contains(\"/2025\"))       samp_type = 2025;\n";
   file << "  // Ignore string left to pico\n";
   file << "  TString t_filename = filename;\n";
   file << "  //if(filename.Contains(\"data\"))     samp_type *= -1;\n";
@@ -930,6 +932,8 @@ void WriteBaseSource(const set<Variable> &vars){
   file << "  if(filename.Contains(\"/2022EE/\"))      samp_type = \"2022EE\";\n";
   file << "  if(filename.Contains(\"/2023/\"))        samp_type = \"2023\";\n";
   file << "  if(filename.Contains(\"/2023BPix/\"))    samp_type = \"2023BPix\";\n";
+  file << "  if(filename.Contains(\"/2024/\"))        samp_type = \"2024\";\n";
+  file << "  if(filename.Contains(\"/2025/\"))        samp_type = \"2025\";\n";
   file << "  // Ignore string left to pico\n";
   file << "  TString t_filename = filename;\n";
   file << "  if(t_filename.Remove(0,t_filename.Index(\"/pico\")).Contains(\"data\"))     samp_type.Prepend(\"-\");\n";

@@ -1131,7 +1131,7 @@ vector<shared_ptr<TLatex> > Hist1D::GetTitleTexts() const{
     out.back()->SetTextAlign(31);
     out.back()->SetTextFont(this_opt_.Font());
     out.back()->SetTextSize(this_opt_.TitleSize());
-    if (Contains(luminosity_tag_, "TeV"))
+    if (energy_label_ != "")
       out.back()->SetTextSize(0.025);
   }
   return out;

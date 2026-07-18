@@ -129,6 +129,10 @@ namespace ZgFunctions {
       return 17.79;
     else if (b.SampleTypeString()=="2023BPix")
       return 9.45;
+    else if (b.SampleTypeString()=="2024")
+      return 109.95;
+    else if (b.SampleTypeString()=="2025")
+      return 110.84;
     else
       return 1.0;
   });

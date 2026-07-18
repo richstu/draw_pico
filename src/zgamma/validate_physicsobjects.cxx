@@ -17,6 +17,7 @@
 #include "core/hist2d.hpp"
 #include "core/plot_maker.hpp"
 #include "core/process.hpp"
+#include "zgamma/eventweighter.hpp"
 #include "zgamma/zg_functions.hpp"
 #include "zgamma/zg_utilities.hpp"
 #include "zgamma/photon_weighter.hpp"
@@ -78,12 +79,18 @@ void AddElectronPlots(PlotMaker& pm, const NamedFunc& selection,
   pm.Push<Hist1D>(
       Axis(25,0.0,100.0, "el_pt[1]", "Sublead electron p_{T} [GeV]", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
+  //pm.Push<Hist1D>(
+  //    Axis(25,-2.5,2.5, "el_eta[0]", "Lead electron #eta", {}), 
+  //    selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
-      Axis(25,-2.5,2.5, "el_eta[0]", "Lead electron #eta", {}), 
+      Axis(49,-2.45,2.45, "el_eta[0]", "Lead electron #eta", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
-      Axis(25,-2.5,2.5, "el_eta[1]", "Sublead electron #eta", {}), 
+      Axis(49,-2.45,2.45, "el_eta[1]", "Sublead electron #eta", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
+  //pm.Push<Hist1D>(
+  //    Axis(25,-2.5,2.5, "el_eta[1]", "Sublead electron #eta", {}), 
+  //    selection, procs, ops).Weight(weight).Tag(tag);
   pm.Push<Hist1D>(
       Axis(25,-3.1416,3.1416, "el_phi[0]", "Lead electron #phi", {}), 
       selection, procs, ops).Weight(weight).Tag(tag);
@@ -864,8 +871,8 @@ int main() {
   //                                       settings
   //---------------------------------------------------------------------------
 
-  string production = "pinnaclesv0";
-  string years = "Run2";
+  string production = "sequoiav1";
+  string years = "2025";
 
   //---------------------------------------------------------------------------
   //                                    initialization
@@ -924,6 +931,18 @@ int main() {
     year_set = {"2023BPix"};
     data_dirs = {"/net/cms11/cms11r0/pico/NanoAODv12/"
                  "htozgamma_pinnacles_v0/2023BPix/"};
+  }
+  else if (years == "2024") {
+    lumi_string = "110";
+    year_set = {"2024"};
+    data_dirs = {"/net/cms11/cms11r0/pico/NanoAODv15/"
+                 "htozgamma_sequoia_v0/2024/"};
+  }
+  else if (years == "2025") {
+    lumi_string = "111";
+    year_set = {"2025"};
+    data_dirs = {"/net/cms11/cms11r0/pico/NanoAODv15/"
+                 "htozgamma_sequoia_v1/2025/"};
   }
   else if (years == "Run2") {
     lumi_string = "138";
@@ -1008,6 +1027,28 @@ int main() {
         {Process::Type::background});
     procs_data = ZgSampleLoader().SetMacro("YEARS",year_set)
         .LoadSamples("txt/samples_zgamma_kingscanyonv0.txt",region,
+        {Process::Type::data});
+    SetProcessesBackground(procs_data);
+  }
+  else if (production == "redwoodv1") {
+    procs = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma.txt",region);
+    procs_mc = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma.txt",region,
+        {Process::Type::background});
+    procs_data = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma.txt",region,
+        {Process::Type::data});
+    SetProcessesBackground(procs_data);
+  }
+  else if (production == "sequoiav1") {
+    procs = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma.txt",region);
+    procs_mc = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma.txt",region,
+        {Process::Type::background});
+    procs_data = ZgSampleLoader().SetMacro("YEARS",year_set)
+        .LoadSamples("txt/samples_zgamma.txt",region,
         {Process::Type::data});
     SetProcessesBackground(procs_data);
   }
@@ -1469,6 +1510,29 @@ int main() {
     return b.weight()/b.w_prefire()*b.sys_prefire()->at(1)
            *w_years.GetScalar(b);
   });
+
+  //weight with some regularization
+  const NamedFunc weight_reg(
+      "weight_reg",[](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString().Contains("-")) 
+      return 1.; //data
+    //fix for WplusHto2Mu in redwood_v1
+    if (abs(b.SampleType())>2020) {
+      if (b.type() == 12500)
+        return b.weight()*0.000218;
+    }
+    if (fabs(b.weight()/b.w_lumi()) > 10) return b.w_lumi()*10.0;
+    return b.weight();
+  });
+
+  const NamedFunc w_notrig(
+      "w_notrig",[](const Baby &b) -> NamedFunc::ScalarType{
+    if (b.SampleTypeString().Contains("-")) 
+      return 1.; //data
+    if (b.w_trig() > 0.01)
+      return 1.0/b.w_trig();
+    return 1.0;
+  });
   
   //---------------------------------------------------------------------------
   //                                   plots and tables
@@ -1537,8 +1601,10 @@ int main() {
   //do plots from regular analysis sideband
   bool do_sideband = true;
   if (do_sideband) {
-    vector<NamedFunc> weights = {"weight"*w_years*w_photon_shape*w_photon_lowpt
-                                 *w_fake*w_kinematicdnn};
+    //vector<NamedFunc> weights = {"weight"*w_years*w_photon_shape*w_photon_lowpt
+    //                             *w_fake*w_kinematicdnn};
+    //vector<NamedFunc> weights = {"weight"*w_years};
+    vector<NamedFunc> weights = {weight_reg*w_years*w_notrig};
                                  //"weight"*w_years*w_photon_shape*w_photon_lowpt
                                  //*w_fake*w_llph_pt,
                                  //"weight"*w_years*w_photon_shape*w_photon_lowpt

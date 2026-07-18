@@ -112,6 +112,9 @@ namespace ZgUtilities {
   //returns NamedFunc that selects very high BDT score category "ggF 1"
   NamedFunc category_ggf1(const NamedFunc &bdtscore);
 
+  //returns NamedFunc that scales signal by fixed ratio
+  NamedFunc get_w_sigscale(float scale);
+
   //returns a sample loader that has the H->Zy colors pre-sets and NamedFuncs loaded
   SampleLoader ZgSampleLoader();
 
